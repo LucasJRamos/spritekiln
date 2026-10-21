@@ -1,0 +1,730 @@
+pxforge: 1
+name: huntress
+kind: character
+size: 96                 # quadro 96: rifle apontado para e/w + clarão do disparo pesado não cabem em 64 (ver brief)
+directions: 8
+palette: [../../palettes/gothic.yaml, ../../palettes/huntress.yaml]
+camera: {pitch: 38, scale: 0.040, center: [0, 0.95, 0]}   # mesma densidade dos humanoides (ADR-017)
+shadow: {rx: 9, ry: 3.2, alpha: 120}
+
+brief:
+  summary: caçadora de monstros gótica aristocrática (Bloodborne + pistoleira vitoriana); jovem, confiante e provocadora,
+    esguia, angular e assimétrica; duas pistolas de cano longo, rifle no ataque pesado, mina como especial
+  reference: "splash.png (cópia de D:/GameProjects/tower-hunt/refs/cacadora.png, vista ~s, câmera baixa);
+    splash_alpha.png = recorte com fundo e vãos (entre as pernas, braço/arma) transparentes;
+    splash_alpha_pitch38.png = mesmo recorte com altura × cos 38° (como a splash apareceria na câmera do jogo)"
+  proportions: "1,83 de altura sem o chapéu (2,02 com ele; ~43 px de altura na tela); quadril a 1,01 (pernas = 55% da
+    altura, como na splash); ombros a 1,46 (0,36 entre articulações); cabeça 1,2×; aba do chapéu 0,52 de largura
+    (≈2× a cabeça) e copa alta"
+  must_keep:
+    - chapéu preto de abas largas e assimétricas (levantada em ponta no lado esquerdo dela, larga e baixa no direito,
+      curta na frente, fivela dourada na copa) sem engolir o rosto nas direções s/se/sw
+    - casaca curta preta em fraque (aberta na frente, barra em A, abas longas atrás) com forro vinho nas lapelas, nos revers
+      da abertura, por dentro da barra e na fenda de trás
+    - cabelo loiro dourado curto e ondulado (chanel) aparecendo sob a aba em todas as direções
+    - duas pistolas de cano longo (aço escurecido + tambor e boca dourados), uma em cada mão
+    - silhueta esguia, pernas longas, botas altas acima do joelho (borda de couro marrom)
+  simplify:
+    - colete marrom + camisa marfim viram um bloco de cor no peito (marfim em cima, marrom embaixo)
+    - fivelas, rebites, pingente, gola alta, cartuchos individuais e proteções metálicas somem
+    - dois cintos viram um cinto marrom na cintura + um cinturão inclinado no quadril, fivela dourada de 1-2 px
+    - manga bufante marfim vira 1 ponto de cor no cotovelo; luvas longas de couro escuro até o cotovelo
+    - salto da bota vira 1 px atrás do pé; olhos 1 px; boca 1 px vinho
+  palette_notes: [pele clara (pale), loiro dourado (blond), preto violeta da casaca/chapéu (coatk; aba 1 tom abaixo da copa),
+    calça cinza-frio (pantk), couro escuro de botas/luvas (bootk), marrom do colete/cintos/coldres (vestbr), marfim (ivory),
+    forro vinho (blood da gothic), ouro (gold da gothic), aço escurecido (gunmetal), nogueira escura do rifle (walnut)]
+  ref_check: "ref compare --dir s --anim test_ref: IoU 0.560 contra splash_alpha.png (teto teórico ~0,56: a própria splash
+    achatada por cos 38° dá 0,556 contra ela mesma) e 0.651 contra splash_alpha_pitch38.png, dicas por faixa ≤ 0,17 (base 0,17; 50-60% 0,15)"
+  decisions:
+    - "quadro 96 px (não 64): no disparo pesado (test_rifle_fire) rifle + clarão chegam a 34 px do centro em e/w e 34 px
+      acima do centro em n; em 64 px o limite é 30 (32 - 2 de margem). Com o quadro 96 sobram ≥19 px em todas as poses de teste"
+    - "altura 1,83 (não 1,75): pernas alongadas para a proporção da splash (pernas = 55%). Para voltar a ~1,75: torso_rot
+      em 0.98 e leg_L.lengths [0.46, 0.44]"
+    - "rifle (proposta de arte, não aparece na splash): ≈1,2 m, cano de aço escurecido, guarda-mão e coronha de nogueira
+      escura, luneta de latão (dourado), anel, soleira e boca dourados. Fora do pesado ele NÃO aparece (sai de dentro da
+      casaca/costas no rifle_draw); não fica pendurado nas costas para não poluir a silhueta"
+    - "dois coldres de couro na frente/fora das coxas (a splash mostra um): vazios com as pistolas nas mãos; com gun=1 (ou
+      mine_X=1 na mão daquele lado) a coronha da pistola aparece no coldre"
+    - "costas (a splash não mostra): casaca preta lisa com abas até o joelho e fenda central mostrando o forro vinho;
+      cabelo loiro visível na nuca abaixo da aba"
+    - "trapaça por direção no chapéu: com o lado direito dela para a câmera (se/e) a ponta frontal direita da aba recolhe
+      e sobe (pulse(yaw, 67, 75)), para o rosto aparecer em se; nas outras direções a aba é a mesma"
+    - "pose de repouso neutra: pistolas baixas para frente-baixo e um pouco para fora (gyaw 0.35), para lerem nas 8 direções;
+      a pose da splash (pistola direita erguida junto ao chapéu, pernas abertas) está em test_ref como sugestão de idle"
+    - "mina na mão = mesmo disco do prop specs/props/mine/mine.yaml (luz âmbar)"
+    - "revisão do pixel-art-director (correções 1-8) aplicada. Desvios dos números dele: casaca gamma 1.5 (não 1.2) para
+      manter ~30% da casaca na banda 2; tom 3 de coatk de #322a38 para #362e3d (L* 18,5 -> 20,3: a mediana de L* fica presa
+      nesse tom); revers assentado na casca medida (a [0.059,-0.05,0.121] b [0.130,-0.28,0.120] c [0.212,-0.38,0.014]);
+      lapelas r [0.032, 0.024] até y 0.19 (ele pediu r [0.026, 0.018] até 0.25) para o vinho passar de 30 px em se/sw.
+      light.rim_strength não foi mexido (o contorno do lado da sombra continua visível)"
+  animator_notes:
+    - "braços: IK 2 ossos (0.28 + 0.265) do ombro até o pulso; hand_X no espaço torso_rot (x>0 = para fora); elbow_X =
+      pole do cotovelo. A pistola segue o antebraço: gpitch_X (negativo = cano sobe, recuo), gyaw_X (+ = para fora)"
+    - "mira com as duas pistolas (run_shoot/shoot_r/shoot_l): hand ≈ [0.11, 0.33, 0.50], elbow ≈ [0.6, -1, -0.3],
+      gyaw ≈ 0.05 (test_aim); recuo = gpitch -0.5 + hand recua ~0.08 em z; clarão flash_X 0..1 (boca a 0.43 do pulso)"
+    - "rifle: gun=1 liga o rifle e as duas mãos vão sozinhas para rgrip_R/rgrip_L (pulso no rifle); free_X=1 solta uma
+      mão (ex.: só a direita puxa o rifle das costas no rifle_draw). Mova o rifle por rifle_pos/rifle_pitch/rifle_yaw
+      (espaço torso_rot). Postura de tiro: twist -0.6 + rifle_yaw +0.6 (= -twist) + head_yaw 0.5 (test_rifle); sem o
+      twist a mão esquerda não alcança o guarda-mão. Recuo: rifle_pitch negativo + rifle_pos z menor; rflash 0..1"
+    - "mina: mine_L=1 põe a mina na mão esquerda (a pistola esquerda vai para o coldre); test_mine = agachada (bob -0.30,
+      lean 0.35). O evento release do place_mine é quando mine_L volta a 0 (o prop aparece no jogo)"
+    - "casaca: coat + = barra esvoaça para trás (já compensa lean). sgn_L/sgn_R são auxiliares do espelhamento do rifle: não animar"
+    - "idle: parta do test_ref (pistola direita erguida junto ao chapéu, pernas abertas) - é a pose da splash"
+    - "aim_heavy / shoot_heavy: use rifle_pitch: \"-0.3*pulse(yaw, 0, 70)\" (levanta o cano só perto de s, onde o rifle
+      aponta para a câmera e some de ponta)"
+    - "tiro em s (shoot_r / shoot_l / run_shoot): gyaw ~ +0.15 para a pistola não ficar de ponta para a câmera"
+    - "(animator, T1.19) `yaw` vale 0 nos canais das animações (frames_of avalia antes da direção); só bones/partes/ik veem a
+      direção. Por isso a trapaça do rifle virou o canal rpitch_s (padrão 0; aim/shoot_heavy usam -0.3), somado como
+      rpitch_s*pulse(yaw, 0, 70) no bone rifle e no alvo do IK dos braços; gyaw das pistolas ficou 0.15 constante"
+
+materials:
+  skin:     {ramp: pale, bands: [2, 5]}
+  hair:     {ramp: blond, bands: [2, 5]}
+  coat:     {ramp: coatk, bands: [2, 5], gamma: 1.5}   # 1.5 (diretor: 1.2) para manter ~30% na banda 2
+  hat:      {ramp: coatk, bands: [2, 5]}
+  hat_brim: {ramp: coatk, bands: [1, 4]}   # aba um tom abaixo da copa (separa as duas formas)
+  lining:   {ramp: blood, bands: [2, 4], gamma: 0.8}
+  vest:     {ramp: vestbr, bands: [1, 4]}
+  shirt:    {ramp: ivory, bands: [2, 5]}
+  pants:    {ramp: pantk, bands: [2, 4]}
+  boot:     {ramp: bootk, bands: [1, 4]}
+  glove:    {ramp: bootk, bands: [2, 4]}
+  leather:  {ramp: vestbr, bands: [2, 4]}
+  gold:     {ramp: gold, bands: [2, 5]}
+  gunmetal: {ramp: gunmetal, bands: [2, 5]}
+  wood:     {ramp: walnut, bands: [1, 4]}
+  ink:      {ramp: coatk, emissive: true, band: 0, outline: false}
+  lips:     {ramp: blood, bands: [2, 3], line: false}
+  mine_glow: {ramp: mine_amber, emissive: true, band: 2, outline: false, glow: {color: "#ffa62a", mix: 0.5, radius: 1}}
+  fx_tail:  {ramp: fx_tail, emissive: true}
+  fx_mid:   {ramp: fx_mid, emissive: true}
+  fx_core:  {ramp: fx_core, emissive: true}
+
+channels:
+  root: [0, 0, 0]
+  bob: 0
+  lean: 0.03
+  twist: 0
+  roll: 0
+  squash: 1
+  head_pitch: 0
+  head_yaw: 0
+  # braços: IK no espaço torso_rot; canais _R espelhados (x > 0 = para fora do corpo)
+  hand_L: [0.24, 0.06, 0.20]      # mão (pulso) no modo pistolas
+  elbow_L: [0.35, -0.30, -1.0]    # para onde o cotovelo aponta (pole), torso_rot
+  gpitch_L: 0                     # pistola em relação ao antebraço: 0 = alinhada; negativo = cano para cima (recuo)
+  gyaw_L: 0.35                    # pistola gira para fora (+) em relação ao antebraço
+  flash_L: 0                      # clarão na boca da pistola (0..1)
+  gyaw_s: 0                       # (animator) abertura extra das pistolas só perto de s: gyaw_X + gyaw_s*pulse(yaw, 0, 70)
+  mine_L: 0                       # 1 = mina na mão (a pistola dessa mão vai para o coldre)
+  foot_L: [0.10, 0, 0.02]
+  pitch_foot_L: 0
+  coat: 0                         # barra da casaca: + = esvoaça para trás
+  # armas
+  gun: 0                          # 0 = pistolas nas mãos | 1 = rifle nas mãos (pistolas nos coldres)
+  free_L: 0                       # com gun=1: 1 solta essa mão do rifle (volta a seguir hand_L)
+  rifle_pos: [-0.03, 0.45, 0.30]  # origem do rifle (punho/gatilho) no espaço torso_rot, coordenada real (x>0 = esquerda dela);
+                                  # pensado para a postura twist -0.6 / rifle_yaw 0.6 (test_rifle)
+  rifle_pitch: 0                  # + = cano para baixo
+  rifle_yaw: 0.0                  # + = cano para a esquerda dela (compense -twist para mirar à frente)
+  rifle_roll: 0
+  rpitch_s: 0                     # (animator) pitch extra do rifle só perto de s: rifle_pitch + rpitch_s*pulse(yaw, 0, 70). Trapaça
+                                  # por direção no rig porque `yaw` vale 0 nos canais das animações (só bones/partes veem a direção)
+  ryaw_s: 0                       # (animator) idem para o yaw do rifle: rifle_yaw + ryaw_s*pulse(yaw, 0, 70)
+  rgrip_R: [0.0, -0.06, -0.05]    # onde fica o pulso direito no rifle (espaço do rifle)
+  rgrip_L: [0.0, -0.06, 0.26]     # pulso esquerdo sob o guarda-mão
+  rflash: 0                       # clarão do rifle (0..1)
+  sgn_L: 1                        # auxiliares de espelhamento (não animar)
+  sgn_R: -1
+  smear_w: 0
+  smear_a0: 0
+  smear_a1: 0
+  smear_r: 0.75
+  smear_y: 0.9
+  smear_z: 0.15
+  smear_fade: 1
+  vsm_w: 0                        # (animator) smear vertical da troca de arma, por cima do ombro direito (espaço fxr)
+  vsm_a0: 0
+  vsm_a1: 0
+  vsm_fade: 1
+
+bones:
+  torso_rot: {parent: root, pos: "[0, 1.04 + bob, 0]", rot: "[lean, twist, roll]"}
+  pelvis:    {parent: torso_rot, scale: "[1/sqrt(squash), squash, 1/sqrt(squash)]"}
+  headbase:  {parent: pelvis, pos: [0, 0.50, 0.02], inherit_rot: false, inherit_scale: false,
+              rot: "[lean*0.5, twist, roll]"}
+  head:      {parent: headbase, rot: "[head_pitch, head_yaw, 0]", scale: 1.2}
+  shoulder_L: {parent: pelvis, pos: [0.18, 0.42, -0.005]}
+  hip_L:      {parent: pelvis, pos: [0.085, -0.03, 0.0]}
+  hipout_L:   {parent: hip_L, pos: [0.075, -0.12, 0.03]}           # frente/fora da coxa (coldre)
+  kneeout_L:  {parent: hip_L, at: knee_L, pos: [0.055, 0.0, 0.03]}
+  minehold_L: {parent: root, at: wrist_L, pos: [0.0, -0.07, 0.03]}   # mina na mão: posição do pulso, sempre na horizontal
+  legyaw:     {parent: root, rot: "[0, twist*0.5, 0]"}
+  footyaw:    {parent: root, rot: "[0, twist*0.4, 0]"}
+  sole_L:     {parent: footyaw, at: ankle_L, rot: "[pitch_foot_L, 0.08, 0]"}
+  coatbase:   {parent: pelvis, pos: [0, 0.15, 0], rot: "[-coat*0.30 - lean*0.5, 0, 0]"}
+  pistolbase_L: {parent: wrist_L, rot: [0, 0, 1.5708]}
+  pistol_L:   {parent: pistolbase_L, rot: "[gpitch_L, gyaw_L + gyaw_s*pulse(yaw, 0, 70), 0]"}   # +z = cano, +y = topo da arma
+  rifle:      {parent: torso_rot, pos: "rifle_pos", rot: "[rifle_pitch + rpitch_s*pulse(yaw, 0, 70), rifle_yaw + ryaw_s*pulse(yaw, 0, 70), rifle_roll]"}   # +z = cano, +y = luneta
+  fxspace:    {parent: root, rot: "[0, twist*0.3, 0]"}
+  fxr:        {parent: torso_rot, pos: [-0.20, 0.47, 0.0], rot: [0, 0, 1.5708]}   # arco vertical no ombro direito (x local = cima)
+
+ik:
+  # com gun=1 a mão vai para o ponto rgrip do rifle (a expressão já desfaz o espelhamento do lado _R)
+  arm_L: {start: shoulder_L, space: torso_rot,
+          target: "mix(hand_L, v(sgn_L, 1, 1)*(rifle_pos + roty(rifle_yaw + ryaw_s*pulse(yaw, 0, 70)) @ rotz(rifle_roll) @ rotx(rifle_pitch + rpitch_s*pulse(yaw, 0, 70)) @ rgrip_L), clamp(gun, 0, 1)*(1 - free_L))",
+          lengths: [0.28, 0.265], pole: "elbow_L", pole_space: torso_rot, up: [1, 0, 0], joint: elbow_L, end: wrist_L}
+  leg_L: {start: hip_L, space: root, target: "foot_L + [0, 0.10, -0.03]", lengths: [0.49, 0.47],
+          pole: [0.1, 0, 1.0], pole_space: legyaw, joint: knee_L, end: ankle_L}
+
+parts:
+  # ---------------- corpo ----------------
+  hips:
+    material: pants
+    space: pelvis
+    prims:
+      - ellipsoid: {c: [0, 0.0, 0], r: [0.145, 0.10, 0.105]}
+  vest:
+    material: vest
+    space: pelvis
+    blend: 0.05
+    prims:
+      - ellipsoid: {c: [0, 0.16, 0.0], r: [0.105, 0.11, 0.085]}
+      - ellipsoid: {c: [0, 0.31, 0.0], r: [0.13, 0.11, 0.095]}
+  shirt:
+    material: shirt
+    space: pelvis
+    prims:
+      - ellipsoid: {c: [0, 0.37, 0.042], r: [0.09, 0.08, 0.078]}
+  coat_torso:
+    material: coat
+    space: pelvis
+    blend: 0.05
+    prims:
+      - ellipsoid: {c: [0, 0.31, -0.012], r: [0.152, 0.13, 0.115]}
+      - ellipsoid: {c: [0, 0.18, -0.01], r: [0.122, 0.085, 0.102]}
+      - ellipsoid: {c: [0, 0.405, -0.01], r: [0.195, 0.06, 0.108]}
+    cut:
+      - cone: {a: [0, 0.11, 0.165], b: [0, 0.47, 0.15], r: [0.05, 0.12]}
+  coat_torso_lining:   # forro vinho: casca interna com o V mais estreito -> filete vermelho na abertura
+    material: lining
+    space: pelvis
+    blend: 0.05
+    prims:
+      - ellipsoid: {c: [0, 0.31, -0.012], r: [0.148, 0.126, 0.111]}
+      - ellipsoid: {c: [0, 0.18, -0.01], r: [0.118, 0.081, 0.098]}
+      - ellipsoid: {c: [0, 0.405, -0.01], r: [0.191, 0.056, 0.104]}
+    cut:
+      - cone: {a: [0, 0.11, 0.165], b: [0, 0.47, 0.15], r: [0.05, 0.12]}
+  lapel_L:         # lapela com o forro vinho virado para fora, na borda do V
+    material: lining
+    space: pelvis
+    prims:
+      - cone: {a: [0.10, 0.43, 0.08], b: [0.03, 0.19, 0.098], r: [0.032, 0.024]}
+  collar:
+    material: coat
+    space: pelvis
+    prims:
+      - cone: {a: [0, 0.42, -0.04], b: [0, 0.53, -0.06], r: [0.082, 0.068]}
+    cut:
+      - box: {c: [0, 0.5, 0.06], half: [0.2, 0.2, 0.06]}
+  belt:
+    material: leather
+    space: pelvis
+    prims:
+      - cylinder: {a: [0, 0.095, 0], b: [0, 0.137, 0], r: 0.117}
+  gunbelt:
+    material: leather
+    space: pelvis
+    prims:
+      - torus: {c: [0, 0.02, 0.0], R: 0.142, r: 0.02, rot: [0.12, 0, -0.16]}
+  buckle:
+    material: gold
+    space: pelvis
+    prims:
+      - box: {c: [0, 0.116, 0.119], half: [0.026, 0.021, 0.01]}
+  coat_skirt:      # barra da casaca: casca em cone aberta na frente, fenda atrás
+    material: coat
+    space: coatbase
+    prims:
+      - cone: {a: [0, 0.0, -0.01], b: [0, -0.56, -0.03], r: [0.13, 0.24]}
+    cut:
+      - cone: {a: [0, 0.02, -0.01], b: [0, -0.60, -0.03], r: [0.112, 0.22]}
+      - box: {c: [0, 0.25, 0], half: [1, 0.25, 1]}
+      - box: {c: [0, -0.76, 0], half: [1, 0.30, 1], rot: [-0.55, 0, 0]}
+      - cone: {a: [0, 0.02, 0.20], b: [0, -0.50, 0.32], r: [0.05, 0.28]}
+      - cone: {a: [0, -0.06, -0.15], b: [0, -0.50, -0.25], r: [0.012, 0.09]}
+  coat_lining:     # forro vinho por dentro da barra
+    material: lining
+    space: coatbase
+    prims:
+      - cone: {a: [0, -0.01, -0.01], b: [0, -0.55, -0.03], r: [0.112, 0.221]}
+    cut:
+      - cone: {a: [0, 0.01, -0.01], b: [0, -0.60, -0.03], r: [0.095, 0.202]}
+      - box: {c: [0, 0.25, 0], half: [1, 0.25, 1]}
+      - box: {c: [0, -0.76, 0], half: [1, 0.30, 1], rot: [-0.55, 0, 0]}
+      - cone: {a: [0, 0.02, 0.21], b: [0, -0.50, 0.33], r: [0.035, 0.25]}
+  coat_revers_L:   # face do forro virada para fora na borda da abertura da barra (assentada na casca, ~0,02 acima da barra)
+    material: lining
+    space: coatbase
+    prims:
+      - tri: {a: [0.059, -0.05, 0.121], b: [0.130, -0.28, 0.120], c: [0.212, -0.38, 0.014], th: 0.014}
+  neck:
+    material: skin
+    space: pelvis
+    prims:
+      - cone: {a: [0, 0.43, 0.0], b: [0, 0.53, 0.015], r: [0.046, 0.041]}
+
+  # ---------------- cabeça ----------------
+  head:
+    material: skin
+    space: head
+    blend: 0.04
+    prims:
+      - ellipsoid: {c: [0, 0.12, 0], r: [0.108, 0.122, 0.112]}
+      - ellipsoid: {c: [0, 0.065, 0.035], r: [0.08, 0.07, 0.085]}
+      - sphere: {c: [0, 0.025, 0.07], r: 0.034}
+      - sphere: {c: [0, 0.095, 0.112], r: 0.016}
+  eye_L:
+    material: ink
+    space: head
+    prims:
+      - sphere: {c: [0.042, 0.115, 0.098], r: 0.02}
+  lips:
+    material: lips
+    space: head
+    prims:
+      - box: {c: [0, 0.045, 0.097], half: [0.022, 0.008, 0.012]}
+  hair:
+    material: hair
+    space: head
+    blend: 0.035
+    prims:
+      - ellipsoid: {c: [0, 0.165, -0.015], r: [0.122, 0.085, 0.125]}
+      - ellipsoid: {c: [0, 0.095, -0.055], r: [0.122, 0.105, 0.085]}
+      - ellipsoid: {c: [0.095, 0.075, -0.03], r: [0.042, 0.075, 0.06]}
+      - ellipsoid: {c: [-0.098, 0.07, -0.03], r: [0.045, 0.08, 0.06]}
+      - ellipsoid: {c: [-0.12, 0.03, -0.045], r: [0.04, 0.04, 0.07], rot: [0, 0, 0.5]}
+      - ellipsoid: {c: [-0.03, 0.18, 0.085], r: [0.085, 0.03, 0.03], rot: [0.4, 0, 0.35]}
+  hat_crown:
+    material: hat
+    space: head
+    blend: 0.02
+    prims:
+      - cylinder: {a: [0, 0.20, -0.015], b: [0, 0.35, -0.04], r: 0.092, round: 0.015}
+  hat_brim:        # aba larga assimétrica: caída à direita dela, levantada à esquerda, curta na frente
+    material: hat_brim
+    space: head
+    prims:
+      - membrane:
+          hub: [0, 0.215, -0.03]
+          th: 0.012
+          # trapaça por direção: com o lado direito dela virado para a câmera (se/e) a ponta frontal direita
+          # recolhe e sobe, para a aba não cobrir o rosto (peso ~0,8 em se/e, ~0 em s/ne/n/w)
+          ring: ["[0.02, 0.24 + 0.02*pulse(yaw, 67, 75), 0.19 - 0.03*pulse(yaw, 67, 75)]", [0.15, 0.30, 0.12], [0.17, 0.40, -0.02],
+                 [0.15, 0.31, -0.16], [0.0, 0.22, -0.26], [-0.19, 0.205, -0.17],
+                 "[-0.28 + 0.04*pulse(yaw, 67, 75), 0.225 + 0.03*pulse(yaw, 67, 75), -0.02]",
+                 "[-0.17 + 0.05*pulse(yaw, 67, 75), 0.205 + 0.05*pulse(yaw, 67, 75), 0.17 - 0.04*pulse(yaw, 67, 75)]",
+                 "[0.02, 0.24 + 0.02*pulse(yaw, 67, 75), 0.19 - 0.03*pulse(yaw, 67, 75)]"]
+  hat_buckle:
+    material: gold
+    space: head
+    prims:
+      - box: {c: [0.065, 0.27, 0.06], half: [0.026, 0.022, 0.01], rot: [0, 0.85, 0]}
+
+  # ---------------- braços ----------------
+  sleeve_L:
+    material: coat
+    blend: 0.03
+    prims:
+      - sphere: {c: "@shoulder_L", r: 0.068}
+      - cone: {a: "@shoulder_L", b: "@elbow_L", r: [0.058, 0.048]}
+  puff_L:
+    material: shirt
+    prims:
+      - sphere: {c: {between: ["@elbow_L", "@wrist_L"], t: 0.08}, r: 0.064}
+  glove_L:
+    material: glove
+    blend: 0.02
+    prims:
+      - cone: {a: {between: ["@elbow_L", "@wrist_L"], t: 0.2}, b: "@wrist_L", r: [0.046, 0.037]}
+      - sphere: {c: {at: wrist_L, off: [0, 0, 0.035]}, r: 0.042}
+
+  # ---------------- pernas ----------------
+  thigh_L:
+    material: pants
+    blend: 0.03
+    prims:
+      - cone: {a: "@hip_L", b: "@knee_L", r: [0.08, 0.056]}
+  boot_L:
+    material: boot
+    blend: 0.03
+    prims:
+      - cone: {a: {between: ["@knee_L", "@hip_L"], t: 0.22}, b: "@knee_L", r: [0.072, 0.064]}
+      - cone: {a: "@knee_L", b: "@ankle_L", r: [0.06, 0.044]}
+  bootcuff_L:      # borda de couro no topo da bota alta
+    material: leather
+    prims:
+      - torus: {c: {between: ["@knee_L", "@hip_L"], t: 0.20}, R: 0.074, r: 0.024, rot: [1.5708, 0, 0],
+                align: ["@knee_L", "@hip_L"]}
+  bootfoot_L:
+    material: boot
+    space: sole_L
+    blend: 0.02
+    prims:
+      - ellipsoid: {c: [0, -0.06, 0.055], r: [0.044, 0.036, 0.11]}
+      - cone: {a: [0, -0.02, -0.035], b: [0, -0.08, -0.045], r: [0.03, 0.02]}
+  holster_L:       # coldre de couro na coxa (sempre visível; vazio no modo pistolas)
+    material: leather
+    prims:
+      - cone: {a: "@hipout_L", b: {between: ["@hipout_L", "@kneeout_L"], t: 0.55}, r: [0.04, 0.03]}
+  holstered_L:     # coronha da pistola guardada (rifle nas mãos, ou mina nessa mão)
+    when: "gun >= 0.5 or mine_L >= 0.5"
+    material: gunmetal
+    prims:
+      - cone: {a: {at: hipout_L, off: [0.005, 0.0, 0.0]}, b: {at: hipout_L, off: [0.012, 0.075, 0.05]}, r: [0.028, 0.024]}
+  holstered_gold_L:
+    when: "gun >= 0.5 or mine_L >= 0.5"
+    material: gold
+    prims:
+      - sphere: {c: {at: hipout_L, off: [0.006, 0.02, 0.014]}, r: 0.027}
+
+  # ---------------- pistolas (gun = 0) ----------------
+  pistol_L:
+    when: "gun < 0.5 and mine_L < 0.5"
+    material: gunmetal
+    space: pistol_L
+    blend: 0.01
+    prims:
+      - box: {c: [0, 0.035, 0.06], half: [0.016, 0.028, 0.05], round: 0.008}
+      - cylinder: {a: [0, 0.042, 0.10], b: [0, 0.042, 0.43], r: 0.018}
+  pistol_gold_L:
+    when: "gun < 0.5 and mine_L < 0.5"
+    material: gold
+    space: pistol_L
+    prims:
+      - cylinder: {a: [0, 0.04, 0.045], b: [0, 0.04, 0.10], r: 0.026}
+      - cylinder: {a: [0, 0.042, 0.405], b: [0, 0.042, 0.43], r: 0.022}
+  pistol_grip_L:
+    when: "gun < 0.5 and mine_L < 0.5"
+    material: wood
+    space: pistol_L
+    prims:
+      - box: {c: [0, -0.01, 0.01], half: [0.015, 0.045, 0.02], rot: [0.35, 0, 0], round: 0.008}
+  flash_L:
+    when: "flash_L > 0.01 and gun < 0.5"
+    material: fx_mid
+    space: pistol_L
+    prims:
+      - ellipsoid: {c: [0, 0.042, 0.50], r: "[0.05*flash_L, 0.05*flash_L, 0.08*flash_L]"}
+  flash_core_L:
+    when: "flash_L > 0.01 and gun < 0.5"
+    material: fx_core
+    space: pistol_L
+    prims:
+      - sphere: {c: [0, 0.042, 0.48], r: "0.03*flash_L"}
+
+  # ---------------- mina na mão (place_mine) ----------------
+  minehand_L:      # mesma mina do prop `mine` (disco de 0,38 m)
+    when: "mine_L >= 0.5"
+    material: gunmetal
+    space: minehold_L
+    blend: 0.02
+    prims:
+      - cylinder: {a: [0, -0.03, 0], b: [0, 0.02, 0], r: 0.19, round: 0.015}
+      - ellipsoid: {c: [0, 0.02, 0], r: [0.12, 0.035, 0.12]}
+  minehand_gold_L:
+    when: "mine_L >= 0.5"
+    material: gold
+    space: minehold_L
+    prims:
+      - torus: {c: [0, 0.03, 0], R: 0.15, r: 0.026}
+  minehand_light_L:
+    when: "mine_L >= 0.5"
+    material: mine_glow
+    space: minehold_L
+    prims:
+      - sphere: {c: [0, 0.07, 0], r: 0.05}
+
+  # ---------------- rifle (gun = 1) ----------------
+  rifle_metal:
+    when: "gun >= 0.5"
+    material: gunmetal
+    space: rifle
+    blend: 0.01
+    prims:
+      - box: {c: [0, 0.0, 0.08], half: [0.022, 0.03, 0.10], round: 0.01}
+      - cylinder: {a: [0, 0.012, 0.16], b: [0, 0.012, 0.88], r: 0.018}
+  rifle_wood:
+    when: "gun >= 0.5"
+    material: wood
+    space: rifle
+    blend: 0.02
+    prims:
+      - cone: {a: [0, -0.03, -0.02], b: [0, -0.05, -0.16], r: [0.024, 0.032]}
+      - box: {c: [0, -0.055, -0.22], half: [0.022, 0.048, 0.085], rot: [-0.12, 0, 0], round: 0.015}
+      - box: {c: [0, -0.02, 0.32], half: [0.02, 0.022, 0.14], round: 0.012}
+  rifle_gold:
+    when: "gun >= 0.5"
+    material: gold
+    space: rifle
+    prims:
+      - cylinder: {a: [0, 0.058, 0.0], b: [0, 0.058, 0.28], r: 0.016}
+      - box: {c: [0, -0.06, -0.305], half: [0.024, 0.05, 0.01], rot: [-0.12, 0, 0]}
+      - torus: {c: [0, 0.008, 0.50], R: 0.022, r: 0.009, rot: [1.5708, 0, 0]}
+      - cylinder: {a: [0, 0.012, 0.855], b: [0, 0.012, 0.885], r: 0.024}
+  rflash:
+    when: "rflash > 0.01 and gun >= 0.5"
+    material: fx_mid
+    space: rifle
+    prims:
+      - ellipsoid: {c: [0, 0.012, 1.04], r: "[0.12*rflash, 0.12*rflash, 0.22*rflash]"}
+  rflash_core:
+    when: "rflash > 0.01 and gun >= 0.5"
+    material: fx_core
+    space: rifle
+    prims:
+      - sphere: {c: [0, 0.012, 0.96], r: "0.075*rflash"}
+
+  rsmear:          # smear vertical da troca de arma (como o vsmear do templar), no plano do ombro direito
+    when: "vsm_w > 0"
+    materials: [fx_tail, fx_mid, fx_core]
+    space: fxr
+    prims:
+      - arc: {c: [0, 0, 0], r: 0.85, a0: vsm_a0, a1: vsm_a1, width: vsm_w, fade: vsm_fade, dip: 0}
+
+  smear:
+    when: "smear_w > 0"
+    materials: [fx_tail, fx_mid, fx_core]
+    space: fxspace
+    prims:
+      - arc: {c: "[0, smear_y, smear_z]", r: smear_r, a0: smear_a0, a1: smear_a1, width: smear_w, fade: smear_fade, dip: 0.10}
+
+animations:
+  # Tempos-alvo (60 fps, vel. de ataque x1) em D:\GameProjects\tower-hunt\docs\design\personagens.md
+  # (Caçadora / Animações exigidas). Evento = soma das durações dos quadros anteriores (±1 f).
+  # Corridas casando a velocidade do jogo (0,040 u/px): o pé de apoio recua 1 passo de tabela por quadro.
+  #   run:       0,364 u / 70 ms = 5,2 u/s = 130 px/s
+  #   run_shoot: 0,312 u / 75 ms = 4,16 u/s = 104 px/s (x0,8)
+  # `yaw` vale 0 nos canais das animações: trapaça por direção só no rig, pelos canais gyaw_s (pistolas), rpitch_s e
+  # ryaw_s (rifle), multiplicados por pulse(yaw, 0, 70) nos bones (ver channels).
+
+  idle:                    # pose da splash (test_ref): pistola direita erguida junto ao chapéu, esquerda baixa
+    frames: 8
+    ms: 150
+    channels:
+      bob: "0.03*sin(p) - 0.03"
+      squash: "1 + 0.01*sin(p)"
+      roll: 0.04
+      head_yaw: -0.35
+      head_pitch: "0.05 - 0.025*sin(p - 0.7)"
+      hand_R: "[0.36, 0.55 + 0.02*sin(p - 0.6), -0.07]"
+      elbow_R: [0.6, -1.0, 0.0]
+      gyaw_R: 0.0
+      gpitch_R: "0.06*sin(p - 1.0)"
+      hand_L: "[0.30, -0.13 + 0.015*sin(p - 0.5), 0.05]"
+      gyaw_L: 0.45
+      gpitch_L: "0.05*sin(p - 0.9)"
+      foot_L: [0.35, 0, 0.05]
+      foot_R: [0.10, 0, 0.0]
+      coat: "0.06 + 0.07*sin(p - 1.1)"
+
+  run:                     # corrida ágil, pistolas baixas; 3 quadros de apoio + 1 de voo por passo
+    frames: 8
+    ms: 70
+    events: {0: step_l, 4: step_r}
+    channels:
+      lean: 0.15
+      bob: "-0.06 - 0.03*sin(2*p)"
+      squash: "1 - 0.02*sin(2*p)"
+      twist: "0.10*cos(p)"
+      roll: "-0.035*sin(p + 0.8)"      # tronco pende para o pé de apoio (L em f0-2; sinal medido)
+      head_yaw: "-0.06*cos(p)"
+      head_pitch: "-0.04 + 0.02*sin(2*p - 0.6)"
+      foot_L: "[0.16, [0, 0, 0, 0.08, 0.24, 0.22, 0.12, 0.04][f], [0.394, 0.03, -0.334, -0.425, -0.225, 0.085, 0.358, 0.467][f]]"
+      foot_R: "[0.16, [0, 0, 0, 0.08, 0.24, 0.22, 0.12, 0.04][(f + 4) % 8], [0.394, 0.03, -0.334, -0.425, -0.225, 0.085, 0.358, 0.467][(f + 4) % 8]]"
+      pitch_foot_L: "[0.0, 0.05, 0.45, 0.75, 0.95, 0.45, 0.1, -0.1][f]"
+      pitch_foot_R: "[0.0, 0.05, 0.45, 0.75, 0.95, 0.45, 0.1, -0.1][(f + 4) % 8]"
+      hand_L: "[0.22, 0.08 + 0.07*pos(-cos(p - 0.3)), 0.10 - 0.18*cos(p - 0.3)]"
+      hand_R: "[0.22, 0.08 + 0.07*pos(cos(p - 0.3)), 0.10 + 0.18*cos(p - 0.3)]"
+      gpitch_L: 0.2
+      gpitch_R: 0.2
+      coat: "0.55 + 0.22*sin(2*p - 1.2)"
+
+  run_shoot:               # correndo com as duas pistolas apontadas para a frente (o clarão é do jogo)
+    frames: 8
+    ms: 75
+    events: {0: step_l, 4: step_r}
+    channels:
+      lean: 0.08
+      bob: "-0.05 - 0.02*sin(2*p)"
+      squash: "1 - 0.012*sin(2*p)"
+      twist: "0.03*cos(p)"
+      head_pitch: 0.05
+      foot_L: "[0.16, [0, 0, 0, 0.06, 0.19, 0.18, 0.10, 0.03][f], [0.342, 0.03, -0.282, -0.36, -0.189, 0.077, 0.311, 0.405][f]]"
+      foot_R: "[0.16, [0, 0, 0, 0.06, 0.19, 0.18, 0.10, 0.03][(f + 4) % 8], [0.342, 0.03, -0.282, -0.36, -0.189, 0.077, 0.311, 0.405][(f + 4) % 8]]"
+      pitch_foot_L: "[0.0, 0.05, 0.4, 0.65, 0.8, 0.4, 0.1, -0.1][f]"
+      pitch_foot_R: "[0.0, 0.05, 0.4, 0.65, 0.8, 0.4, 0.1, -0.1][(f + 4) % 8]"
+      hand_L: [0.15, 0.33, 0.50]
+      hand_R: [0.15, 0.33, 0.50]
+      elbow_L: [0.6, -1.0, -0.3]
+      elbow_R: [0.6, -1.0, -0.3]
+      gyaw_L: 0.15
+      gyaw_R: 0.15
+      gyaw_s: 0.30
+      coat: "0.40 + 0.15*sin(2*p - 1.2)"
+
+  shoot_r:                 # tiro leve, mão direita. release em 33 ms (2 f), total 117 ms (7 f)
+    loop: false
+    keys:
+      - {ms: 33, set: &aim {hand_L: [0.15, 0.33, 0.50], hand_R: [0.15, 0.33, 0.50], elbow_L: [0.6, -1.0, -0.3], elbow_R: [0.6, -1.0, -0.3],
+          gyaw_L: 0.15, gyaw_R: 0.15, gyaw_s: 0.30, lean: 0.08,
+          foot_L: [0.11, 0, 0.12], foot_R: [0.10, 0, -0.08], coat: 0.05}}
+      - {ms: 33, event: release, set: {<<: *aim, hand_R: [0.16, 0.35, 0.44], gpitch_R: -0.2, flash_R: 1, twist: -0.04, head_pitch: -0.02, coat: 0.1}}
+      - {ms: 25, set: {<<: *aim, hand_R: [0.16, 0.37, 0.42], gpitch_R: -0.42, twist: -0.05, head_pitch: -0.03, coat: 0.12}}
+      - {ms: 26, set: {<<: *aim, hand_R: [0.15, 0.345, 0.47], gpitch_R: -0.18, twist: -0.02, coat: 0.08}}
+
+  shoot_l:                 # espelho do shoot_r (mesmos pés: tiros alternados não fazem os pés pularem)
+    loop: false
+    keys:
+      - {ms: 33, set: *aim}
+      - {ms: 33, event: release, set: {<<: *aim, hand_L: [0.16, 0.35, 0.44], gpitch_L: -0.2, flash_L: 1, twist: 0.04, head_pitch: -0.02, coat: 0.1}}
+      - {ms: 25, set: {<<: *aim, hand_L: [0.16, 0.37, 0.42], gpitch_L: -0.42, twist: 0.05, head_pitch: -0.03, coat: 0.12}}
+      - {ms: 26, set: {<<: *aim, hand_L: [0.15, 0.345, 0.47], gpitch_L: -0.18, twist: 0.02, coat: 0.08}}
+
+  dash:                    # 160 ms: impulso baixo, voo rasante, aterrissagem; casaca para trás
+    loop: false
+    keys:
+      - {ms: 33, event: release, set: {lean: 0.35, squash: 0.92, bob: -0.12, head_pitch: -0.12,
+          foot_L: [0.20, 0, 0.30], foot_R: [0.18, 0.05, -0.30], pitch_foot_R: 0.6,
+          hand_L: [0.24, 0.02, -0.10], hand_R: [0.24, 0.02, -0.10], gpitch_L: 0.4, gpitch_R: 0.4, coat: 0.8}}
+      - {ms: 50, set: {lean: 0.50, squash: 1.04, bob: -0.16, head_pitch: -0.22,
+          foot_L: [0.20, 0.10, 0.34], foot_R: [0.18, 0.18, -0.40], pitch_foot_L: -0.1, pitch_foot_R: 0.9,
+          hand_L: [0.32, 0.04, -0.20], hand_R: [0.32, 0.04, -0.20], gpitch_L: 0.5, gpitch_R: 0.5, coat: 1.15}}
+      - {ms: 44, set: {lean: 0.38, squash: 1.0, bob: -0.14, head_pitch: -0.15,
+          foot_L: [0.20, 0.02, 0.28], foot_R: [0.18, 0.08, -0.32], pitch_foot_R: 0.6,
+          hand_L: [0.32, 0.04, -0.08], hand_R: [0.32, 0.04, -0.08], gpitch_L: 0.35, gpitch_R: 0.35, coat: 0.95}}
+      - {ms: 33, event: land, set: {lean: 0.18, squash: 0.95, bob: -0.08, head_pitch: -0.05,
+          foot_L: [0.11, 0, 0.18], foot_R: [0.10, 0, -0.16], pitch_foot_R: 0.3,
+          hand_L: [0.24, 0.05, 0.10], hand_R: [0.24, 0.05, 0.10], gpitch_L: 0.15, gpitch_R: 0.15, coat: 0.5}}
+
+  hurt:                    # 150 ms: recuo curto, braços abrem, casaca para a frente
+    loop: false
+    keys:
+      - {ms: 50, set: {lean: -0.25, squash: 0.94, bob: -0.04, twist: 0.10, head_pitch: -0.30, head_yaw: 0.15,
+          hand_L: [0.32, 0.20, 0.0], hand_R: [0.34, 0.16, -0.05], gpitch_L: -0.3, gpitch_R: -0.3,
+          foot_L: [0.11, 0, 0.06], foot_R: [0.10, 0, -0.12], coat: -0.35}}
+      - {ms: 50, set: {lean: -0.14, squash: 0.97, bob: -0.02, twist: 0.05, head_pitch: -0.15, head_yaw: 0.08,
+          hand_L: [0.28, 0.12, 0.08], hand_R: [0.29, 0.10, 0.05], gpitch_L: -0.15, gpitch_R: -0.15,
+          foot_L: [0.11, 0, 0.06], foot_R: [0.10, 0, -0.12], coat: -0.15}}
+      - {ms: 50, set: {lean: -0.03, head_pitch: -0.04, hand_L: [0.25, 0.07, 0.17], hand_R: [0.25, 0.07, 0.16],
+          foot_L: [0.11, 0, 0.04], foot_R: [0.10, 0, -0.06], coat: 0.05}}
+
+  death:                   # recua com o golpe, cai de joelhos e tomba de bruços; land = corpo no chão
+    # gira (twist 0,9) ao tombar: deitada na diagonal da tela em s/n/e/w (sem o giro ficava de ponta para a câmera
+    # em s); só sw fica de ponta. Os pés acompanham o giro (calculados a partir do twist da mesma key)
+    loop: false
+    keys:
+      - {ms: 100, set: {lean: -0.30, squash: 0.93, bob: -0.03, twist: 0.15, head_pitch: -0.35, head_yaw: 0.2,
+          hand_L: [0.34, 0.20, -0.02], hand_R: [0.36, 0.16, -0.06], gpitch_L: -0.3, gpitch_R: -0.3,
+          foot_L: [0.11, 0, 0.06], foot_R: [0.10, 0, -0.14], coat: -0.35}}
+      - {ms: 110, set: {lean: 0.12, squash: 0.96, bob: -0.24, twist: 0.08, head_pitch: 0.20,
+          hand_L: [0.27, -0.10, 0.12], hand_R: [0.28, -0.08, 0.10], gpitch_L: 0.5, gpitch_R: 0.5,
+          foot_L: [0.11, 0, 0.20], foot_R: [0.10, 0, -0.14], pitch_foot_R: 0.3, coat: 0.2}}
+      - {ms: 130, set: {lean: 0.28, squash: 0.97, bob: -0.50, twist: 0.35, head_pitch: 0.30,
+          hand_L: [0.25, -0.12, 0.16], hand_R: [0.26, -0.10, 0.14], gpitch_L: 0.6, gpitch_R: 0.6,
+          foot_L: "[0.11*cos(twist) - 0.42*sin(twist), 0, -0.11*sin(twist) - 0.42*cos(twist)]",
+          foot_R: "[0.10*cos(twist) + 0.45*sin(twist), 0, 0.10*sin(twist) - 0.45*cos(twist)]",
+          pitch_foot_L: 1.3, pitch_foot_R: 1.3, coat: 0.25}}
+      - {ms: 110, set: {lean: 0.90, squash: 0.98, bob: -0.66, twist: 0.70, head_pitch: -0.10,
+          hand_L: [0.26, 0.20, 0.42], hand_R: [0.30, 0.42, 0.12], gpitch_L: 0.2, gpitch_R: 0.2,
+          foot_L: "[0.11*cos(twist) - 0.62*sin(twist), 0, -0.11*sin(twist) - 0.62*cos(twist)]",
+          foot_R: "[0.10*cos(twist) + 0.66*sin(twist), 0, 0.10*sin(twist) - 0.66*cos(twist)]",
+          pitch_foot_L: 1.4, pitch_foot_R: 1.4, coat: 0.4}}
+      - {ms: 100, event: land, set: {lean: 1.45, squash: 0.92, bob: -0.88, twist: 0.90,
+          head_pitch: 0.55, head_yaw: 0.25,
+          hand_L: [0.30, 0.52, 0.10], hand_R: [0.26, 0.48, 0.12], gpitch_L: 0.0, gpitch_R: 0.0,
+          foot_L: "[0.13*cos(twist) - 0.84*sin(twist), 0, -0.13*sin(twist) - 0.84*cos(twist)]",
+          foot_R: "[0.08*cos(twist) + 0.86*sin(twist), 0, 0.08*sin(twist) - 0.86*cos(twist)]",
+          pitch_foot_L: 1.45, pitch_foot_R: 1.45, coat: 0.35}}
+      - {ms: 420, set: {lean: 1.48, squash: 1.0, bob: -0.88, twist: 0.90,
+          head_pitch: 0.62, head_yaw: 0.3,
+          hand_L: [0.32, 0.54, 0.10], hand_R: [0.27, 0.50, 0.12], gpitch_L: 0.05, gpitch_R: 0.05,
+          foot_L: "[0.13*cos(twist) - 0.84*sin(twist), 0, -0.13*sin(twist) - 0.84*cos(twist)]",
+          foot_R: "[0.08*cos(twist) + 0.86*sin(twist), 0, 0.08*sin(twist) - 0.86*cos(twist)]",
+          pitch_foot_L: 1.45, pitch_foot_R: 1.45, coat: 0.3}}
+
+  rifle_draw:              # 250 ms: pistolas aos coldres, saca o rifle das costas (gun 0->1 no quadro 1, mão atrás do corpo)
+                           # e o traz por cima do ombro direito (smear vertical rsmear) até a mira
+    loop: false
+    keys:
+      - {ms: 40, set: {lean: 0.05, bob: -0.03, twist: -0.10, head_yaw: 0.1,
+          hand_L: [0.18, -0.08, 0.10], hand_R: [0.18, -0.08, 0.10], elbow_L: [0.5, -0.2, -1.0], elbow_R: [0.5, -0.2, -1.0],
+          gyaw_L: 0.1, gyaw_R: 0.1, foot_L: [0.12, 0, 0.12], foot_R: [0.12, 0, -0.10], coat: 0.1}}
+      - {ms: 50, set: {gun: 1, free_L: 1, lean: 0.04, bob: -0.04, twist: -0.30, head_yaw: 0.25,
+          hand_L: [0.20, -0.06, 0.10], rifle_pos: [-0.22, 0.10, -0.12], rifle_yaw: -2.7, rifle_pitch: 0.5,
+          elbow_R: [1.0, -0.6, -0.4], foot_L: [0.12, 0, 0.16], foot_R: [0.12, 0, -0.13], coat: 0.15}}
+      - {ms: 40, set: &over_shoulder {gun: 1, free_L: 1, lean: 0.05, bob: -0.02, twist: -0.50, head_yaw: 0.40,
+          hand_L: [0.12, 0.40, 0.24], rifle_pos: [-0.22, 0.47, 0.0], rifle_yaw: -0.2, rifle_pitch: -1.2,
+          elbow_R: [1.0, -0.6, 0.0], foot_L: [0.12, 0, 0.18], foot_R: [0.12, 0, -0.14], coat: 0.25,
+          vsm_w: 0.07, vsm_a0: 3.5, vsm_a1: 1.8, vsm_fade: 0.7}}
+      - {ms: 60, set: {gun: 1, twist: -0.62, rifle_yaw: 0.72, rifle_pitch: 0.10, rpitch_s: -0.2, ryaw_s: -0.35, head_yaw: 0.45, head_pitch: 0.08,
+          lean: 0.05, elbow_R: [1.0, -0.6, 0.0], elbow_L: [0.2, -1.0, 0.0],
+          foot_L: [0.12, 0, 0.18], foot_R: [0.12, 0, -0.14], pitch_foot_R: 0.1, coat: 0.12,
+          vsm_w: 0.05, vsm_a0: 1.8, vsm_a1: 0.3, vsm_fade: 0.5}}
+      - {ms: 60, set: &rifle_aim {gun: 1, twist: -0.6, rifle_yaw: 0.6, rifle_pitch: 0.0, rpitch_s: -0.2, ryaw_s: -0.35, head_yaw: 0.5, head_pitch: 0.1,
+          lean: 0.06, elbow_R: [1.0, -0.6, 0.0], elbow_L: [0.2, -1.0, 0.0],
+          foot_L: [0.12, 0, 0.18], foot_R: [0.12, 0, -0.14], pitch_foot_R: 0.1}}
+
+  aim_heavy:               # parada mirando com o rifle; respiração mínima, cano quase parado
+    frames: 4
+    ms: 200
+    channels:
+      <<: *rifle_aim
+      bob: "0.03*sin(p) - 0.01"
+      squash: "1 + 0.008*sin(p)"
+      coat: "0.04 + 0.05*sin(p - 1.0)"
+      head_pitch: "0.1 + 0.015*sin(p - 0.8)"
+
+  shoot_heavy:             # release no quadro 0 (clarão forte), recuo grande do ombro e do tronco, volta. 200 ms
+    loop: false
+    keys:
+      - {ms: 33, event: release, set: {<<: *rifle_aim, rflash: 1, rifle_pitch: -0.08, lean: 0.0,
+          rifle_pos: [-0.03, 0.46, 0.27]}}
+      - {ms: 33, set: {<<: *rifle_aim, rflash: 0.4, rifle_pitch: -0.40, rifle_pos: [-0.03, 0.49, 0.19],
+          lean: -0.14, twist: -0.72, bob: -0.02, head_pitch: -0.06, coat: -0.15}}
+      - {ms: 50, set: {<<: *rifle_aim, rifle_pitch: -0.22, rifle_pos: [-0.03, 0.47, 0.24],
+          lean: -0.06, twist: -0.66, bob: -0.01, head_pitch: 0.02, coat: -0.05}}
+      - {ms: 84, set: {<<: *rifle_aim, rifle_pitch: -0.05, lean: 0.04, coat: 0.03}}
+
+  rifle_holster:           # 200 ms: rifle sobe por cima do ombro e volta às costas, saca as pistolas (gun 1->0 no quadro 2) e
+                           # termina na pose do quadro 0 do idle (emenda sem salto); interrompível
+    loop: false
+    keys:
+      - {ms: 50, set: {<<: *over_shoulder, vsm_w: 0.06, vsm_a0: 0.1, vsm_a1: 1.6, vsm_fade: 0.7}}
+      - {ms: 50, set: {gun: 1, free_L: 1, lean: 0.04, bob: -0.03, twist: -0.25, head_yaw: 0.2,
+          hand_L: [0.18, -0.10, 0.10], rifle_pos: [-0.22, 0.08, -0.14], rifle_yaw: -2.7, rifle_pitch: 0.6,
+          elbow_R: [1.0, -0.6, -0.4], foot_L: [0.12, 0, 0.14], foot_R: [0.12, 0, -0.12], coat: 0.15,
+          vsm_w: 0.05, vsm_a0: 1.6, vsm_a1: 3.4, vsm_fade: 0.6}}
+      - {ms: 50, set: {lean: 0.05, bob: -0.03, twist: -0.06, head_yaw: 0.05,
+          hand_L: [0.18, -0.08, 0.12], hand_R: [0.18, -0.08, 0.12], elbow_L: [0.5, -0.2, -1.0], elbow_R: [0.5, -0.2, -1.0],
+          gyaw_L: 0.15, gyaw_R: 0.15, foot_L: [0.12, 0, 0.10], foot_R: [0.12, 0, -0.08], coat: 0.1}}
+      - {ms: 50, set: {bob: -0.03, roll: 0.04, head_yaw: -0.35, head_pitch: 0.066,
+          hand_R: [0.36, 0.54, -0.07], elbow_R: [0.6, -1.0, 0.0], gyaw_R: 0.0, gpitch_R: -0.05,
+          hand_L: [0.30, -0.14, 0.05], gyaw_L: 0.45, gpitch_L: -0.04,
+          foot_L: [0.35, 0, 0.05], foot_R: [0.10, 0, 0.0], coat: 0.0}}
+
+  place_mine:              # 167 ms: agacha fundo, a mina encosta no chão entre os pés, solta (release em 100 ms = 6 f,
+                           # mine_L volta a 0 e a pistola volta à mão) e levanta. O braço aponta para baixo no mundo
+    loop: false
+    keys:
+      - {ms: 33, set: {mine_L: 1, bob: -0.20, lean: 0.30, head_pitch: -0.05, hand_L: [0.12, 0.0, 0.40], hand_R: [0.28, 0.08, 0.14],
+          foot_L: [0.12, 0, 0.16], foot_R: [0.11, 0, -0.14], pitch_foot_R: 0.3, coat: 0.2}}
+      - {ms: 33, set: {mine_L: 1, bob: -0.42, lean: 0.62, head_pitch: -0.18, hand_L: [0.05, 0.0, 0.46], hand_R: [0.30, 0.10, 0.08],
+          foot_L: [0.12, 0, 0.22], foot_R: [0.11, 0, -0.24], pitch_foot_R: 0.8, coat: 0.35}}
+      - {ms: 34, set: {mine_L: 1, bob: -0.55, lean: 0.85, head_pitch: -0.28, hand_L: [0.05, 0.02, 0.45], hand_R: [0.31, 0.12, 0.05],
+          foot_L: [0.12, 0, 0.24], foot_R: [0.11, 0, -0.28], pitch_foot_R: 1.1, coat: 0.4}}
+      - {ms: 33, event: release, set: {mine_L: 0, bob: -0.52, lean: 0.80, head_pitch: -0.25, hand_L: [0.12, 0.04, 0.42], gpitch_L: 0.5,
+          hand_R: [0.31, 0.12, 0.05], foot_L: [0.12, 0, 0.24], foot_R: [0.11, 0, -0.28], pitch_foot_R: 1.1, coat: 0.38}}
+      - {ms: 34, set: {bob: -0.24, lean: 0.38, head_pitch: -0.08, hand_L: [0.25, 0.0, 0.26], gpitch_L: 0.2, hand_R: [0.27, 0.08, 0.15],
+          foot_L: [0.12, 0, 0.16], foot_R: [0.11, 0, -0.12], pitch_foot_R: 0.3, coat: 0.15}}

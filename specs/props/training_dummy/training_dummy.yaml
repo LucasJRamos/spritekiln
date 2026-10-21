@@ -1,0 +1,91 @@
+pxforge: 1
+name: training_dummy
+kind: prop
+size: 64
+directions: 1
+palette: [../../palettes/gothic.yaml, ../../palettes/props.yaml]
+camera: {pitch: 38, scale: 0.040, center: [0, 0.75, 0]}
+shadow: {rx: 10, ry: 3.5, alpha: 110}
+
+brief:
+  summary: boneco de treino de estopa num poste de madeira, com alvo vermelho pintado no peito
+  must_keep: [poste e base em cruz, saco de estopa amarrado, braço transversal, alvo vermelho]
+
+materials:
+  wood:   {ramp: wood}
+  burlap: {ramp: burlap}
+  rope:   {ramp: wood, bands: [1, 2]}
+  paint:  {ramp: blood, bands: [2, 4], line: false}
+
+channels:
+  tilt: 0          # inclinação para trás (impacto)
+  roll: 0
+  squash: 1
+
+bones:
+  sway: {parent: root, pos: [0, 0.12, 0], rot: "[tilt, 0, roll]"}
+  body: {parent: sway, scale: "[1/sqrt(squash), squash, 1/sqrt(squash)]"}
+
+parts:
+  base:
+    material: wood
+    prims:
+      - box: {c: [0, 0.05, 0], half: [0.34, 0.05, 0.06], round: 0.02}
+      - box: {c: [0, 0.05, 0], half: [0.06, 0.05, 0.34], round: 0.02}
+      - cylinder: {a: [0, 0.0, 0], b: [0, 0.16, 0], r: 0.09}
+  post:
+    material: wood
+    space: sway
+    prims:
+      - cylinder: {a: [0, 0.0, 0], b: [0, 1.55, 0], r: 0.055}
+  arms:
+    material: wood
+    space: body
+    prims:
+      - cylinder: {a: [-0.46, 1.16, 0], b: [0.46, 1.16, 0], r: 0.045}
+  arm_straw:
+    material: burlap
+    space: body
+    blend: 0.03
+    prims:
+      - ellipsoid: {c: [0.46, 1.16, 0], r: [0.10, 0.08, 0.08]}
+      - ellipsoid: {c: [-0.46, 1.16, 0], r: [0.10, 0.08, 0.08]}
+  sack:
+    material: burlap
+    space: body
+    blend: 0.06
+    prims:
+      - ellipsoid: {c: [0, 1.02, 0], r: [0.25, 0.32, 0.20]}
+      - ellipsoid: {c: [0, 0.74, 0], r: [0.20, 0.14, 0.17]}
+  head:
+    material: burlap
+    space: body
+    prims:
+      - ellipsoid: {c: [0, 1.50, 0], r: [0.15, 0.15, 0.14]}
+  ropes:
+    material: rope
+    space: body
+    prims:
+      - torus: {c: [0, 0.84, 0], R: 0.215, r: 0.022}
+      - torus: {c: [0, 1.30, 0], R: 0.17, r: 0.02}
+      - torus: {c: [0, 1.39, 0], R: 0.085, r: 0.02}
+  target:
+    material: paint
+    space: body
+    prims:
+      - torus: {c: [0, 1.04, 0.19], R: 0.10, r: 0.022, rot: [1.5708, 0, 0]}
+      - sphere: {c: [0, 1.04, 0.19], r: 0.035}
+
+animations:
+  idle:
+    frames: 1
+    ms: 500
+    channels: {}
+  hit:             # empurrado para trás e volta balançando
+    loop: false
+    keys:
+      - {ms: 50, set: {tilt: -0.30, squash: 0.94}}
+      - {ms: 70, set: {tilt: -0.18, squash: 1.03}}
+      - {ms: 80, set: {tilt: 0.10, squash: 1.0}}
+      - {ms: 90, set: {tilt: -0.04}}
+      - {ms: 100, set: {tilt: 0.0}}

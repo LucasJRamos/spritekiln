@@ -1,0 +1,5 @@
+# Paleta de props de cenário do Hunt Tower (usar junto com gothic.yaml). Índice 0 = contorno.
+ramps:
+  wood:    ["#140c08", "#2f1d13", "#4d3120", "#6d4a2e", "#91683f", "#b88f5c"]   # madeira velha
+  burlap:  ["#1f160e", "#4a3722", "#735a37", "#9c7f52", "#c4a874", "#e3cfa0"]   # estopa / palha
+  wiron:   ["#09090d", "#17171e", "#26262f", "#3a3a45", "#55545f", "#7c7a84"]   # ferro fundido do lampião

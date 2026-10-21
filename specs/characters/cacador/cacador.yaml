@@ -1,0 +1,215 @@
+pxforge: 1
+name: cacador
+kind: character
+size: 64
+directions: 8
+palette: ../../palettes/gothic.yaml
+camera: {pitch: 38, scale: 0.040, center: [0, 0.95, 0]}
+shadow: {rx: 10, ry: 3.5, alpha: 120}
+
+# Template humanoide (proporção chibi leve: cabeça 1.25x). Copie com `pxforge new NOME`.
+# Para um personagem vindo de splash art: preencha brief:, troque materiais/paleta e
+# reesculpa as partes; mantenha o esqueleto se a anatomia for humana.
+brief:
+  summary: humanoide genérico de teste (caçador com espada)
+  must_keep: []
+  simplify: []
+
+materials:
+  skin:  {ramp: skin}
+  cloth: {ramp: cloth}
+  hair:  {ramp: bone, bands: [1, 2]}
+  steel: {ramp: steel}
+  leather: {ramp: bone, bands: [1, 3]}
+  ink:   {ramp: cloth, emissive: true, band: 0, outline: false}
+  fx_tail: {ramp: fx_tail, emissive: true}
+  fx_mid:  {ramp: fx_mid, emissive: true}
+  fx_core: {ramp: fx_core, emissive: true}
+
+channels:
+  root: [0, 0, 0]
+  bob: 0
+  lean: 0.05
+  twist: 0
+  roll: 0
+  squash: 1
+  head_pitch: 0
+  head_yaw: 0
+  hand_L: [0.33, 0.06, 0.06]
+  foot_L: [0.13, 0, 0.02]
+  pitch_foot_L: 0
+  coat: 0           # balanço da barra do casaco (-1..1)
+  smear_w: 0
+  smear_a0: 0
+  smear_a1: 0
+  smear_r: 0.75
+  smear_y: 0.9
+  smear_z: 0.15
+  smear_fade: 1
+
+bones:
+  torso_rot: {parent: root, pos: "[0, 0.84 + bob, 0]", rot: "[lean, twist, roll]"}
+  pelvis:    {parent: torso_rot, scale: "[1/sqrt(squash), squash, 1/sqrt(squash)]"}
+  headbase:  {parent: pelvis, pos: [0, 0.70, 0.02], inherit_rot: false, inherit_scale: false,
+              rot: "[lean*0.5, twist, roll]"}
+  head:      {parent: headbase, rot: "[head_pitch, head_yaw, 0]", scale: 1.25}
+  shoulder_L: {parent: pelvis, pos: [0.27, 0.55, 0.0]}
+  hip_L:      {parent: pelvis, pos: [0.12, -0.02, 0.0]}
+  legyaw:     {parent: root, rot: "[0, twist*0.5, 0]"}
+  footyaw:    {parent: root, rot: "[0, twist*0.4, 0]"}
+  sole_L:     {parent: footyaw, at: ankle_L, rot: "[pitch_foot_L, 0.08, 0]"}
+  coatbase:   {parent: pelvis, rot: "[-coat*0.25, 0, 0]"}
+  fxspace:    {parent: root, rot: "[0, twist*0.3, 0]"}
+
+ik:
+  arm_L: {start: shoulder_L, space: torso_rot, target: hand_L, lengths: [0.29, 0.27],
+          pole: [0.3, 0.0, -1.0], pole_space: torso_rot, up: [0, 0, 1], joint: elbow_L, end: wrist_L}
+  leg_L: {start: hip_L, space: root, target: "foot_L + [0, 0.08, -0.02]", lengths: [0.42, 0.40],
+          pole: [0.1, 0, 1.0], pole_space: legyaw, joint: knee_L, end: ankle_L}
+
+parts:
+  torso:
+    material: cloth
+    space: pelvis
+    blend: 0.06
+    prims:
+      - ellipsoid: {c: [0, 0.04, 0], r: [0.19, 0.13, 0.14]}
+      - ellipsoid: {c: [0, 0.25, 0.0], r: [0.18, 0.16, 0.13]}
+      - ellipsoid: {c: [0, 0.45, 0.0], r: [0.25, 0.16, 0.15]}
+  coat:            # barra do casaco: cone aberto do quadril para baixo
+    material: cloth
+    space: coatbase
+    blend: 0.03
+    prims:
+      - cone: {a: [0, 0.05, -0.01], b: [0, -0.32, -0.04], r: [0.20, 0.25]}
+    cut:
+      - cone: {a: [0, -0.10, 0.20], b: [0, -0.45, 0.30], r: [0.06, 0.16]}   # abertura frontal
+  belt:
+    material: leather
+    space: pelvis
+    prims:
+      - cylinder: {a: [0, 0.10, 0], b: [0, 0.155, 0], r: 0.195}
+  neck:
+    material: skin
+    space: pelvis
+    prims:
+      - cone: {a: [0, 0.56, 0], b: [0, 0.70, 0.02], r: [0.07, 0.065]}
+  head:
+    material: skin
+    space: head
+    blend: 0.05
+    prims:
+      - ellipsoid: {c: [0, 0.14, 0.0], r: [0.15, 0.16, 0.15]}
+      - ellipsoid: {c: [0, 0.07, 0.04], r: [0.11, 0.09, 0.11]}
+      - sphere: {c: [0, 0.11, 0.15], r: 0.025}
+  hair:
+    material: hair
+    space: head
+    blend: 0.04
+    prims:
+      - ellipsoid: {c: [0, 0.225, -0.03], r: [0.162, 0.10, 0.160]}
+      - ellipsoid: {c: [0, 0.14, -0.09], r: [0.152, 0.12, 0.09]}
+      - ellipsoid: {c: [0, 0.24, 0.09], r: [0.13, 0.05, 0.07]}     # franja
+  eye_L:
+    material: ink
+    space: head
+    prims:
+      - sphere: {c: [0.058, 0.12, 0.14], r: 0.032}
+  arm_L:
+    material: cloth
+    blend: 0.03
+    prims:
+      - sphere: {c: "@shoulder_L", r: 0.085}
+      - cone: {a: "@shoulder_L", b: "@elbow_L", r: [0.075, 0.06]}
+      - cone: {a: "@elbow_L", b: "@wrist_L", r: [0.06, 0.05]}
+  hand_L:
+    material: skin
+    space: wrist_L
+    prims:
+      - sphere: {c: [0, 0, 0.04], r: 0.055}
+  leg_L:
+    material: cloth
+    blend: 0.03
+    prims:
+      - cone: {a: "@hip_L", b: "@knee_L", r: [0.095, 0.07]}
+      - cone: {a: "@knee_L", b: "@ankle_L", r: [0.07, 0.055]}
+  boot_L:
+    material: leather
+    space: sole_L
+    blend: 0.03
+    prims:
+      - cone: {a: [0, 0.10, 0], b: [0, -0.02, 0.0], r: [0.065, 0.065]}
+      - ellipsoid: {c: [0, -0.04, 0.05], r: [0.065, 0.045, 0.11]}
+  sword:           # só na mão direita (sem _L => não espelha)
+    material: steel
+    space: wrist_R
+    prims:
+      - box: {c: [0, 0.26, 0.19], half: [0.022, 0.24, 0.007], rot: [0.52, 0, 0]}   # lâmina inclinada
+      - box: {c: [0, 0.048, 0.068], half: [0.065, 0.013, 0.02], rot: [0.52, 0, 0]}
+  grip:
+    material: leather
+    space: wrist_R
+    prims:
+      - cylinder: {a: [0, -0.05, 0.01], b: [0, 0.04, 0.06], r: 0.021}
+  smear:
+    when: "smear_w > 0"
+    materials: [fx_tail, fx_mid, fx_core]
+    space: fxspace
+    prims:
+      - arc: {c: "[0, smear_y, smear_z]", r: smear_r, a0: smear_a0, a1: smear_a1, width: smear_w, fade: smear_fade, dip: 0.10}
+
+animations:
+  idle:
+    frames: 6
+    ms: 150
+    channels:
+      bob: "0.025*sin(p)"
+      squash: "1 + 0.015*sin(p)"
+      head_pitch: "-0.04*sin(p - 0.5)"
+      hand_L: "[0.33, 0.06 + 0.02*sin(p - 0.6), 0.06]"
+      hand_R: "[0.30, 0.10 + 0.02*sin(p - 0.6), 0.16]"
+      coat: "0.15*sin(p - 1.0)"
+  walk:
+    frames: 8
+    ms: 100
+    events: {0: step_l, 4: step_r}
+    channels:
+      lean: 0.12
+      bob: "-0.035*cos(2*p) + 0.01"
+      twist: "0.10*cos(p)"
+      foot_L: "[0.13, 0.10*pos(-sin(p)), 0.02 + 0.24*cos(p)]"
+      foot_R: "[0.13, 0.10*pos(sin(p)), 0.02 - 0.24*cos(p)]"
+      pitch_foot_L: "0.4*pos(-sin(p))"
+      pitch_foot_R: "0.4*pos(sin(p))"
+      hand_L: "[0.33, 0.08 + 0.04*pos(cos(p)), 0.06 - 0.20*cos(p)]"
+      hand_R: "[0.30, 0.10 + 0.04*pos(-cos(p)), 0.14 + 0.16*cos(p)]"
+      head_yaw: "-0.06*cos(p)"
+      coat: "0.5*sin(2*p)"
+  attack:
+    loop: false
+    keys:
+      - {ms: 80, set: {hand_R: [0.30, 0.10, 0.16]}}
+      - ms: 110
+        set: {twist: -0.45, lean: -0.02, bob: -0.03, squash: 0.96, hand_R: [0.42, 0.62, -0.12], hand_L: [0.20, 0.28, 0.25],
+              foot_L: [0.14, 0, 0.12], foot_R: [0.14, 0, -0.06], coat: -0.3, head_pitch: -0.08}
+      - ms: 160
+        event: windup
+        set: {twist: -0.60, lean: -0.05, bob: -0.05, squash: 0.94, hand_R: [0.40, 0.74, -0.22], hand_L: [0.18, 0.30, 0.28],
+              foot_L: [0.14, 0, 0.14], foot_R: [0.14, 0, -0.08], coat: -0.4, head_pitch: -0.10}
+      - ms: 50
+        set: {root: [0, 0, 0.10], twist: 0.30, lean: 0.25, squash: 1.04, hand_R: [0.05, 0.30, 0.55], hand_L: [0.30, 0.10, 0.0],
+              foot_L: [0.14, 0, 0.24], foot_R: [0.14, 0, -0.12], coat: 0.6,
+              smear_a0: -1.6, smear_a1: -0.05, smear_w: 0.09}
+      - ms: 80
+        event: hit
+        set: {root: [0, 0, 0.14], twist: 0.60, lean: 0.30, squash: 1.02, hand_R: [-0.35, 0.18, 0.40], hand_L: [0.32, 0.08, -0.05],
+              foot_L: [0.14, 0, 0.26], foot_R: [0.14, 0, -0.12], coat: 0.8,
+              smear_a0: -1.2, smear_a1: 1.15, smear_w: 0.10}
+      - ms: 100
+        set: {root: [0, 0, 0.12], twist: 0.70, lean: 0.25, squash: 0.98, hand_R: [-0.42, 0.05, 0.15], hand_L: [0.32, 0.08, -0.05],
+              foot_L: [0.14, 0, 0.24], foot_R: [0.14, 0, -0.10], coat: 0.4,
+              smear_a0: 0.3, smear_a1: 1.35, smear_w: 0.06, smear_fade: 0.7}
+      - ms: 120
+        set: {root: [0, 0, 0.06], twist: 0.30, lean: 0.12, hand_R: [0.05, 0.08, 0.25], foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.02], coat: 0.1}
+      - ms: 130
+        set: {root: [0, 0, 0.02], twist: 0.05, hand_R: [0.28, 0.10, 0.18], coat: -0.05}

@@ -1,0 +1,97 @@
+pxforge: 1
+name: mine
+kind: prop
+size: 32                 # disco de ~11 px + brilho: 32 px sobra margem (densidade 0,040 como o resto)
+directions: 1            # disco simétrico visto de cima: 1 direção basta
+palette: [../../palettes/gothic.yaml, ../../palettes/huntress.yaml]
+camera: {pitch: 38, scale: 0.040, center: [0, 0.05, 0]}
+shadow: {rx: 6, ry: 2.2, alpha: 110}
+
+brief:
+  summary: mina da Caçadora (especial); disco metálico baixo de aço escurecido com aro dourado e uma luz no centro
+    que indica o estado (apagada / âmbar = desarmada / vermelha = armada)
+  reference: sem arte do usuário; mesmo acabamento das armas dela (aço escurecido + dourado)
+  proportions: "diâmetro 0,38 (≈10-11 px no chão com contorno), altura 0,12; a luz é a forma mais clara e fica no topo"
+  must_keep: [disco escuro legível no chão escuro (contorno + aro dourado), luz central emissiva bem visível,
+    estado lido só pela cor da luz]
+  simplify: [rebites e mecanismo/gatilho somem; o aro dourado é o único detalhe]
+  decisions:
+    - "proposta de arte (a splash não mostra a mina): disco com cúpula, aro dourado largo no topo e lente central"
+    - "canal light: 0 = apagada (lente vinho-escura), 1 = âmbar (desarmada), 2 = vermelha (armada); flare escala a luz
+      para o piscar (o animator faz o ciclo)"
+    - "a mesma mina aparece na mão esquerda da Caçadora (huntress.yaml, canal mine_L) com a luz âmbar"
+    - "revisão do pixel-art-director: ouro bands [1,4], luz r 0.06, núcleo r 0.035. O núcleo foi deslocado para a câmera
+      (c [0, 0.127, 0.028]) porque dentro da esfera da luz ele não aparecia; assim a luz acesa é o pixel mais claro e a cor
+      do estado ainda domina (4 px de cor + 2 px quentes)"
+
+materials:
+  metal:      {ramp: gunmetal, bands: [1, 4]}
+  gold:       {ramp: gold, bands: [1, 4]}
+  lens:       {ramp: blood, bands: [0, 1], line: false}
+  amber:      {ramp: mine_amber, emissive: true, band: 2, outline: false, glow: {color: "#ffa62a", mix: 0.5, radius: 1}}
+  amber_core: {ramp: mine_amber, emissive: true, band: 4, outline: false}
+  red:        {ramp: mine_red, emissive: true, band: 2, outline: false, glow: {color: "#ff2a2a", mix: 0.55, radius: 1}}
+  red_core:   {ramp: mine_red, emissive: true, band: 4, outline: false}
+
+channels:
+  light: 1         # 0 = apagada | 1 = âmbar (desarmada) | 2 = vermelha (armada)
+  flare: 1         # tamanho da luz (piscar)
+
+bones: {}
+
+parts:
+  body:
+    material: metal
+    blend: 0.02
+    prims:
+      - cylinder: {a: [0, 0.0, 0], b: [0, 0.06, 0], r: 0.19, round: 0.02}
+      - ellipsoid: {c: [0, 0.06, 0], r: [0.12, 0.04, 0.12]}
+      - cylinder: {a: [0, 0.08, 0], b: [0, 0.10, 0], r: 0.055, round: 0.01}
+  ring:
+    material: gold
+    prims:
+      - torus: {c: [0, 0.07, 0], R: 0.15, r: 0.026}
+  lens:
+    when: "light < 0.5"
+    material: lens
+    prims:
+      - sphere: {c: [0, 0.10, 0], r: 0.045}
+  light_amber:
+    when: "light >= 0.5 and light < 1.5"
+    material: amber
+    prims:
+      - sphere: {c: [0, 0.105, 0], r: "0.06*flare"}
+  light_amber_core:
+    when: "light >= 0.5 and light < 1.5"
+    material: amber_core
+    prims:
+      - sphere: {c: "[0, 0.105 + 0.022*flare, 0.028*flare]", r: "0.035*flare"}   # deslocado para a câmera: fura a esfera da luz (~1 px quente)
+  light_red:
+    when: "light >= 1.5"
+    material: red
+    prims:
+      - sphere: {c: [0, 0.105, 0], r: "0.06*flare"}
+  light_red_core:
+    when: "light >= 1.5"
+    material: red_core
+    prims:
+      - sphere: {c: "[0, 0.105 + 0.022*flare, 0.028*flare]", r: "0.035*flare"}   # deslocado para a câmera: fura a esfera da luz (~1 px quente)
+
+animations:
+  # Estados da mina no jogo (MineDef: arma em 0,4 s). light: 0 apagada | 1 âmbar | 2 vermelha; flare = tamanho da luz.
+  arming:                  # desarmada (0,4 s no jogo): âmbar piscando rápido, ciclo de 200 ms
+    frames: 4
+    ms: 50
+    channels:
+      light: "[1, 1, 1, 0][f]"
+      flare: "[1.25, 1.0, 0.75, 1.0][f]"
+  armed:                   # armada: vermelha, pulso mais lento com flare (acende forte e decai), ciclo de 500 ms
+    frames: 4
+    ms: 125
+    channels:
+      light: 2
+      flare: "[0.6, 1.45, 1.1, 0.8][f]"
+  off:                     # apagada (lente vinho-escura), estática
+    loop: false
+    keys:
+      - {ms: 200, set: {light: 0}}

@@ -1,0 +1,12 @@
+* text=auto
+
+# Godot writes LF; keep its text resources LF everywhere
+*.gd     text eol=lf
+*.tres   text eol=lf
+*.tscn   text eol=lf
+*.cfg    text eol=lf
+*.godot  text eol=lf
+
+*.png    binary
+*.jpg    binary
+*.gif    binary

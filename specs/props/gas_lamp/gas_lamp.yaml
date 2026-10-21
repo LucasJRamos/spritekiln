@@ -1,0 +1,65 @@
+pxforge: 1
+name: gas_lamp
+kind: prop
+size: 64
+directions: 1
+palette: [../../palettes/gothic.yaml, ../../palettes/props.yaml]
+camera: {pitch: 38, scale: 0.040, center: [0, 1.30, 0]}
+shadow: {rx: 7, ry: 2.5, alpha: 110}
+
+brief:
+  summary: poste de lampião a gás vitoriano de ferro fundido, lanterna de vidro com chama
+  must_keep: [poste fino e alto, base ornamentada, lanterna com chama emissiva, chapéu pontudo]
+
+materials:
+  iron:  {ramp: wiron}
+  flame: {ramp: flame, emissive: true, band: 3, outline: false, glow: {color: "#ffc23d", mix: 0.5, radius: 1}}
+  core:  {ramp: flame, emissive: true, band: 4, outline: false}
+
+channels:
+  flick: 1         # tamanho da chama
+
+bones: {}
+
+parts:
+  base:
+    material: iron
+    blend: 0.03
+    prims:
+      - cylinder: {a: [0, 0.0, 0], b: [0, 0.10, 0], r: 0.17}
+      - cone: {a: [0, 0.10, 0], b: [0, 0.42, 0], r: [0.12, 0.06]}
+  post:
+    material: iron
+    prims:
+      - cylinder: {a: [0, 0.40, 0], b: [0, 2.05, 0], r: 0.045}
+      - torus: {c: [0, 1.10, 0], R: 0.06, r: 0.02}
+      - torus: {c: [0, 1.95, 0], R: 0.07, r: 0.022}
+  cage:
+    material: iron
+    prims:
+      - box: {c: [0, 2.08, 0], half: [0.14, 0.03, 0.14], round: 0.01}
+      - box: {c: [0, 2.50, 0], half: [0.15, 0.03, 0.15], round: 0.01}
+      - cylinder: {a: [0.13, 2.08, 0.13], b: [0.13, 2.50, 0.13], r: 0.024}
+      - cylinder: {a: [-0.13, 2.08, 0.13], b: [-0.13, 2.50, 0.13], r: 0.024}
+      - cylinder: {a: [0.13, 2.08, -0.13], b: [0.13, 2.50, -0.13], r: 0.024}
+      - cylinder: {a: [-0.13, 2.08, -0.13], b: [-0.13, 2.50, -0.13], r: 0.024}
+  roof:
+    material: iron
+    prims:
+      - cone: {a: [0, 2.52, 0], b: [0, 2.72, 0], r: [0.17, 0.02]}
+      - sphere: {c: [0, 2.75, 0], r: 0.035}
+  flame:
+    material: flame
+    prims:
+      - ellipsoid: {c: [0, 2.27, 0.02], r: "[0.10*flick, 0.16*flick, 0.10*flick]"}
+  flame_core:
+    material: core
+    prims:
+      - ellipsoid: {c: [0, 2.25, 0.05], r: "[0.04*flick, 0.08*flick, 0.04*flick]"}
+
+animations:
+  idle:            # chama tremulando (ruído suave, ciclo fechado)
+    frames: 4
+    ms: 140
+    channels:
+      flick: "1 + 0.08*sin(p) + 0.05*sin(2*p + 1.3)"

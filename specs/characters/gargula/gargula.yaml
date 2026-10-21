@@ -1,0 +1,290 @@
+pxforge: 1
+name: gargula
+kind: character
+size: 64
+directions: 8
+palette: ../../palettes/gothic.yaml
+camera: {pitch: 38, scale: 0.050, center: [0, 1.0, 0]}
+shadow: {rx: 13.5, ry: 4.5, alpha: 120}
+
+brief:
+  summary: Gárgula de pedra violácea, chefe da torre. Corcunda, cabeça grande com chifres de osso,
+    olhos em brasa, asas de morcego carmesim, cauda com ponta em pá.
+  must_keep: [chifres curvos para trás, olhos laranja brilhando, asas membranosas recortadas, garras de osso]
+  simplify: [sem rachaduras na pedra, dedos viram 3 garras]
+
+materials:
+  stone: {ramp: stone}
+  wing:  {ramp: wing, two_sided: true}
+  bone:  {ramp: bone}
+  eye:   {ramp: eye, emissive: true, band: 3, glow: {color: "#ff5a1f", mix: 0.55}}
+  mouth: {ramp: mouth, bands: [1, 2], line: false}
+  fx_tail: {ramp: fx_tail, emissive: true}
+  fx_mid:  {ramp: fx_mid, emissive: true}
+  fx_core: {ramp: fx_core, emissive: true}
+
+# ---------------------------------------------------------------- channels
+# Canais *_R usam a mesma convenção do *_L (x positivo = para fora do corpo).
+channels:
+  root: [0, 0, 0]
+  bob: 0
+  lean: 0.22
+  twist: 0
+  roll: 0
+  squash: 1
+  head_pitch: 0
+  head_yaw: 0
+  head_roll: 0
+  jaw: 0
+  hand_L: [0.40, 0.02, 0.30]
+  claw_L: 0
+  foot_L: [0.24, 0.0, 0.10]
+  pitch_foot_L: 0
+  wing_L: 0.12
+  flap: 0
+  tail: 0
+  tail_lift: 0
+  smear_w: 0
+  smear_a0: 0
+  smear_a1: 0
+  smear_r: 0.85
+  smear_y: 0.95
+  smear_z: 0.2
+  smear_fade: 1
+
+# ---------------------------------------------------------------- skeleton
+bones:
+  torso_rot: {parent: root, pos: "[0, 0.78 + bob, 0]", rot: "[lean, twist, roll]"}
+  pelvis:    {parent: torso_rot, scale: "[1/sqrt(squash), squash, 1/sqrt(squash)]"}
+  headbase:  {parent: pelvis, pos: [0, 0.94, 0.24], inherit_rot: false, inherit_scale: false,
+              rot: "[lean*0.25, twist, roll]"}
+  head:      {parent: headbase, rot: "[head_pitch, head_yaw, head_roll]", scale: 1.3}
+  jaw:       {parent: head, pos: [0, -0.02, 0], rot: "[jaw*0.7, 0, 0]"}
+  shoulder_L: {parent: pelvis, pos: [0.42, 0.56, 0.02]}
+  hip_L:      {parent: pelvis, pos: [0.20, 0.0, 0.0]}
+  legyaw:     {parent: root, rot: "[0, twist*0.5, 0]"}
+  footyaw:    {parent: root, rot: "[0, twist*0.4, 0]"}
+  sole_L:     {parent: footyaw, at: ankle_L, rot: "[pitch_foot_L, 0.15, 0]"}
+  tail0: {parent: pelvis, pos: [0, 0.02, -0.18]}
+  tail1: {parent: pelvis, pos: "[0.05*sin(tail), -0.18 + tail_lift*0.3, -0.48]"}
+  tail2: {parent: pelvis, pos: "[0.18*sin(tail-0.8), -0.36 + tail_lift*0.6, -0.72]"}
+  tail3: {parent: pelvis, pos: "[0.30*sin(tail-1.6), -0.22 + tail_lift, -0.92]"}
+  # wings: root follows the torso, orientation only partially (keeps wings readable)
+  wingbase:      {parent: root, rot: "[lean*0.35 - 0.1, twist*0.3, roll]"}
+  wingattach_L:  {parent: pelvis, pos: [0.17, 0.60, -0.20]}
+  wingroot_L:    {parent: wingbase, at: wingattach_L}
+  wrist_L: {parent: wingroot_L, pos: "lerp([0.42, 0.17, -0.18], [0.78, 0.38, -0.32], clamp(wing_L,0,1)) + [0, flap*0.35*clamp(wing_L,0,1), 0]"}
+  wtip1_L: {parent: wingroot_L, pos: "lerp([0.46, -0.16, -0.24], [1.13, -0.02, -0.65], clamp(wing_L,0,1)) + [0, flap*0.55*clamp(wing_L,0,1), 0]"}
+  wtip2_L: {parent: wingroot_L, pos: "lerp([0.38, -0.40, -0.21], [1.01, -0.48, -0.60], clamp(wing_L,0,1)) + [0, flap*0.55*clamp(wing_L,0,1), 0]"}
+  wtip3_L: {parent: wingroot_L, pos: "lerp([0.22, -0.55, -0.16], [0.63, -0.68, -0.42], clamp(wing_L,0,1)) + [0, flap*0.55*clamp(wing_L,0,1), 0]"}
+  wingmem_L: {parent: pelvis, pos: [0.12, 0.12, -0.22]}
+  fxspace: {parent: root, rot: "[0, twist*0.3, 0]"}
+
+ik:
+  arm_L: {start: shoulder_L, space: torso_rot, target: hand_L, lengths: [0.36, 0.36],
+          pole: [0.5, -0.1, -1.0], pole_space: torso_rot, joint: elbow_L, end: wrist_hand_L}
+  leg_L: {start: hip_L, space: root, target: "foot_L + [0, 0.11, -0.04]", lengths: [0.44, 0.42],
+          pole: [0.25, 0, 1.0], pole_space: legyaw, joint: knee_L, end: ankle_L}
+
+# ---------------------------------------------------------------- geometry
+parts:
+  torso:
+    material: stone
+    space: pelvis
+    blend: 0.09
+    prims:
+      - ellipsoid: {c: [0, 0.05, -0.02], r: [0.28, 0.22, 0.24]}
+      - ellipsoid: {c: [0, 0.36, 0.04], r: [0.36, 0.33, 0.29]}
+      - ellipsoid: {c: [0, 0.56, 0.02], r: [0.46, 0.24, 0.30]}
+      - ellipsoid: {c: [0, 0.66, -0.06], r: [0.30, 0.16, 0.22]}     # hunch
+      - cone: {a: [0, 0.62, 0.10], b: [0, 0.76, 0.26], r: [0.17, 0.13]}   # neck
+      - ellipsoid: {c: [0.15, 0.48, 0.22], r: [0.17, 0.12, 0.09]}   # pecs
+      - ellipsoid: {c: [-0.15, 0.48, 0.22], r: [0.17, 0.12, 0.09]}
+  head:
+    material: stone
+    space: head
+    blend: 0.05
+    prims:
+      - ellipsoid: {c: [0, 0.10, 0.0], r: [0.20, 0.18, 0.20]}
+      - ellipsoid: {c: [0, 0.13, 0.10], r: [0.21, 0.07, 0.11]}      # brow ridge
+      - ellipsoid: {c: [0, 0.02, 0.17], r: [0.13, 0.09, 0.15]}      # snout
+      - cone: {a: [0.16, 0.14, -0.02], b: [0.27, 0.17, -0.10], r: [0.05, 0.012]}   # ears
+      - cone: {a: [-0.16, 0.14, -0.02], b: [-0.27, 0.17, -0.10], r: [0.05, 0.012]}
+  jaw:
+    material: stone
+    space: jaw
+    prims:
+      - ellipsoid: {c: [0, -0.07, 0.14], r: [0.12, 0.055, 0.15]}
+  mouth:
+    material: mouth
+    space: head
+    prims:
+      - ellipsoid: {c: [0, -0.04, 0.12], r: [0.10, 0.06, 0.12]}
+  fangs:
+    material: bone
+    space: head
+    line: false
+    prims:
+      - cone: {a: [0.06, -0.02, 0.27], b: [0.065, -0.12, 0.28], r: [0.024, 0.0046]}
+      - cone: {a: [-0.06, -0.02, 0.27], b: [-0.065, -0.12, 0.28], r: [0.024, 0.0046]}
+  eye_L:
+    material: eye
+    space: head
+    prims:
+      - sphere: {c: [0.085, 0.085, 0.215], r: 0.042}
+  horn_L:
+    material: bone
+    space: head
+    blend: 0.02
+    prims:
+      - chain: {pts: [[0.12, 0.19, -0.01], [0.26, 0.27, -0.07], [0.33, 0.37, -0.14], [0.30, 0.45, -0.24]],
+                r: [0.058, 0.045, 0.028, 0.006]}
+  arm_L:
+    material: stone
+    blend: 0.04
+    prims:
+      - ellipsoid: {c: {at: shoulder_L, off: [0, 0.02, 0]}, r: [0.15, 0.13, 0.15]}
+      - cone: {a: "@shoulder_L", b: "@elbow_L", r: [0.12, 0.085]}
+      - cone: {a: "@elbow_L", b: "@wrist_hand_L", r: [0.09, 0.10]}
+      - sphere: {c: {at: wrist_hand_L, off: [0, 0, 0.07]}, r: 0.095}
+  claws_L:
+    material: bone
+    space: wrist_hand_L
+    prims:
+      - cone: {a: [0.055, 0, 0.13], b: "[0.055, 0, 0.13] + unit([0.25, -(0.55 + 0.6*claw_L), 1 - 0.5*claw_L])*0.19", r: [0.036, 0.006]}
+      - cone: {a: [0, 0, 0.13], b: "[0, 0, 0.13] + unit([0, -(0.55 + 0.6*claw_L), 1 - 0.5*claw_L])*0.19", r: [0.036, 0.006]}
+      - cone: {a: [-0.055, 0, 0.13], b: "[-0.055, 0, 0.13] + unit([-0.25, -(0.55 + 0.6*claw_L), 1 - 0.5*claw_L])*0.19", r: [0.036, 0.006]}
+  leg_L:
+    material: stone
+    blend: 0.05
+    prims:
+      - ellipsoid: {c: {between: ["@hip_L", "@knee_L"], t: 0.45}, r: [0.17, 0.25, 0.17]}
+      - cone: {a: "@hip_L", b: "@knee_L", r: [0.15, 0.10]}
+      - cone: {a: "@knee_L", b: "@ankle_L", r: [0.085, 0.07]}
+      - cone: {a: "@ankle_L", b: {at: sole_L, off: [0, -0.07, 0.17]}, r: [0.08, 0.065]}
+  toeclaws_L:
+    material: bone
+    space: sole_L
+    prims:
+      - cone: {a: [0.05, -0.07, 0.20], b: [0.07, -0.11, 0.28], r: [0.026, 0.006]}
+      - cone: {a: [0, -0.07, 0.20], b: [0, -0.11, 0.28], r: [0.026, 0.006]}
+      - cone: {a: [-0.05, -0.07, 0.20], b: [-0.07, -0.11, 0.28], r: [0.026, 0.006]}
+  tail:
+    material: stone
+    blend: 0.03
+    prims:
+      - chain: {pts: ["@tail0", "@tail1", "@tail2", "@tail3"], r: [0.11, 0.08, 0.055, 0.035]}
+  spade:
+    material: wing
+    blend: 0.03
+    prims:
+      - ellipsoid: {c: {between: ["@tail2", "@tail3"], t: 1.42}, r: [0.11, 0.025, 0.12], align: ["@tail2", "@tail3"]}
+      - cone: {a: "@tail3", b: {between: ["@tail2", "@tail3"], t: 1.95}, r: [0.03, 0.005]}
+  wingbones_L:
+    material: stone
+    blend: 0.015
+    prims:
+      - cone: {a: "@wingroot_L", b: "@wrist_L", r: [0.055, 0.04]}
+      - cone: {a: "@wrist_L", b: "@wtip1_L", r: [0.03, 0.009]}
+      - cone: {a: "@wrist_L", b: "@wtip2_L", r: [0.03, 0.009]}
+      - cone: {a: "@wrist_L", b: "@wtip3_L", r: [0.03, 0.009]}
+      - cone: {a: "@wrist_L", b: {at: wrist_L, off: "unit(lerp([0.42, 0.17, -0.18], [0.78, 0.38, -0.32], clamp(wing_L,0,1)))*0.08 + [0, 0.05, 0]"}, r: [0.03, 0.005]}
+  wing_L:
+    material: wing
+    prims:
+      - membrane: {hub: "@wrist_L", ring: ["@wingroot_L", "@wtip1_L", "@wtip2_L", "@wtip3_L", "@wingmem_L"],
+                   th: 0.012, scallop: [1, 2, 3], fill_root: true}
+  smear:
+    when: "smear_w > 0"
+    materials: [fx_tail, fx_mid, fx_core]
+    space: fxspace
+    prims:
+      - arc: {c: "[0, smear_y, smear_z]", r: smear_r, a0: smear_a0, a1: smear_a1, width: smear_w, fade: smear_fade, dip: 0.12}
+
+# ---------------------------------------------------------------- animations
+animations:
+  idle:
+    frames: 8
+    ms: 130
+    channels:
+      bob: "0.045*sin(p) - 0.01"
+      squash: "1 + 0.025*sin(p)"
+      wing_L: "0.30 + 0.10*sin(p - 0.6)"
+      wing_R: "0.30 + 0.10*sin(p - 0.6)"
+      flap: "0.25*sin(p - 1.0)"
+      tail: "0.7*sin(p)"
+      tail_lift: "0.06*sin(p - 1.2)"
+      head_pitch: "-0.05*sin(p - 0.4)"
+      head_roll: "0.03*sin(p)"
+      hand_L: "[0.40, 0.04 + 0.04*sin(p - 0.5), 0.30]"
+      hand_R: "[0.40, 0.04 + 0.04*sin(p - 0.5), 0.30]"
+      claw_L: "0.25 + 0.15*sin(p)"
+      claw_R: "0.25 + 0.15*sin(p)"
+      jaw: "0.08 + 0.08*pos(sin(p - 0.3))"
+
+  walk:
+    frames: 8
+    ms: 105
+    events: {0: step_l, 4: step_r}
+    channels:
+      lean: 0.32
+      bob: "-0.055*cos(2*p) + 0.01"
+      squash: "1 + 0.02*cos(2*p)"
+      twist: "0.13*cos(p)"
+      roll: "0.05*sin(p)"
+      foot_L: "[0.24, 0.15*pos(-sin(p)), 0.10 + 0.30*cos(p)]"
+      foot_R: "[0.24, 0.15*pos(sin(p)), 0.10 - 0.30*cos(p)]"
+      pitch_foot_L: "0.5*pos(-sin(p))"
+      pitch_foot_R: "0.5*pos(sin(p))"
+      hand_L: "[0.42, 0.06 + 0.06*pos(cos(p)), 0.30 - 0.24*cos(p)]"
+      hand_R: "[0.42, 0.06 + 0.06*pos(-cos(p)), 0.30 + 0.24*cos(p)]"
+      claw_L: 0.3
+      claw_R: 0.3
+      wing_L: 0.22
+      wing_R: 0.22
+      flap: "0.3*cos(2*p)"
+      tail: "p + 0.5"
+      tail_lift: "0.05*cos(2*p)"
+      head_yaw: "-0.08*cos(p)"
+      head_pitch: "0.04*cos(2*p)"
+      jaw: 0.1
+
+  attack:
+    loop: false
+    keys:
+      - ms: 90        # 0 ready
+        set: {bob: -0.03, squash: 0.98, wing_L: 0.35, wing_R: 0.35, jaw: 0.15, claw_L: 0.3, claw_R: 0.3, tail: 0.3,
+              hand_L: [0.40, 0.04, 0.30], hand_R: [0.40, 0.04, 0.30]}
+      - ms: 100       # 1 anticipation
+        set: {twist: -0.30, lean: 0.08, squash: 0.94, bob: -0.07, hand_R: [0.70, 0.80, -0.04], hand_L: [0.36, 0.34, 0.42],
+              claw_R: 0.0, claw_L: 0.5, wing_L: 0.75, wing_R: 0.75, flap: 0.55, jaw: 0.6, tail: -0.6, tail_lift: 0.25,
+              head_pitch: -0.12, foot_L: [0.26, 0, 0.18], foot_R: [0.26, 0, -0.02]}
+      - ms: 170       # 2 anticipation hold (extreme)
+        event: windup
+        set: {twist: -0.40, lean: 0.02, squash: 0.91, bob: -0.09, hand_R: [0.80, 0.98, -0.10], hand_L: [0.34, 0.40, 0.44],
+              claw_R: 0.0, claw_L: 0.5, wing_L: 0.92, wing_R: 0.92, flap: 0.7, jaw: 1.0, tail: -0.9, tail_lift: 0.4,
+              head_pitch: -0.18, foot_L: [0.26, 0, 0.20], foot_R: [0.26, 0, -0.04]}
+      - ms: 55        # 3 strike (smear)
+        set: {root: [0, 0, 0.16], twist: 0.30, lean: 0.50, squash: 1.06, bob: -0.02, hand_R: [0.10, 0.30, 0.78],
+              hand_L: [0.40, 0.10, 0.10], claw_R: 0.0, claw_L: 0.4, wing_L: 0.92, wing_R: 0.92, flap: 0.1, jaw: 1.0,
+              tail: 0.4, tail_lift: 0.2, head_pitch: 0.10, foot_L: [0.26, 0, 0.30], foot_R: [0.26, 0, -0.10],
+              smear_a0: -1.6, smear_a1: -0.05, smear_r: 0.88, smear_y: 0.98, smear_z: 0.20, smear_w: 0.11}
+      - ms: 80        # 4 impact
+        event: hit
+        set: {root: [0, 0, 0.22], twist: 0.62, lean: 0.56, squash: 1.04, bob: -0.03, hand_R: [-0.42, 0.18, 0.60],
+              hand_L: [0.42, 0.06, 0.02], claw_R: 0.0, claw_L: 0.4, wing_L: 0.85, wing_R: 0.85, flap: -0.15, jaw: 0.8,
+              tail: 1.0, tail_lift: 0.15, head_pitch: 0.12, foot_L: [0.26, 0, 0.32], foot_R: [0.26, 0, -0.10],
+              smear_a0: -1.15, smear_a1: 1.2, smear_r: 0.9, smear_y: 0.95, smear_z: 0.22, smear_w: 0.12}
+      - ms: 100       # 5 follow-through
+        set: {root: [0, 0, 0.20], twist: 0.72, lean: 0.48, squash: 0.97, bob: -0.05, hand_R: [-0.55, 0.04, 0.30],
+              hand_L: [0.42, 0.06, 0.02], claw_R: 0.3, claw_L: 0.4, wing_L: 0.6, wing_R: 0.6, flap: -0.2, jaw: 0.4,
+              tail: 1.2, head_pitch: 0.06, foot_L: [0.26, 0, 0.30], foot_R: [0.26, 0, -0.08],
+              smear_a0: 0.3, smear_a1: 1.4, smear_r: 0.92, smear_y: 0.92, smear_z: 0.22, smear_w: 0.07, smear_fade: 0.7}
+      - ms: 120       # 6 recover
+        set: {root: [0, 0, 0.10], twist: 0.35, lean: 0.34, squash: 0.98, bob: -0.04, hand_R: [-0.05, 0.04, 0.36],
+              hand_L: [0.42, 0.05, 0.18], claw_R: 0.3, claw_L: 0.35, wing_L: 0.45, wing_R: 0.45, flap: 0.1, jaw: 0.25,
+              tail: 0.9, foot_L: [0.25, 0, 0.20], foot_R: [0.25, 0, 0.02]}
+      - ms: 130       # 7 settle
+        set: {root: [0, 0, 0.03], twist: 0.08, lean: 0.26, squash: 0.99, bob: -0.02, hand_R: [0.32, 0.04, 0.32],
+              hand_L: [0.40, 0.04, 0.30], claw_L: 0.3, claw_R: 0.3, wing_L: 0.36, wing_R: 0.36, flap: 0.05, jaw: 0.15,
+              tail: 0.5, foot_L: [0.24, 0, 0.12], foot_R: [0.24, 0, 0.08]}

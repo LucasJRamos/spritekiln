@@ -1,0 +1,56 @@
+pxforge: 1
+name: crates
+kind: prop
+size: 64
+directions: 1
+palette: [../../palettes/gothic.yaml, ../../palettes/props.yaml]
+camera: {pitch: 38, scale: 0.040, center: [0, 0.55, 0]}
+shadow: {rx: 14, ry: 5, alpha: 110}
+
+brief:
+  summary: pilha de dois caixotes de madeira com reforços de ferro (cobertura e escala na zona de treino)
+
+materials:
+  wood:  {ramp: wood}
+  plank: {ramp: wood, bands: [1, 3]}
+  iron:  {ramp: wiron}
+
+channels: {}
+bones:
+  top: {parent: root, pos: [0.06, 0.70, -0.04], rot: [0, 0.35, 0]}
+
+parts:
+  crate_a:
+    material: wood
+    prims:
+      - box: {c: [0, 0.35, 0], half: [0.38, 0.35, 0.34], round: 0.02}
+  crate_a_frame:
+    material: plank
+    prims:
+      - box: {c: [0, 0.35, 0.345], half: [0.38, 0.05, 0.012]}
+      - box: {c: [0.33, 0.35, 0.345], half: [0.05, 0.35, 0.012]}
+      - box: {c: [-0.33, 0.35, 0.345], half: [0.05, 0.35, 0.012]}
+      - box: {c: [0.385, 0.35, 0], half: [0.012, 0.05, 0.34]}
+  crate_a_iron:
+    material: iron
+    prims:
+      - box: {c: [0, 0.69, 0.345], half: [0.39, 0.018, 0.014]}
+      - box: {c: [0, 0.02, 0.345], half: [0.39, 0.018, 0.014]}
+  crate_b:
+    material: wood
+    space: top
+    prims:
+      - box: {c: [0, 0.25, 0], half: [0.27, 0.25, 0.25], round: 0.02}
+  crate_b_frame:
+    material: plank
+    space: top
+    prims:
+      - box: {c: [0, 0.25, 0.255], half: [0.27, 0.04, 0.012]}
+      - box: {c: [0.22, 0.25, 0.255], half: [0.04, 0.25, 0.012]}
+      - box: {c: [-0.22, 0.25, 0.255], half: [0.04, 0.25, 0.012]}
+
+animations:
+  idle:
+    frames: 1
+    ms: 500
+    channels: {}

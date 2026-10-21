@@ -1,0 +1,15 @@
+# Paleta da Caçadora (ref: D:\GameProjects\tower-hunt\refs\cacadora.png). Índice 0 = contorno/mais escuro.
+# Usada junto com gothic.yaml (gold, blood, fx_*). Cores amostradas da splash e ajustadas à mão
+# (hue shift: sombras frias/violeta, luzes quentes).
+ramps:
+  pale:     ["#1a0d10", "#5a3234", "#9a6458", "#c8907c", "#e6bba5", "#f8e2d2"]   # pele clara
+  blond:    ["#1c0f06", "#5e3a16", "#a06a2a", "#cf9e4a", "#ecc677", "#fbe7a8"]   # cabelo loiro dourado
+  coatk:    ["#08070b", "#15121a", "#221d28", "#362e3d", "#463b4d", "#5e5066"]   # casaca e chapéu pretos (violeta frio); tom 3 em L* 20
+  pantk:    ["#070809", "#121418", "#1e2227", "#2c3238", "#3e464d"]              # calça preta (cinza frio)
+  bootk:    ["#0b0706", "#1c1210", "#2e1f19", "#463026", "#614536", "#7d5e48"]   # botas e luvas, couro escuro
+  ivory:    ["#1a130e", "#5a4a3c", "#94806b", "#c2ad92", "#e0d0b8", "#f4ead8"]   # camisa marfim
+  vestbr:   ["#120a07", "#33201a", "#4f3326", "#6e4a35", "#8e6748", "#ae8a63"]   # colete, cintos e coldres (couro marrom)
+  gunmetal: ["#08090c", "#14171d", "#22262e", "#343a44", "#4d5561", "#727c88"]   # aço escurecido das armas e da mina
+  walnut:   ["#0e0705", "#2a160e", "#432417", "#5e3521", "#7d4b2e", "#9c6640"]   # coronha/guarda-mão do rifle
+  mine_amber: ["#3a1a04", "#a85a0c", "#ffa62a", "#ffd88a", "#fff4d0"]            # luz da mina desarmada (emissivo)
+  mine_red:   ["#3a0306", "#a80d18", "#ff2a2a", "#ff8a7a", "#ffe0d8"]            # luz da mina armada (emissivo)

@@ -1,0 +1,17 @@
+# Paleta gótica da Torre dos Caçadores. Índice 0 = contorno/mais escuro.
+# Hue shift: sombras puxam para violeta/azul frio, luzes para tons quentes.
+ramps:
+  stone: ["#0f0b17", "#2a2038", "#41344f", "#5d4f6c", "#82748e", "#b2a5b4"]
+  wing:  ["#14060e", "#2e0a1b", "#4c1226", "#6e1c31", "#92303f"]
+  bone:  ["#1f1410", "#4a3326", "#7a5a40", "#a8875e", "#d2b98a", "#f1e6c2"]
+  eye:   ["#3d0707", "#ff5a1f", "#ffb13b", "#fff3a6"]
+  mouth: ["#16070f", "#2a0812", "#4a0e1c"]
+  fx_core: ["#ffffff"]
+  fx_mid:  ["#fff0b8"]
+  fx_tail: ["#ffa64d"]
+  cloth:  ["#0c0a10", "#1b1722", "#2b2534", "#3e364a", "#5a5068"]
+  skin:   ["#1d0f0e", "#4a2a24", "#7a4a3a", "#a87058", "#d29d7c", "#efcfae"]
+  steel:  ["#0e1016", "#262b38", "#414a5c", "#677387", "#9aa6b6", "#dfe6ee"]
+  gold:   ["#1c1006", "#4d2f0e", "#8a5a16", "#c48c22", "#e8c04e", "#fff0a0"]
+  blood:  ["#12040a", "#3a0712", "#6b0d1c", "#a3182a", "#d63a3a"]
+  flame:  ["#3a0a04", "#c2300e", "#ff7a1a", "#ffc23d", "#fff4b0"]
