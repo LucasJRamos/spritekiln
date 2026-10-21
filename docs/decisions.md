@@ -60,3 +60,43 @@ Unity 6000.3.6f1 and 6000.4.0f1 are installed on the dev machine. The UPM packag
 ## ADR-008: LF line endings (2026-10-21)
 `.gitattributes` sets `* text=auto eol=lf` (Godot resources were already LF). The working tree is LF on
 every platform; Python, YAML and the engines read it fine on Windows.
+
+## ADR-009: Compatibility through the `pxforge` name (2026-10-21)
+The package is `spritekiln`; `pxforge/` is a shim that aliases every module and keeps `python -m pxforge`
+and the `pxforge` command. The command name selects the JSON block key: `spritekiln render` writes the
+`spritekiln` block, `pxforge render` keeps writing `pxforge`, because Hunt Tower's installed copy of
+PxSprite2D only reads that key. The runtimes in `integrations/` read both. Godot names (`addons/pxforge`,
+`PxSprite2D`, default destination `assets/pxforge`) stay until the addon is reworked in Phase 4.
+
+## ADR-010: hatchling, resources kept where the repository uses them (2026-10-21)
+The build backend is hatchling. The humanoid template, the CC0 palettes and the Godot addon stay at
+`specs/templates`, `specs/palettes` and `integrations/godot` (Hunt Tower and the docs point there) and are
+`force-include`d into `spritekiln/data/` in the wheel; `spritekiln/resources.py` reads either place. Specs
+can name a built-in palette (`palette: gothic`). Showcase files never enter the wheel or the sdist.
+
+## ADR-011: Render cache format (2026-10-21)
+`.kilncache/<name>/<key>.npz`, compressed, read with `allow_pickle=False`. The key includes a hash of the
+engine sources (expr, rig, sdf, render), so any engine edit, even formatting, starts a fresh cache.
+Writes are atomic; entries are touched on use and each spec cache is pruned to 1 GB (least recently used
+first) after a render. The old `.pxcache/` pickles are never read; `spritekiln cache clear --legacy`
+removes them.
+
+## ADR-012: Job count from available memory, one BLAS thread (2026-10-21)
+Measured on the dev machine: importing numpy commits ~500 MB per process (an OpenBLAS buffer per thread,
+16 threads), which explains the out-of-memory kills during Hunt Tower renders; with one BLAS thread a
+Templar frame commits 85 MB at the same speed. Workers and the CLI therefore set `OPENBLAS_NUM_THREADS`,
+`OMP_NUM_THREADS` and `MKL_NUM_THREADS` to 1 unless the user already set them. Without `--jobs`, the job
+count is `(available - max(1 GB, 10 % of RAM) - coordinator) / per-worker estimate`, capped at half the
+logical CPUs (8 and 15 jobs render at the same speed on a 16-thread CPU) and at the work left. A dead
+worker restarts the pool with half the jobs; finished frames stay in the cache.
+
+## ADR-013: The JSON Schema is the source for spec structure (2026-10-21)
+`spritekiln/data/spec.schema.json` serves editors, AIs and the runtime. Unknown keys are warnings (old
+specs keep working; typos get a "did you mean"), missing required keys are errors, and every problem
+carries file:line:column. The runtime walks the schema with the stdlib; `jsonschema` is a dev dependency
+used by the tests to validate every spec.
+
+## ADR-014: Output format 1 (2026-10-21)
+`docs/format.md` is the contract. Format 1 = everything pxforge 0.1 wrote plus `format`, `generator` and
+`camera`. Additive fields never bump the number; readers must ignore unknown fields. An event on frame i
+fires when frame i becomes visible.

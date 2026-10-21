@@ -21,11 +21,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install ruff
+      - run: python -m pip install ruff "reuse[charset-normalizer]"
       - run: ruff check .
       - run: ruff format --check .
       - name: Licensing (REUSE)
-        uses: fsfe/reuse-action@v5
+        run: reuse lint
 
   test:
     strategy:

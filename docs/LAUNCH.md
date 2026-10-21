@@ -1,6 +1,7 @@
 # Launch plan: pxforge → SpriteKiln v0.1.0
 
-> **Status:** Phase 0 done on 2026-10-21, awaiting the maintainer's review (checkpoint). Next: Phase 1.
+> **Status:** Phase 0 approved. Phase 1 done on 2026-10-21, awaiting the maintainer's review (checkpoint);
+> the only open item is a real GitHub Actions run, which needs a remote. Next: Phase 2.
 > Internal working document. It is trimmed or removed before the public v0.1.0 release.
 
 ## Goal
@@ -49,6 +50,8 @@ demonstration only** (ADR-003) · Unity validation on **6000.3** (ADR-005) · **
 ## Open questions (maintainer)
 - Delete `legacy/` from disk, or keep it locally (it is already out of git)?
 - Confirm that the cacador's `splash_teste.jpg` is an upscaled render of the cacador itself (CC0).
+- The `mine` prop is CC0 (props), but its spec uses the Huntress palette, which is showcase (all rights
+  reserved), so nobody can reuse it as shipped. Move the mine to the showcase, or give it a CC0 palette?
 
 ## Audit (2026-10-21)
 State: ~2,270 lines of Python (`pxforge/`), no git, no tests, no CI, no license. Code untouched since
@@ -109,7 +112,19 @@ byte-identical to `specs/**/out/` (empty emissive maps are deleted by the export
 **Found by the Phase 0 tests**
 20. `palette.kmeans` crashes (`ValueError: Probabilities contain NaN`) when the image has fewer distinct
     colours than `k`: `palette extract` and `ref prep` fail on flat-colour art. Pinned by a strict
-    `xfail` in `tests/test_palette.py`; fix in Phase 1.
+    `xfail` in `tests/test_palette.py`; fix in Phase 1. *(Fixed in Phase 1.)*
+
+**Found in Phase 1**
+21. `PxSprite2D.play_anim()` emits frame-0 events twice: once itself, once more when Godot reports the
+    first `frame_changed`. Reproduced headless in Godot 4.7.2 with the addon copy Hunt Tower ships
+    (`windup` arrives twice before `hit`), with or without `face()`. Likely the "1 tick" event offset the
+    game saw. Fix with the addon rework in Phase 4 (the game keeps its own copy until Phase 6).
+22. The OOM kills during Hunt Tower renders came from numpy: OpenBLAS commits ~500 MB per process at
+    import on a 16-thread CPU. Fixed in Phase 1 (ADR-012).
+23. QA told the user to *reduce* `camera.scale` for a clipped sprite; zooming out means increasing it.
+    Fixed in Phase 1.
+24. `spritekiln godot` only exports from `<spec dir>/out/<name>/`; it has no option for a render made with
+    `render -o`. Add `--render-dir` in Phase 4.
 
 **What leaves the repository:** `legacy/` (not versioned; delete when the maintainer agrees),
 `research/` (not versioned: raw session material with game captures and scratchpad paths; Phase 2 ports
@@ -144,29 +159,46 @@ this file), `requirements.txt` (Phase 1, after `pyproject` is complete).
 **Done when:** `pytest` is green, golden images are versioned, this plan is approved.
 
 ## Phase 1: robust, packageable core
-- [ ] Rename to `spritekiln` (if confirmed; recheck availability right before). Keep a `pxforge` shim
-      package and CLI alias; specs accept `spritekiln: 1` and `pxforge: 1`.
-- [ ] Templates, palettes and the Godot addon become package data (audit #1).
-- [ ] Full `pyproject.toml`: metadata, classifiers, extras `splash` / `mcp` / `dev`; install with
-      `pipx` / `uv tool install`. Drop `requirements.txt`.
-- [ ] JSON Schema for the spec (VS Code YAML extension autocomplete, AI guidance); validation errors
-      with line and column; warn on unknown keys (audit #11).
-- [ ] Versioning of the spec and of the **output format** in `docs/format.md`: atlas + Aseprite JSON +
-      own block (directions and yaw, pivot, durations, events, camera metadata: pitch, scale, px per
-      unit, ground factor K; normal, emissive; sockets later) and exact event timing semantics
-      (audit #7, #8).
-- [ ] Memory-aware render: estimate RAM per process and pick `--jobs` from available RAM; progress bar;
-      resume from cache; clean failure (message + finished frames kept) instead of dying (audit #3).
-- [ ] Safe, versioned cache: `.npz` instead of pickle, engine version in the key, size cap or
-      `cache prune` (audit #2).
-- [ ] Errors as exceptions in the library, friendly messages in the CLI; remove the `PXFORGE_SIZE`
-      side channel (audit #9, #10). CLI and QA messages in English.
-- [ ] Fix `palette.kmeans` with fewer distinct colours than `k` (audit #20; turn the `xfail` into a test).
-- [ ] ruff (lint + format); GitHub Actions on Windows, Ubuntu, macOS × Python 3.10–3.13 running unit
-      tests, goldens and a small render.
+- [x] Rename to `spritekiln` (rechecked free on PyPI and GitHub on 2026-10-21). `pxforge` shim package
+      and command; specs accept `spritekiln: 1` and `pxforge: 1` (ADR-009).
+- [x] Templates, palettes and the Godot addon ship in the wheel (audit #1, ADR-010).
+- [x] Full `pyproject.toml` (hatchling): metadata, classifiers, extras `splash` / `mcp` / `dev`.
+      `requirements.txt` dropped.
+- [x] JSON Schema for the spec (`spritekiln/data/spec.schema.json`, VS Code mapping in `.vscode/`);
+      every problem with file:line:column; unknown keys are warnings with suggestions; `validate --strict`
+      (audit #11, ADR-013).
+- [x] Spec version header and **output format 1** in `docs/format.md`: Aseprite-compatible JSON +
+      `spritekiln` block with format, generator, camera metadata (pitch, px per unit, `ground_k`,
+      `height_k`), exact event timing; integrations read both block keys (audit #7, #8, ADR-014).
+- [x] Memory-aware render: one BLAS thread, `--jobs` from available RAM, progress, resume message, dead
+      worker → pool restarts with half the jobs; out of memory or Ctrl+C explain how to resume
+      (audit #3, #22, ADR-012).
+- [x] Safe, versioned cache: `.npz` without pickle, engine hash in the key, atomic writes, 1 GB LRU cap
+      per spec, `spritekiln cache info|prune|clear [--legacy]` (audit #2, ADR-011).
+- [x] Errors as exceptions in the library, one-line messages in the CLI, no `PXFORGE_SIZE` side
+      channel; CLI, QA and `ref` text in English (audit #9, #10, #13 partly, #23).
+- [x] `palette.kmeans` with fewer distinct colours than `k` (audit #20).
+- [x] ruff (lint + format) and `.github/workflows/ci.yml`: lint + REUSE; Windows, Ubuntu, macOS ×
+      Python 3.10–3.13 with tests, goldens and a small render; packaging job with `pipx` in an empty
+      folder.
 
 **Done when:** `pipx install .` works in a clean folder, CI is green, Hunt Tower still works unchanged
 (checked by reading/running only), and the goldens did not change.
+
+Results (2026-10-21):
+- `pipx install .` (isolated `PIPX_HOME`) then, from an empty folder: `new`, `validate --strict`,
+  `render`, the `pxforge` alias and `cache info` work; the wheel carries `data/` (template, palettes,
+  addon, schema).
+- CI has not run on GitHub yet (no remote). The same steps pass locally: Windows with Python 3.10
+  (numpy 2.2), 3.11 (numpy 2.4), 3.12 and 3.13; Ubuntu 24.04 (WSL, fresh clone) with Python 3.12, where
+  the golden images match pixel for pixel; `ruff`, `ruff format --check` and `reuse lint` are clean.
+- Hunt Tower: `tools/px.cmd validate` works. In scratch Godot 4.7.2 projects (headless), the scene
+  exported by `pxforge render --godot` plays with the **addon copy the game ships**, and the new addon
+  plays both block keys: same clip, directions, pivot and events. Nothing in `D:\GameProjects\tower-hunt`
+  was written.
+- Goldens: images and Godot resources unchanged. The render JSON golden changed on purpose (additive
+  format-1 fields). Showcase partial re-runs (hurt, dash, death; pool of 4, new cache) still match the
+  shipped frames bit for bit.
 
 ## Phase 2: features Hunt Tower proved missing
 - [ ] **Sockets:** `sockets: {muzzle_R: {bone: pistol_R, offset: [...]}, hand_L: ..., foot_L: ..., hit: ...}`

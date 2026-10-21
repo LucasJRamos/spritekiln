@@ -17,8 +17,9 @@ Operado com **Claude Opus** (agents em `.claude/agents/` usam `model: opus`).
   não editar à mão). Cache em `.kilncache/` (pode apagar; `spritekiln cache info|prune|clear`).
 - Mantenha consistência entre assets do jogo: mesmo `camera.pitch` (38), mesma `light`, `camera.scale`
   proporcional ao tamanho de mundo, paletas em `specs/palettes/`.
-- Código em `pxforge/` é Python puro (numpy, pillow, pyyaml). Ao mudar o código, rode
-  `python -m pxforge pose specs/characters/gargula/gargula.yaml --dirs all` como teste de regressão visual.
+- Código em `spritekiln/` (Python puro: numpy, pillow, pyyaml); `pxforge/` é só um shim de compatibilidade
+  (`python -m pxforge` continua funcionando). Ao mudar o código, rode `.venv/Scripts/python.exe -m pytest`
+  (unitários + golden images; veja `docs/LAUNCH.md`).
 
 ## Comandos
 ```
