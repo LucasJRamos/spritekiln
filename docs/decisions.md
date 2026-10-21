@@ -130,3 +130,26 @@ wand), instead of a global distance to the median border colour, which failed on
 the background (the gap between the legs); small or textured ones are filled. Measured against the
 hand-made cutouts: Huntress IoU 0.745 → 0.925, Templar 0.664 → 0.914. `rembg` remains the option for busy
 backgrounds.
+
+## ADR-019: Generated AI adapters from one source (2026-10-21)
+The knowledge lives once, in `docs/agent/`. Every AI-specific file is generated from it by
+`spritekiln/agents.py` (repository) or `spritekiln init` (game projects), so the adapters cannot drift. Files a
+project already has (AGENTS.md, CLAUDE.md, GEMINI.md, copilot-instructions.md) only get a block between
+`spritekiln:begin`/`spritekiln:end` markers; files SpriteKiln owns (skills, agents, the Cursor rule) are
+written whole. Claude Code skill folders are self-contained (copies of the reference files) because projects
+link skill folders individually. Agents recommend "the strongest model with image input" instead of pinning
+`model: opus`. The legacy `pxforge*` skill folders stay, generated with `python -m pxforge`, until Hunt Tower
+migrates (Phase 6); they are removed then.
+
+## ADR-020: MCP tools return images and JSON (2026-10-21)
+`spritekiln mcp` exposes the same operations as the CLI through `spritekiln/api.py`. Visual tools return the
+image (scaled to at most 1600 px) next to the JSON, so image-capable clients judge the art and text-only
+ones still get the numbers. User errors become tool errors, never crashes. Paths are relative to the folder
+the client starts the server in. A `guide` tool serves the knowledge files to clients that cannot read the
+project's files. The `mcp` dependency is an extra and targets SDK 2.x (`MCPServer`).
+
+## ADR-021: spritekiln.toml replaces wrappers and environment variables (2026-10-21)
+A project describes itself in `spritekiln.toml` (found by searching upwards): specs folder, engine, export
+folder, Godot project, defaults for new specs. Environment variables (`SPRITEKILN_GODOT_PROJECT`, the old
+`PXFORGE_GODOT_PROJECT`) still win when set, so Hunt Tower's `px.cmd` keeps working until Phase 6. New
+projects export Godot assets to `assets/spritekiln/`; projects without a toml keep `assets/pxforge/`.

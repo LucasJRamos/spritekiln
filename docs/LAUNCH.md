@@ -1,7 +1,7 @@
 # Launch plan: pxforge → SpriteKiln v0.1.0
 
-> **Status:** Phases 0 and 1 approved (Phase 1 CI green on GitHub on 2026-10-21). Phase 2 done on
-> 2026-10-21, awaiting the maintainer's review (checkpoint). Next: Phase 3.
+> **Status:** Phases 0-2 approved. Phase 3 done on 2026-10-21, awaiting the maintainer's review
+> (checkpoint). Next: Phase 4.
 > Internal working document. It is trimmed or removed before the public v0.1.0 release.
 
 ## Goal
@@ -236,22 +236,30 @@ Results (2026-10-21):
 - Tests: 175 fast (unit, golden, CLI, review, sockets, timing) plus slow showcase and muzzle tests.
 
 ## Phase 3: any AI
-- [ ] Single source of knowledge in `docs/agent/`: modeling, splash → model, animation (timing, events,
-      smear), art-director checklist with the `review` metrics, the multi-agent recipe (modeler →
-      director → modeler → animator → director → animator → render).
-- [ ] `AGENTS.md` at the root and thin adapters generated from the single source: `.claude/skills` and
-      `.claude/agents` (model as a recommendation, not pinned), `.cursor/rules/*.mdc`,
-      `.github/copilot-instructions.md`, `GEMINI.md`.
-- [ ] MCP server (`spritekiln mcp`, stdio, extra `[mcp]`): tools `validate`, `pose`, `render`,
-      `ref_compare`, `review`, `export`, returning images + JSON.
-- [ ] `spritekiln init --engine godot|unity|monogame|generic --ai claude|codex|cursor|copilot|gemini|generic`:
-      writes `spritekiln.toml` (output folder, engine, default camera/light/palettes; replaces `px.cmd`
-      + env var), creates the specs folder, copies the chosen AI instructions.
-- [ ] Document that the flow works best with an AI that can see images; for the others, numeric
-      `review` is the path.
+- [x] Single source of knowledge in `docs/agent/` (English): workflow, spec reference, modeling,
+      splash → model, animation (timing, events, sockets), art-direction checklist with the `review`
+      numbers, the multi-agent recipe; includes how an AI without image input works from numbers.
+- [x] `AGENTS.md` and generated adapters (`spritekiln/agents.py`, `--check` in the tests): `CLAUDE.md`,
+      `.claude/skills` and `.claude/agents` (model recommended, not pinned), `.cursor/rules/spritekiln.mdc`,
+      `.github/copilot-instructions.md`, `GEMINI.md`. Existing files only get a marked block. The
+      `.claude/skills/pxforge*` folders Hunt Tower links are generated too, with `python -m pxforge`.
+- [x] MCP server `spritekiln mcp` (stdio, `mcp` extra, SDK 2.x): guide, new, validate, pose, render, review,
+      ref_compare, export, schema; JSON plus images.
+- [x] `spritekiln init --engine ... --ai ...`: `spritekiln.toml` (specs, engine, export folder, Godot project,
+      defaults for new specs), specs folders, knowledge in `.spritekiln/agent`, AI adapters, MCP client
+      configs, `.gitignore` entries. `spritekiln export` and `render --export` use it.
+- [x] Image-capable vs. text-only AIs documented (`docs/agent/recipe.md`).
 
 **Done when:** an empty project with `init` + an AI other than Claude (or a script that simulates use
 through MCP) generates a character from the template and exports it.
+
+Results (2026-10-21):
+- `tests/test_init.py::test_phase3_criterion_codex_project_through_mcp`: an empty Godot project, `init
+  --engine godot --ai codex`, then a real MCP client over stdio calls guide → new (template) → validate →
+  pose (image) → render (QA ok) → export, ending with `assets/spritekiln/hero/hero.tscn` and the addon.
+- The MCP server worked on the first run against the SDK 2.3 client; tests pass on Python 3.10 too.
+- The Codex CLI is installed on the dev machine; a run with the real Codex is pending the maintainer's OK
+  (it uses the maintainer's account).
 
 ## Phase 4: engines
 - [ ] **Godot 4:** clean up the addon (sockets, light and emissive, icon, docs); import without the CLI

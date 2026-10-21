@@ -125,5 +125,4 @@ within 0.3 px of the centre of the muzzle-flash pixels in all 8 directions.
 
 ## Spec files
 Specs start with a version header: `spritekiln: 1` (or `pxforge: 1` in older files). The spec format is
-described in `.claude/skills/pxforge/SPEC.md` (moving to `docs/` in Phase 3) and in the JSON Schema
-`spritekiln/data/spec.schema.json`.
+described in [`docs/agent/spec.md`](agent/spec.md) and in the JSON Schema `spritekiln/data/spec.schema.json`.
