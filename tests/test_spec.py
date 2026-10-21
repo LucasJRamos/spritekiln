@@ -151,7 +151,7 @@ def test_not_a_mapping(tmp_path):
 @pytest.mark.parametrize('patch, message', [
     (('parent: root', 'parent: nowhere'), 'unknown frame "nowhere"'),
     (('torso: {material: body', 'torso: {material: cloth'), 'unknown material "cloth"'),
-    (('lengths: [0.2, 0.2], ', ''), 'missing "lengths"'),
+    (('lengths: [0.2, 0.2], ', ''), 'ik.arm_L: missing required key "lengths"'),
     (('prims: [{sphere: {c: [0, 0, 0], r: 0.2}}]', 'prims: []'), 'parts.torso: no prims'),
 ])
 def test_validate_reports_problems(tmp_path, patch, message):

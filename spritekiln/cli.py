@@ -10,9 +10,16 @@ from . import __version__, system
 from .errors import SpriteKilnError
 
 
-def _spec(path, size=None):
+def _spec(path, size=None, warn=True):
     from . import spec as S
-    return S.load(path, size=size)
+    sp = S.load(path, size=size)
+    if warn:
+        _, warnings = S.check(sp) if sp.get('_raw') else ([], [])
+        for w in warnings[:5]:
+            _note(f'warning: {w}')
+        if len(warnings) > 5:
+            _note(f'... {len(warnings) - 5} more warning(s): run `spritekiln validate {path}`')
+    return sp
 
 
 def _pose_env(sp, anim, frame):
@@ -29,12 +36,17 @@ def _pose_env(sp, anim, frame):
 def cmd_validate(a):
     from . import spec as S
     from .anim import frames_of
-    sp = _spec(a.spec)
-    probs = S.validate(sp)
-    if probs:
+    sp = _spec(a.spec, warn=False)
+    errors, warnings = S.check(sp)
+    for w in warnings:
+        print('warning:', w)
+    if errors:
         print('INVALID:')
-        for p in probs:
+        for p in errors:
             print('  -', p)
+        return 1
+    if warnings and a.strict:
+        print(f'INVALID: {len(warnings)} warning(s) with --strict')
         return 1
     print(f'OK: {sp["name"]} - {len(sp["parts"])} parts, {len(sp["bones"])} bones, '
           f'{len(sp["directions"])} directions, animations: '
@@ -67,6 +79,7 @@ def cmd_render(a):
     from . import qa
     from .export import export
     from .pipeline import render_all
+    _spec(a.spec, a.size)                             # report spec warnings before the long part
     t = time.time()
     sp, anims, dlist, out = render_all(os.path.abspath(a.spec), a.anims.split(',') if a.anims else None,
                                        a.dirs.split(',') if a.dirs else None, a.jobs, a.force, progress=True,
@@ -236,6 +249,7 @@ def build_parser(prog='spritekiln'):
 
     s = sub.add_parser('validate', help='check a spec')
     s.add_argument('spec')
+    s.add_argument('--strict', action='store_true', help='treat warnings (unknown keys, no version header) as errors')
     s.set_defaults(f=cmd_validate)
 
     s = sub.add_parser('pose', help='quick preview of one pose (rest by default)')

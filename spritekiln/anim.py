@@ -13,7 +13,7 @@ animations:
 """
 import numpy as np
 
-from .expr import evaluate
+from .expr import ExprError, evaluate
 from .spec import SpecError
 
 EASE = {
@@ -41,6 +41,13 @@ def _interp(a, b, t):
         return a if t < 0.5 else b
 
 
+def _eval(v, env, where):
+    try:
+        return evaluate(v, env)
+    except ExprError as e:
+        raise ExprError(f'{where}: {e}') from None
+
+
 def frames_of(spec, name):
     """-> list of (env, duration_ms, events)."""
     if name not in spec['animations']:
@@ -57,9 +64,10 @@ def frames_of(spec, name):
             env = dict(prev if k.get('carry', A.get('carry', False)) else base)
             env.update(p=i / n_keys * 2 * np.pi, t=i / max(n_keys - 1, 1), f=i, n=n_keys)
             for ch, v in (k.get('set') or {}).items():
+                where = f'animations.{name}.keys[{i}].set.{ch}'
                 if ch not in base:
-                    raise SpecError(f'keys[{i}].set: unknown channel "{ch}" (declare it under channels:)')
-                env[ch] = evaluate(v, env)
+                    raise SpecError(f'{where}: unknown channel "{ch}" (declare it under channels:)')
+                env[ch] = _eval(v, env, where)
             poses.append((env, int(k.get('ms', A.get('ms', 100))), k.get('event')))
             prev = env
         loop = A.get('loop', False)
@@ -82,10 +90,11 @@ def frames_of(spec, name):
         env = dict(base)
         env.update(p=i / n * 2 * np.pi, t=i / n, f=i, n=n)
         for ch, v in (A.get('channels') or {}).items():
+            where = f'animations.{name}.channels.{ch}'
             if ch not in base:
-                raise SpecError(f'channels: unknown channel "{ch}" (declare it under top-level channels:)')
-            env[ch] = evaluate(v, env)
-        d = ms[i] if isinstance(ms, list) else int(evaluate(ms, env)) if isinstance(ms, str) else int(ms)
+                raise SpecError(f'{where}: unknown channel "{ch}" (declare it under top-level channels:)')
+            env[ch] = _eval(v, env, where)
+        d = ms[i] if isinstance(ms, list) else int(_eval(ms, env, f'animations.{name}.ms')) if isinstance(ms, str)             else int(ms)
         ev = events.get(i)
         out.append((env, int(d), [ev] if ev else []))
     return out

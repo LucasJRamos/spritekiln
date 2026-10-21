@@ -4,7 +4,7 @@ import os
 import re
 import yaml
 
-from . import resources
+from . import resources, schema
 from .errors import SpriteKilnError
 
 DIRECTIONS8 = [('s', 0), ('se', 45), ('e', 90), ('ne', 135), ('n', 180), ('nw', -135), ('w', -90), ('sw', -45)]
@@ -98,7 +98,15 @@ def load(path, size=None):
     if not isinstance(raw, dict):
         raise SpecError(f'{path}: spec must be a YAML mapping')
     base = os.path.dirname(os.path.abspath(path))
+    version = raw.get('spritekiln', raw.get('pxforge'))
+    warnings = []
+    if version is None:
+        warnings.append('no version header: add `spritekiln: 1` as the first line')
+    elif version != 1:
+        raise SpecError(f'{path}: spec version {version!r} is not supported (this spritekiln reads version 1)')
     s = dict(raw)
+    s['_raw'] = raw
+    s['_warnings'] = warnings
     s['_path'] = os.path.abspath(path)
     s['_dir'] = base
     s.setdefault('name', os.path.splitext(os.path.basename(path))[0])
@@ -171,7 +179,40 @@ def load(path, size=None):
 
 
 def validate(spec):
-    """Return a list of human readable problems (empty = OK)."""
+    """Problems that stop the spec from rendering (empty = OK), each prefixed with file:line:column."""
+    return check(spec)[0]
+
+
+def check(spec):
+    """(errors, warnings): errors stop the spec from rendering; warnings flag likely mistakes such as unknown
+    keys, which are otherwise ignored. Messages start with file:line:column when the place is known."""
+    raw = spec.get('_raw')
+    if raw is None:                                  # a spec dict built by hand
+        return _problems(spec), []
+    unknown, missing = schema.scan(raw)
+    errors = [schema.describe_missing(p, k) for p, k in missing]
+    warnings = list(spec.get('_warnings', [])) + [schema.describe_unknown(*u) for u in unknown]
+    if not errors:
+        errors = _problems(spec)
+    try:
+        marks = schema.marks(spec['_path'], _Loader)
+    except (OSError, yaml.YAMLError):
+        marks = {}
+    return [_located(m, spec, marks) for m in errors], [_located(m, spec, marks) for m in warnings]
+
+
+def _located(message, spec, marks):
+    pos = schema.locate(message, marks) or (1, 1)
+    path = spec['_path']
+    try:
+        rel = os.path.relpath(path)
+        path = rel if not rel.startswith('..') else path
+    except ValueError:                               # another drive on Windows
+        pass
+    return f'{path}:{pos[0]}:{pos[1]}: {message}'
+
+
+def _problems(spec):
     from .rig import build, rest_env
     from .anim import frames_of
     problems = []
@@ -184,10 +225,6 @@ def validate(spec):
             problems.append(f'bones.{name}.parent: unknown frame "{par}"')
         if b.get('at') and b['at'] not in frames_known:
             problems.append(f'bones.{name}.at: unknown frame "{b["at"]}"')
-    for name, ik in spec['ik'].items():
-        for key in ('start', 'joint', 'end', 'lengths', 'target'):
-            if key not in ik:
-                problems.append(f'ik.{name}: missing "{key}"')
     for name, p in spec['parts'].items():
         mats = p.get('materials') or [p.get('material')]
         for m in mats:
@@ -204,8 +241,14 @@ def validate(spec):
     for an in spec['animations']:
         try:
             fr = frames_of(spec, an)
-            for i, (env, ms, ev) in enumerate(fr):
+        except Exception as e:  # noqa: BLE001 - report any failure as a spec problem
+            msg = str(e)
+            problems.append(msg if msg.startswith(f'animations.{an}') else f'animations.{an}: {msg}')
+            continue
+        for i, (env, ms, ev) in enumerate(fr):
+            try:
                 build(spec, env)
-        except Exception as e:  # noqa
-            problems.append(f'animations.{an}: {e}')
+            except Exception as e:  # noqa: BLE001
+                problems.append(f'animations.{an} (frame {i}): {e}')
+                break
     return problems

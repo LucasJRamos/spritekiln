@@ -1,0 +1,10 @@
+{
+  "yaml.schemas": {
+    "./spritekiln/data/spec.schema.json": [
+      "specs/characters/**/*.yaml",
+      "specs/props/**/*.yaml",
+      "specs/templates/*.yaml",
+      "tests/fixtures/**/*.yaml"
+    ]
+  }
+}

@@ -1,0 +1,352 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/LucasJRamos/spritekiln/main/spritekiln/data/spec.schema.json",
+  "title": "SpriteKiln spec",
+  "description": "A character or prop: skeleton, SDF primitives, materials, palette and animations, rendered as 8-direction pixel art. Numbers may be expression strings (\"0.78 + bob\").",
+  "type": "object",
+  "properties": {
+    "spritekiln": {"const": 1, "description": "Spec format version. Put `spritekiln: 1` on the first line."},
+    "pxforge": {"const": 1, "description": "Old name of the version header; same meaning as `spritekiln: 1`."},
+    "name": {"type": "string", "description": "Asset name; names the exported files. Defaults to the file name."},
+    "kind": {"enum": ["character", "prop"], "default": "character"},
+    "size": {"type": "integer", "minimum": 8, "maximum": 512, "default": 64, "description": "Frame size in pixels."},
+    "directions": {
+      "description": "1, 4, 8 or a list of directions. Default: 8 for characters, 1 for props.",
+      "anyOf": [
+        {"enum": [1, 4, 8]},
+        {"type": "array", "items": {"$ref": "#/$defs/direction"}, "minItems": 1, "uniqueItems": true}
+      ]
+    },
+    "palette": {
+      "description": "Palette file(s) relative to the spec, built-in palette names (gothic, props) or inline ramps.",
+      "anyOf": [
+        {"type": "string"},
+        {"type": "array", "items": {"type": "string"}},
+        {"$ref": "#/$defs/ramps"}
+      ]
+    },
+    "ramps": {"$ref": "#/$defs/ramps", "description": "Extra ramps defined in the spec (override the palette)."},
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pitch": {"type": "number", "default": 38, "description": "Degrees below the horizon. Keep it equal across a game."},
+        "scale": {"type": "number", "exclusiveMinimum": 0, "description": "World units per pixel (bigger = zoom out)."},
+        "center": {"$ref": "#/$defs/vec3num", "description": "World point at the center of the frame."},
+        "supersample": {"type": "integer", "minimum": 1, "default": 3},
+        "coverage": {"type": "integer", "minimum": 1, "default": 4}
+      }
+    },
+    "shadow": {
+      "description": "Ground shadow ellipse in pixels; `null` disables it.",
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "rx": {"type": "number"},
+            "ry": {"type": "number"},
+            "alpha": {"type": "integer", "minimum": 0, "maximum": 255},
+            "color": {"$ref": "#/$defs/color"},
+            "offset": {"$ref": "#/$defs/vec3num"}
+          }
+        }
+      ]
+    },
+    "light": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dir": {"$ref": "#/$defs/vec3num"},
+        "rim": {"$ref": "#/$defs/vec3num"},
+        "rim_strength": {"type": "number"},
+        "ambient": {"type": "number"},
+        "shadows": {"type": "boolean"},
+        "ao": {"type": "boolean"}
+      }
+    },
+    "brief": {"description": "Free text for humans and AIs (summary, must_keep, simplify, reference). Ignored by the renderer."},
+    "materials": {"type": "object", "additionalProperties": {"$ref": "#/$defs/material"}},
+    "channels": {
+      "type": "object",
+      "description": "Animatable values with their defaults. Names ending in _L get an automatic _R twin.",
+      "additionalProperties": {"$ref": "#/$defs/value"}
+    },
+    "bones": {"type": "object", "additionalProperties": {"$ref": "#/$defs/bone"}},
+    "ik": {"type": "object", "additionalProperties": {"$ref": "#/$defs/ik"}},
+    "parts": {"type": "object", "additionalProperties": {"$ref": "#/$defs/part"}},
+    "animations": {"type": "object", "additionalProperties": {"$ref": "#/$defs/animation"}}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "direction": {"enum": ["s", "se", "e", "ne", "n", "nw", "w", "sw"]},
+    "color": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
+    "ramps": {
+      "type": "object",
+      "additionalProperties": {"type": "array", "items": {"$ref": "#/$defs/color"}, "minItems": 1}
+    },
+    "expr": {"type": ["number", "string"], "description": "A number or an expression string."},
+    "value": {
+      "anyOf": [
+        {"$ref": "#/$defs/expr"},
+        {"type": "boolean"},
+        {"type": "array", "items": {"$ref": "#/$defs/expr"}}
+      ]
+    },
+    "vec": {
+      "description": "A number (broadcast), an [x, y, z] list or an expression string.",
+      "anyOf": [
+        {"$ref": "#/$defs/expr"},
+        {"type": "array", "items": {"$ref": "#/$defs/expr"}, "minItems": 1, "maxItems": 3}
+      ]
+    },
+    "vec3num": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+    "point": {
+      "description": "[x, y, z] in the part's space, an expression, \"@frame\", {at: frame, off: [..]} or {between: [p0, p1], t}.",
+      "anyOf": [
+        {"$ref": "#/$defs/expr"},
+        {"type": "array", "items": {"$ref": "#/$defs/expr"}, "minItems": 3, "maxItems": 3},
+        {
+          "type": "object",
+          "required": ["at"],
+          "additionalProperties": false,
+          "properties": {"at": {"type": "string"}, "off": {"$ref": "#/$defs/vec"}}
+        },
+        {
+          "type": "object",
+          "required": ["between"],
+          "additionalProperties": false,
+          "properties": {
+            "between": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2},
+            "t": {"$ref": "#/$defs/expr"}
+          }
+        }
+      ]
+    },
+    "material": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ramp": {
+              "description": "Ramp name in the palette (default: the material name) or a list of colors. Index 0 is the outline.",
+              "anyOf": [{"type": "string"}, {"type": "array", "items": {"$ref": "#/$defs/color"}, "minItems": 1}]
+            },
+            "emissive": {"type": "boolean", "description": "Unlit, no outline; uses `band`."},
+            "band": {"type": "integer", "minimum": 0},
+            "bands": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
+            "line": {"type": "boolean", "description": "Takes part in internal contour lines."},
+            "line_band": {"type": "integer", "minimum": 0},
+            "outline": {"type": "boolean"},
+            "two_sided": {"type": "boolean", "description": "Thin membranes lit from both sides."},
+            "gamma": {"type": "number"},
+            "glow": {
+              "anyOf": [
+                {"$ref": "#/$defs/color"},
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["color"],
+                  "properties": {
+                    "color": {"$ref": "#/$defs/color"},
+                    "mix": {"type": "number"},
+                    "radius": {"type": "integer", "minimum": 1}
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "bone": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "parent": {"type": "string", "default": "root"},
+        "pos": {"$ref": "#/$defs/vec"},
+        "rot": {"$ref": "#/$defs/vec", "description": "Euler radians [x, y, z], applied as Ry·Rz·Rx."},
+        "scale": {"$ref": "#/$defs/vec"},
+        "inherit_rot": {"type": "boolean"},
+        "inherit_scale": {"type": "boolean"},
+        "at": {"type": "string", "description": "Take the origin from another frame (e.g. an IK end)."}
+      }
+    },
+    "ik": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "target", "lengths", "joint", "end"],
+      "properties": {
+        "start": {"type": "string"},
+        "space": {"type": "string"},
+        "target": {"$ref": "#/$defs/vec"},
+        "lengths": {"$ref": "#/$defs/vec"},
+        "pole": {"$ref": "#/$defs/vec"},
+        "pole_space": {"type": "string"},
+        "up": {"$ref": "#/$defs/vec"},
+        "joint": {"type": "string"},
+        "end": {"type": "string"}
+      }
+    },
+    "part": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [{"required": ["material"]}, {"required": ["materials"]}],
+      "required": ["prims"],
+      "properties": {
+        "material": {"type": "string"},
+        "materials": {"type": "array", "items": {"type": "string"}, "minItems": 1, "description": "Smear arcs: tail to core."},
+        "space": {"type": "string", "default": "root"},
+        "blend": {"$ref": "#/$defs/expr", "description": "Smooth union radius between the primitives."},
+        "line": {"type": "boolean"},
+        "when": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "boolean"}], "description": "Render only when true."},
+        "prims": {"type": "array", "items": {"$ref": "#/$defs/prim"}, "minItems": 1},
+        "cut": {"type": "array", "items": {"$ref": "#/$defs/prim"}},
+        "cut_blend": {"$ref": "#/$defs/expr"}
+      }
+    },
+    "prim": {
+      "description": "One primitive: a mapping with a single key naming its type.",
+      "oneOf": [
+        {"type": "object", "required": ["sphere"], "additionalProperties": false, "properties": {"sphere": {"$ref": "#/$defs/sphere"}}},
+        {"type": "object", "required": ["ellipsoid"], "additionalProperties": false, "properties": {"ellipsoid": {"$ref": "#/$defs/ellipsoid"}}},
+        {"type": "object", "required": ["cone"], "additionalProperties": false, "properties": {"cone": {"$ref": "#/$defs/cone"}}},
+        {"type": "object", "required": ["chain"], "additionalProperties": false, "properties": {"chain": {"$ref": "#/$defs/chain"}}},
+        {"type": "object", "required": ["box"], "additionalProperties": false, "properties": {"box": {"$ref": "#/$defs/box"}}},
+        {"type": "object", "required": ["cylinder"], "additionalProperties": false, "properties": {"cylinder": {"$ref": "#/$defs/cylinder"}}},
+        {"type": "object", "required": ["torus"], "additionalProperties": false, "properties": {"torus": {"$ref": "#/$defs/torus"}}},
+        {"type": "object", "required": ["tri"], "additionalProperties": false, "properties": {"tri": {"$ref": "#/$defs/tri"}}},
+        {"type": "object", "required": ["membrane"], "additionalProperties": false, "properties": {"membrane": {"$ref": "#/$defs/membrane"}}},
+        {"type": "object", "required": ["arc"], "additionalProperties": false, "properties": {"arc": {"$ref": "#/$defs/arc"}}}
+      ]
+    },
+    "sphere": {
+      "type": "object", "additionalProperties": false, "required": ["c", "r"],
+      "properties": {"c": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/expr"}}
+    },
+    "ellipsoid": {
+      "type": "object", "additionalProperties": false, "required": ["c", "r"],
+      "properties": {
+        "c": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/vec"}, "rot": {"$ref": "#/$defs/vec"},
+        "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2}
+      }
+    },
+    "cone": {
+      "type": "object", "additionalProperties": false, "required": ["a", "b", "r"],
+      "description": "Tapered capsule from a to b; r is one radius or [r_a, r_b].",
+      "properties": {"a": {"$ref": "#/$defs/point"}, "b": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/vec"}}
+    },
+    "chain": {
+      "type": "object", "additionalProperties": false, "required": ["pts", "r"],
+      "properties": {
+        "pts": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2},
+        "r": {
+          "description": "One radius per point, or an expression giving the list.",
+          "anyOf": [{"type": "string"}, {"type": "array", "items": {"$ref": "#/$defs/expr"}, "minItems": 2}]
+        }
+      }
+    },
+    "box": {
+      "type": "object", "additionalProperties": false, "required": ["c", "half"],
+      "properties": {
+        "c": {"$ref": "#/$defs/point"}, "half": {"$ref": "#/$defs/vec"}, "rot": {"$ref": "#/$defs/vec"},
+        "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2},
+        "round": {"$ref": "#/$defs/expr"}
+      }
+    },
+    "cylinder": {
+      "type": "object", "additionalProperties": false, "required": ["a", "b", "r"],
+      "properties": {
+        "a": {"$ref": "#/$defs/point"}, "b": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/expr"},
+        "round": {"$ref": "#/$defs/expr"}
+      }
+    },
+    "torus": {
+      "type": "object", "additionalProperties": false, "required": ["c", "R", "r"],
+      "properties": {
+        "c": {"$ref": "#/$defs/point"}, "R": {"$ref": "#/$defs/expr"}, "r": {"$ref": "#/$defs/expr"},
+        "rot": {"$ref": "#/$defs/vec"},
+        "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2}
+      }
+    },
+    "tri": {
+      "type": "object", "additionalProperties": false, "required": ["a", "b", "c"],
+      "properties": {
+        "a": {"$ref": "#/$defs/point"}, "b": {"$ref": "#/$defs/point"}, "c": {"$ref": "#/$defs/point"},
+        "th": {"$ref": "#/$defs/expr"}
+      }
+    },
+    "membrane": {
+      "type": "object", "additionalProperties": false, "required": ["hub", "ring"],
+      "description": "Fan of triangles from hub to ring points (wings, capes, sails).",
+      "properties": {
+        "hub": {"$ref": "#/$defs/point"},
+        "ring": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2},
+        "th": {"$ref": "#/$defs/expr"},
+        "scallop": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+        "scallop_depth": {"type": "number"},
+        "fill_root": {"type": "boolean"}
+      }
+    },
+    "arc": {
+      "type": "object", "additionalProperties": false, "required": ["r", "a0", "a1"],
+      "description": "Smear VFX arc; use `materials: [tail, mid, core]` on the part.",
+      "properties": {
+        "c": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/expr"}, "a0": {"$ref": "#/$defs/expr"},
+        "a1": {"$ref": "#/$defs/expr"}, "width": {"$ref": "#/$defs/expr"}, "fade": {"$ref": "#/$defs/expr"},
+        "dip": {"$ref": "#/$defs/expr"}, "segments": {"type": "integer", "minimum": 2}
+      }
+    },
+    "events": {
+      "type": "object",
+      "description": "Frame index -> event name(s) sent to the game (hit, step_l, windup...).",
+      "patternProperties": {"^[0-9]+$": {"anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]}},
+      "additionalProperties": false
+    },
+    "animation": {
+      "if": {"type": "object", "required": ["keys"]},
+      "then": {"$ref": "#/$defs/key_animation"},
+      "else": {"$ref": "#/$defs/cycle_animation"}
+    },
+    "cycle_animation": {
+      "type": "object",
+      "description": "Loop driven by expressions of p (0..2π), t, f, n.",
+      "additionalProperties": false,
+      "properties": {
+        "frames": {"type": "integer", "minimum": 1, "default": 8},
+        "ms": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "array", "items": {"type": "integer", "minimum": 1}}]},
+        "loop": {"type": "boolean", "default": true},
+        "events": {"$ref": "#/$defs/events"},
+        "channels": {"type": "object", "additionalProperties": {"$ref": "#/$defs/value"}}
+      }
+    },
+    "key_animation": {
+      "type": "object",
+      "description": "Pose to pose: one output frame per key (plus tweens).",
+      "additionalProperties": false,
+      "required": ["keys"],
+      "properties": {
+        "loop": {"type": "boolean", "default": false},
+        "carry": {"type": "boolean", "description": "Keys inherit the previous key's channels instead of the defaults."},
+        "ms": {"type": "integer", "minimum": 1, "description": "Default duration of a key."},
+        "keys": {"type": "array", "items": {"$ref": "#/$defs/key"}, "minItems": 1}
+      }
+    },
+    "key": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ms": {"type": "integer", "minimum": 1},
+        "set": {"type": "object", "additionalProperties": {"$ref": "#/$defs/value"}},
+        "event": {"type": "string"},
+        "carry": {"type": "boolean"},
+        "tween": {"type": "integer", "minimum": 0, "description": "Interpolated frames inserted towards the next key."},
+        "tween_ms": {"type": "integer", "minimum": 1},
+        "ease": {"enum": ["linear", "in", "out", "inout"]}
+      }
+    }
+  }
+}
