@@ -6,7 +6,9 @@ after an intentional visual change with `pytest --update-golden` and say why in 
 import json
 import os
 
+import numpy as np
 import pytest
+from PIL import Image
 
 from pxforge.cli import main
 
@@ -44,3 +46,12 @@ def test_render_minimal(tmp_path, update_golden):
             assert actual == json.load(fh), f'{name} differs from tests/golden/render_{name}'
     assert (out / 'preview' / 'idle_4dir.gif').exists()
     assert (out / 'preview' / 'contact_attack.png').exists()
+
+
+def test_comparison_catches_a_single_pixel(tmp_path):
+    img = np.asarray(Image.open(os.path.join(GOLDEN, 'minimal_pose_rest.png')).convert('RGBA')).copy()
+    img[10, 10] = (255, 0, 255, 255)
+    path = str(tmp_path / 'changed.png')
+    Image.fromarray(img).save(path)
+    with pytest.raises(pytest.fail.Exception, match='1 pixel'):
+        assert_image_matches(path, 'minimal_pose_rest.png')
