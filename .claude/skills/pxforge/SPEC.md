@@ -34,7 +34,10 @@ animations: {...}
 Qualquer número/vetor pode ser string com expressão: `"[0, 0.78 + bob, 0]"`, `"0.045*sin(p)"`.
 - Listas viram vetores numpy (`[1,0,0] + [0,1,0]` soma).
 - Variáveis: todos os canais, `p` (fase 0..2π no ciclo), `t` (0..1), `f` (frame), `n` (nº de frames),
-  `yaw` (direção sendo renderizada, graus — use para "trapacear" por direção, como pixel artists fazem).
+  `yaw` (direção sendo renderizada, graus) e `dir` (`"s"`, `"se"`...) — valem em **todo lugar**, inclusive
+  nos canais das animações: trapaceie por direção direto na key, como pixel artists fazem
+  (`rifle_pitch: "-0.08 + -0.2*pulse(yaw, 0, 70)"`, `bob: "0.02*(dir == 'n')"`). O nº de frames não pode
+  depender da direção.
 - Funções: `sin cos tan abs min max sqrt clamp lerp/mix unit smoothstep pulse(x,c,w) pos(x)=max(0,x)
   neg(x) roty rotx rotz v(x,y,z) radians floor sign exp noise(x,seed)`, constantes `pi tau`, operador `@`.
 
@@ -136,8 +139,36 @@ attack:
     - {ms: 120, set: {...}, tween: 1, ease: out}    # gera 1 frame interpolado até a próxima key
 ```
 
+## sockets (pontos de encaixe)
+```
+sockets:
+  muzzle_L: {bone: pistol_L, offset: [0, 0.042, 0.50], when: "gun < 0.5"}   # gêmeo muzzle_R automático
+  hand_L: {bone: wrist_L}
+  hit: {bone: hammer, offset: [0, 0, 0.6]}
+```
+`bone` = qualquer frame (bone, joint/end de IK, `root`); `offset` no espaço dele; `when` falso = `null` no
+quadro. O JSON traz, por animação/direção/quadro, `[x, y, depth]`: px relativos ao pivô e profundidade
+(> 0 na frente do corpo, < 0 atrás). No Godot: `get_socket(&"muzzle_R")`. Ponha o socket no centro do
+efeito que o jogo vai criar (clarão, impacto), não na ponta da arma.
+
+## timing (tempos-alvo)
+```
+timing: {shoot_r: {release: 2f, total: 7f}, attack: {hit: 150ms}}   # fps 60, tolerância 1 quadro
+```
+`validate` e o QA reprovam se o evento (ou o total do clip) cair fora do alvo. Um evento no frame i dispara
+quando o frame i aparece (soma das durações anteriores). Opcional: `timing: {fps: 30, tolerance: 2, ...}`.
+
+## review (metas de direção de arte)
+```
+review: {min_lstar: 20, tint: [0.68, 0.71, 1.02], background: floor.png, materials: {lining: {min_px: 30}}}
+```
+Viram avisos do QA; `review` (comando) mede tudo e gera folhas: L* (mediana/p90) sob a luz `tint`, contraste
+com o chão, px por material e direção, bandas usadas, IoU com a splash corrigido para a câmera, comparação
+com outro asset (`--against`).
+
 ## Saídas de `pxforge render`
 `out/<nome>/`: `<nome>.png` (atlas: uma linha por animação×direção), `<nome>.json` (formato Aseprite +
-bloco `pxforge` com direções, yaw, pivô, durações e eventos), `<nome>_normal.png` (normal map em espaço de
+bloco `spritekiln` — `pxforge` pelo comando antigo — com direções, yaw, pivô, câmera, durações, eventos e
+sockets; ver `docs/format.md`), `<nome>_normal.png` (normal map em espaço de
 câmera, para luz dinâmica), `<nome>_emissive.png`, `preview/<anim>_8dir.gif`, `preview/contact_<anim>.png`
 (folha para revisão visual), `qa.json`. Cache em `.kilncache/` (use `--force` ou `spritekiln cache clear`).

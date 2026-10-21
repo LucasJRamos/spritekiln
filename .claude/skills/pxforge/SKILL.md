@@ -16,10 +16,12 @@ python -m pxforge validate <spec.yaml>                 # sempre depois de editar
 python -m pxforge pose <spec.yaml> [--anim walk --frame 3] [--dirs all|s,se,e]   # preview barato
 python -m pxforge render <spec.yaml> [--anims idle,walk] [--dirs s,e] [--size 48] [--jobs N]
 python -m pxforge ref prep <splash.png>                # recorte, paleta e proporções da splash art
-python -m pxforge ref compare <spec.yaml> <splash.png> --dir se   # IoU + dicas + folha de comparação
+python -m pxforge ref compare <spec.yaml> <splash.png> --dir se   # IoU (corrigido p/ câmera) + dicas + folha de comparação
 python -m pxforge palette ramp "#5d4f6c" --steps 6     # rampa com hue shift
 python -m pxforge palette extract <img>                # paleta YAML a partir de imagem
 python -m pxforge new <nome> [--template humanoid] [--ref splash.png]
+python -m pxforge review <spec.yaml> [--bg chao.png --tint 0.68,0.71,1.02] [--against outro.yaml] [--ref splash.png] [--anims a,b]
+python -m pxforge cache info|prune|clear [pasta]       # cache de render (.kilncache)
 ```
 `pose` custa ~1 s por direção; `render` completo de 3 animações × 8 direções ≈ 190 frames (minutos).
 Itere com `pose` e só renderize tudo no fim.

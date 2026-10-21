@@ -11,6 +11,10 @@ Não edita arquivos: só analisa e recomenda.
 Entrada típica: caminho de um spec, `out/<nome>/preview/contact_*.png`, `qa.json`, e opcionalmente a
 splash art e `out/compare_<dir>.png`. Abra as imagens com Read (todas que forem relevantes) e o spec.
 
+Números antes de opinar: rode `python -m pxforge review <spec> --bg <chão do jogo> --tint <luz da cena>
+[--against <outro asset>] [--ref <splash>] [--anims <clip>]` e leia `review.json` e `review.png` (L* contra o
+chão, px por material e direção, bandas, IoU corrigido, legibilidade comparada).
+
 Avalie, nesta ordem:
 1. **Leitura da silhueta** a 1x em cada direção (s, se, e, ne, n e espelhos): o personagem é reconhecível?
    Algum "palito", buraco ou blob sem forma? Diagonais e `n` são onde mais falha.

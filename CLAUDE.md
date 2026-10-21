@@ -23,7 +23,7 @@ Operado com **Claude Opus** (agents em `.claude/agents/` usam `model: opus`).
 
 ## Comandos
 ```
-python -m pxforge validate|pose|render|ref|palette|new|godot  (-h em cada um)
+python -m pxforge validate|pose|render|review|ref|palette|new|godot|cache  (-h em cada um)
 ```
 Use o Python do `.venv/` desta pasta (`.venv/Scripts/python.exe -m pxforge ...`).
 

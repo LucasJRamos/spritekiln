@@ -1,7 +1,7 @@
 # Launch plan: pxforge → SpriteKiln v0.1.0
 
-> **Status:** Phase 0 approved. Phase 1 done on 2026-10-21, awaiting the maintainer's review (checkpoint);
-> the only open item is a real GitHub Actions run, which needs a remote. Next: Phase 2.
+> **Status:** Phases 0 and 1 approved (Phase 1 CI green on GitHub on 2026-10-21). Phase 2 done on
+> 2026-10-21, awaiting the maintainer's review (checkpoint). Next: Phase 3.
 > Internal working document. It is trimmed or removed before the public v0.1.0 release.
 
 ## Goal
@@ -47,9 +47,13 @@ requirements.
 Name **SpriteKiln** (ADR-001) · owner **LucasJRamos** (ADR-002) · showcase **all rights reserved,
 demonstration only** (ADR-003) · Unity validation on **6000.3** (ADR-005) · **Python 3.10+** (ADR-004).
 
+Also answered on 2026-10-21: private repository `LucasJRamos/spritekiln` created and pushed (public at
+launch); the `mine` prop moved to the showcase license; the old `.pxcache/` folders (1.37 GB) deleted.
+
 ## Open questions (maintainer)
 - Delete `legacy/` from disk, or keep it locally (it is already out of git)?
-- Confirm that the cacador's `splash_teste.jpg` is an upscaled render of the cacador itself (CC0).
+- Where does the cacador's `splash_teste.jpg` come from? It ships as CC0 only if it is a render of the
+  cacador itself or the maintainer's own image; otherwise it must be removed.
 
 ## Audit (2026-10-21)
 State: ~2,270 lines of Python (`pxforge/`), no git, no tests, no CI, no license. Code untouched since
@@ -187,9 +191,10 @@ Results (2026-10-21):
 - `pipx install .` (isolated `PIPX_HOME`) then, from an empty folder: `new`, `validate --strict`,
   `render`, the `pxforge` alias and `cache info` work; the wheel carries `data/` (template, palettes,
   addon, schema).
-- CI has not run on GitHub yet (no remote). The same steps pass locally: Windows with Python 3.10
-  (numpy 2.2), 3.11 (numpy 2.4), 3.12 and 3.13; Ubuntu 24.04 (WSL, fresh clone) with Python 3.12, where
-  the golden images match pixel for pixel; `ruff`, `ruff format --check` and `reuse lint` are clean.
+- CI: the first run on GitHub (private repo `LucasJRamos/spritekiln`) was green on all 15 jobs: lint +
+  REUSE, Windows/Ubuntu/macOS × Python 3.10–3.13, packaging with `pipx`. Locally too: Windows with Python
+  3.10 (numpy 2.2), 3.11 (numpy 2.4), 3.12 and 3.13; Ubuntu 24.04 (WSL, fresh clone), where the golden
+  images match pixel for pixel.
 - Hunt Tower: `tools/px.cmd validate` works. In scratch Godot 4.7.2 projects (headless), the scene
   exported by `pxforge render --godot` plays with the **addon copy the game ships**, and the new addon
   plays both block keys: same clip, directions, pivot and events. Nothing in `D:\GameProjects\tower-hunt`
@@ -199,22 +204,35 @@ Results (2026-10-21):
   shipped frames bit for bit.
 
 ## Phase 2: features Hunt Tower proved missing
-- [ ] **Sockets:** `sockets: {muzzle_R: {bone: pistol_R, offset: [...]}, hand_L: ..., foot_L: ..., hit: ...}`
-      in the spec; in the JSON, 2D position in px relative to the pivot per frame and direction, plus
-      depth (in front of / behind the body); API in the integrations (`get_socket(name)` in Godot,
-      equivalents in Unity and MonoGame). Test: the measured Huntress muzzle matches the socket (≤ 1 px).
-- [ ] **`yaw` / direction in animation and channel expressions** (e.g. `dir == "s"`) without breaking old
-      specs. Proof: rewrite the Huntress `*_s` channels without them, same goldens.
-- [ ] **`spritekiln review`:** art-direction report (JSON + PNG) built from the `research/` prototypes:
-      L* median/p90 against a background, pixels per material and direction, band usage, IoU against
-      the camera-corrected reference, legibility compared with another asset, zoomed sheets per clip.
-      Optional targets in the spec (`review: {min_lstar: 20, materials: {lining: {min_px: 30}}}`) as QA
-      warnings.
-- [ ] **Background preview:** `--bg <image>` and `--tint` (scene light) in `pose` / `render` / `review`.
-- [ ] **Timing targets** in the spec (`timing: {shoot_r: {release: 2f, total: 7f}}` at 60 fps); QA fails
-      beyond ±1 f.
-- [ ] **Better `ref prep`:** alpha cutout that keeps gaps (between the legs) and an automatic pitch-38
-      version.
+- [x] **Sockets:** `sockets: {muzzle_L: {bone: pistol_L, offset: [...], when: ...}}` with automatic `_R`
+      twins; per frame and direction `[x, y, depth]` in px from the pivot, depth > 0 in front of the body
+      (ADR-016); `null` while hidden. Godot `get_socket()` / `get_socket_depth()` / `has_socket()`,
+      MonoGame `TryGetSocket()` (Unity in Phase 4). The Huntress declares muzzles, hands, mine and feet.
+- [x] **`yaw` / `dir` in channel expressions** (ADR-015); old specs render identically.
+- [x] **`spritekiln review`:** JSON + PNG with L* median/p90 under the scene light and against the floor,
+      pixels per material and direction, band usage, camera-corrected IoU, legibility next to another
+      asset (`--against`), zoomed sheets per clip; `review:` targets as QA warnings (ADR-017).
+- [x] **Background preview:** `--bg` / `--tint` in `pose`, `render` (previews only) and `review`.
+- [x] **Timing targets:** `timing: {shoot_r: {release: 2f, total: 7f}}` (frames or ms, 60 fps, ±1 f) are
+      errors in `validate` and QA; the showcase specs declare the targets their comments described.
+- [x] **Better `ref prep`:** background grown from the border (gradients work), gaps kept open,
+      `cutout_pitch38.png`; `ref compare` squashes the reference by cos(pitch) (ADR-018).
+
+Results (2026-10-21):
+- **Muzzle criterion (≤ 1 px):** the centre of the pixels the muzzle flash adds is within **0.29 px** of the
+  socket in all 8 directions, for both pistols and the rifle (slow test). Hunt Tower's hand-measured table
+  (`huntress_rig.tscn`) differs from the sockets by 0.5–1.3 px.
+- **`yaw` proof:** the Huntress no longer has the helper channels `gyaw_s`, `rpitch_s`, `ryaw_s`; the cheats
+  live in the keys. A cache-less re-render of the six affected clips (232 frames) matches the shipped
+  frames bit for bit.
+- **Cutouts:** against the hand-made alpha cutouts, Huntress IoU 0.745 → 0.925 and Templar 0.664 → 0.914.
+  `ref compare` on the Huntress idle: 0.594 raw → 0.687 corrected.
+- **Review** of the Huntress over the game floor under the night light: L* 7–14 on a floor of L* 13,
+  ~0.4× the Templar's area and 7–23 L* darker, the session's diagnosis in numbers.
+- **Integrations:** `get_socket()` checked headless in Godot 4.7.2; the MonoGame runtime compiles against
+  MonoGame 3.8.2 (first time).
+- **Timing:** Huntress shots, mine, dash, hurt and Templar hits meet their declared targets.
+- Tests: 175 fast (unit, golden, CLI, review, sockets, timing) plus slow showcase and muzzle tests.
 
 ## Phase 3: any AI
 - [ ] Single source of knowledge in `docs/agent/`: modeling, splash → model, animation (timing, events,

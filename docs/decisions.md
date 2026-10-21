@@ -103,3 +103,30 @@ used by the tests to validate every spec.
 `docs/format.md` is the contract. Format 1 = everything pxforge 0.1 wrote plus `format`, `generator` and
 `camera`. Additive fields never bump the number; readers must ignore unknown fields. An event on frame i
 fires when frame i becomes visible.
+
+## ADR-015: Channels see the direction (2026-10-21)
+Animation channels are evaluated once per direction, with `yaw` and `dir` in scope, like bones and parts.
+The alternative (helper channels multiplied by `pulse(yaw)` inside bones, as the Huntress's animator had
+to do) leaked rig plumbing into every spec. Frame counts may not depend on the direction (validate checks
+it); durations may, and per-direction durations are already exported.
+
+## ADR-016: Socket depth is measured from the body's vertical axis (2026-10-21)
+A socket exports `[x, y, depth]`; `depth` is the ground distance, in px, from the character's vertical axis
+(through the `root` frame) toward the viewer. It answers the question games actually ask (draw the effect
+in front of or behind the sprite?) without an occlusion test, which would misfire for points inside the
+geometry (a hand inside its own fist). Exact pixel visibility can be added later as a separate flag.
+Muzzle sockets go at the centre of the flash the game spawns, not at the barrel tip.
+
+## ADR-017: Art-direction targets are warnings (2026-10-21)
+`review:` targets (L*, pixels per material) are QA warnings, never errors: they encode taste and depend on
+the scene (`tint`, background) more than on correctness. Timing targets (`timing:`) are errors in both
+`validate` and QA, because gameplay code depends on them. `review` (the command) always reports every
+number; the targets only decide what is flagged.
+
+## ADR-018: Splash cutout grows the background from the border (2026-10-21)
+`ref prep` finds the background as everything the image border reaches through small colour steps (a magic
+wand), instead of a global distance to the median border colour, which failed on gradient backgrounds
+(the whole Templar splash was kept). Enclosed openings stay transparent when they are big and as flat as
+the background (the gap between the legs); small or textured ones are filled. Measured against the
+hand-made cutouts: Huntress IoU 0.745 → 0.925, Templar 0.664 → 0.914. `rembg` remains the option for busy
+backgrounds.
