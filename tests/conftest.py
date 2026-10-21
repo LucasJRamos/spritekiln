@@ -67,7 +67,7 @@ def golden_is_native():
 
 def write_golden_meta():
     os.makedirs(GOLDEN, exist_ok=True)
-    with open(_meta_path(), 'w', encoding='utf-8') as fh:
+    with open(_meta_path(), 'w', encoding='utf-8', newline='\n') as fh:
         json.dump(platform_tag(), fh, indent=1)
         fh.write('\n')
 

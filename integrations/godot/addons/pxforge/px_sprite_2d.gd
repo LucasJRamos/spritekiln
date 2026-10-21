@@ -46,7 +46,7 @@ signal px_finished(anim: StringName)
 @export var auto_play: bool = true
 
 var _dirs: Array = []            # [{name: StringName, yaw: float(rad)}]
-var _anims: Dictionary = {}      # anim -> {loop: bool, events: {dir: {frame(int): [StringName]}}}
+var _anims: Dictionary = {}      # anim -> {loop, events: {dir: {frame: [StringName]}}, sockets: {dir: {name: [..]}}}
 var _pivot := Vector2.ZERO
 var _emissive: AnimatedSprite2D
 var _suppress_events := false
@@ -137,6 +137,33 @@ func is_loop(name: StringName = anim) -> bool:
 	return _anims.get(name, {}).get("loop", true)
 
 
+## Position of a socket (muzzle, hand, foot...) in the current frame, in this node's local space (pixels,
+## origin = the ground point under the character). Vector2.INF when the animation has no such socket
+## or it is hidden in this frame. Use `to_global()` for world coordinates.
+func get_socket(socket: StringName) -> Vector2:
+	var p = _socket_data(socket)
+	if p == null:
+		return Vector2.INF
+	return Vector2(float(p[0]), float(p[1])) + (_pivot - _pivot.round())
+
+
+## Depth of a socket in the current frame: ground distance in pixels from the character's vertical axis
+## toward the viewer (> 0 in front of the body, < 0 behind). NAN when unavailable.
+func get_socket_depth(socket: StringName) -> float:
+	var p = _socket_data(socket)
+	return float(p[2]) if p != null else NAN
+
+
+## True when the socket exists and is visible in the current frame.
+func has_socket(socket: StringName) -> bool:
+	return _socket_data(socket) != null
+
+
+## Socket names exported for the current animation and direction.
+func socket_names() -> Array:
+	return _anims.get(anim, {}).get("sockets", {}).get(facing, {}).keys()
+
+
 # ---------------------------------------------------------------- internals
 
 func _sheet_name() -> String:
@@ -166,8 +193,10 @@ func _parse_sheet() -> void:
 	for a in px.get("animations", {}):
 		var A: Dictionary = px["animations"][a]
 		var evs := {}
+		var socks := {}
 		for d in A.get("directions", {}):
 			var D: Dictionary = A["directions"][d]
+			socks[StringName(d)] = D.get("sockets", {})
 			var per := {}
 			for f in D.get("events", {}):
 				var list := []
@@ -175,7 +204,7 @@ func _parse_sheet() -> void:
 					list.append(StringName(e))
 				per[int(f)] = list
 			evs[StringName(d)] = per
-		_anims[StringName(a)] = {"loop": bool(A.get("loop", true)), "events": evs}
+		_anims[StringName(a)] = {"loop": bool(A.get("loop", true)), "events": evs, "sockets": socks}
 	var pv: Dictionary = px.get("pivot", {})
 	_pivot = Vector2(float(pv.get("x", 0)), float(pv.get("y", 0)))
 	centered = false
@@ -226,6 +255,14 @@ func _switch_direction() -> void:
 		play()
 	_suppress_events = false
 	_sync_emissive()
+
+
+func _socket_data(socket: StringName):
+	var per: Dictionary = _anims.get(anim, {}).get("sockets", {}).get(facing, {})
+	var frames = per.get(String(socket))
+	if frames == null or frame >= frames.size():
+		return null
+	return frames[frame]
 
 
 func _fire_events(f: int) -> void:

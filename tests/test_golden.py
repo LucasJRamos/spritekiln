@@ -51,7 +51,7 @@ def test_render_minimal(tmp_path, update_golden):
         actual = json.loads((out / name).read_text(encoding='utf-8'))
         path = os.path.join(GOLDEN, f'render_{name}')
         if update_golden:
-            with open(path, 'w', encoding='utf-8') as fh:
+            with open(path, 'w', encoding='utf-8', newline='\n') as fh:
                 json.dump(actual, fh, indent=1, ensure_ascii=False)
                 fh.write('\n')
             continue

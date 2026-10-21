@@ -1,7 +1,7 @@
 pxforge: 1
 # Small, fast spec for golden tests. It touches every primitive type, mirroring, 2-bone IK,
 # a per-direction cheat with `yaw`, emissive + glow, a two-sided membrane, a conditional VFX arc,
-# a cycle with events and a key animation with a tween and a root lunge.
+# a cycle with events, a key animation with a tween and a root lunge, and sockets.
 name: minimal
 kind: character
 size: 32
@@ -93,6 +93,10 @@ parts:
     space: chest
     when: "smear > 0"
     prims: [{arc: {c: [0, -0.1, 0.1], r: 0.42, a0: -1.2, a1: 1.2, width: 0.06, fade: smear}}]
+sockets:
+  eye_L: {bone: head, offset: [0.05, 0.09, 0.1]}       # center of the emissive eye (twin: eye_R)
+  staff_tip: {bone: wrist_R, offset: [0, 0, 0.45]}
+  smear: {bone: chest, offset: [0, -0.1, 0.52], when: "smear > 0"}
 animations:
   idle:
     frames: 4

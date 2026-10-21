@@ -1,5 +1,5 @@
-// pxforge -> MonoGame runtime (MonoGame 3.8+, .NET 6+).
-// Loads <name>.json + <name>.png (and optional _normal/_emissive maps) exported by `pxforge render`
+// SpriteKiln -> MonoGame runtime (MonoGame 3.8+, .NET 6+).
+// Loads <name>.json + <name>.png (and optional _normal/_emissive maps) exported by `spritekiln render`
 // and plays 8-direction animations with per-frame durations and gameplay events (hit, step_l, ...).
 //
 // Usage:
@@ -10,6 +10,7 @@
 //   anim.FaceTowards(velocity);           // picks the nearest of the exported directions
 //   anim.Update(gameTime);
 //   anim.Draw(spriteBatch, position);     // position = point on the ground under the character
+//   if (anim.TryGetSocket("muzzle_R", out var off, out var depth)) SpawnFlash(position + off, depth < 0);
 
 using System;
 using System.Collections.Generic;
@@ -25,6 +26,7 @@ namespace Pxforge
         public Rectangle[] Frames = Array.Empty<Rectangle>();
         public int[] DurationsMs = Array.Empty<int>();
         public Dictionary<int, string[]> Events = new();
+        public Dictionary<string, Vector3?[]> Sockets = new();   // per frame: (x, y) px from the pivot, z = depth
         public int TotalMs;
     }
 
@@ -103,6 +105,17 @@ namespace Pxforge
                             var list = new List<string>();
                             foreach (var s in e.Value.EnumerateArray()) list.Add(s.GetString()!);
                             clip.Events[int.Parse(e.Name)] = list.ToArray();
+                        }
+                    if (d.Value.TryGetProperty("sockets", out var sks))
+                        foreach (var sk in sks.EnumerateObject())
+                        {
+                            var pts = new Vector3?[sk.Value.GetArrayLength()];
+                            int j = 0;
+                            foreach (var p in sk.Value.EnumerateArray())
+                                pts[j++] = p.ValueKind == JsonValueKind.Array
+                                    ? new Vector3(p[0].GetSingle(), p[1].GetSingle(), p[2].GetSingle())
+                                    : null;                                   // hidden in this frame
+                            clip.Sockets[sk.Name] = pts;
                         }
                     anim.ByDirection[d.Name] = clip;
                 }
@@ -196,6 +209,19 @@ namespace Pxforge
             var c = Clip();
             if (c != null && c.Events.TryGetValue(f, out var evs))
                 foreach (var e in evs) OnEvent?.Invoke(Animation, e);
+        }
+
+        /// Socket of the current frame: `offset` in pixels from the ground pivot (x right, y down; multiply by
+        /// the draw scale) and `depth` in pixels toward the viewer (> 0 in front of the body, < 0 behind).
+        /// False when the clip has no such socket or it is hidden in this frame.
+        public bool TryGetSocket(string name, out Vector2 offset, out float depth)
+        {
+            offset = Vector2.Zero; depth = 0f;
+            var c = Clip();
+            if (c == null || !c.Sockets.TryGetValue(name, out var pts) || Frame >= pts.Length || pts[Frame] is not Vector3 v)
+                return false;
+            offset = new Vector2(v.X, v.Y); depth = v.Z;
+            return true;
         }
 
         public Rectangle Source => Clip()?.Frames[Math.Min(Frame, Clip()!.Frames.Length - 1)] ?? Rectangle.Empty;

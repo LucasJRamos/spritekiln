@@ -76,6 +76,11 @@
     "bones": {"type": "object", "additionalProperties": {"$ref": "#/$defs/bone"}},
     "ik": {"type": "object", "additionalProperties": {"$ref": "#/$defs/ik"}},
     "parts": {"type": "object", "additionalProperties": {"$ref": "#/$defs/part"}},
+    "sockets": {
+      "type": "object",
+      "description": "Attachment points exported per frame and direction (muzzles, hands, feet, hit points). Names ending in _L get an automatic _R twin.",
+      "additionalProperties": {"$ref": "#/$defs/socket"}
+    },
     "animations": {"type": "object", "additionalProperties": {"$ref": "#/$defs/animation"}}
   },
   "additionalProperties": false,
@@ -173,6 +178,16 @@
         "inherit_rot": {"type": "boolean"},
         "inherit_scale": {"type": "boolean"},
         "at": {"type": "string", "description": "Take the origin from another frame (e.g. an IK end)."}
+      }
+    },
+    "socket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bone"],
+      "properties": {
+        "bone": {"type": "string", "description": "Frame the point follows: a bone, an IK joint/end, or root."},
+        "offset": {"$ref": "#/$defs/vec", "description": "Point in the bone's space (default [0, 0, 0])."},
+        "when": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "boolean"}], "description": "Export null while false."}
       }
     },
     "ik": {

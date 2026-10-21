@@ -40,7 +40,8 @@ The `spritekiln` block carries what Aseprite's format cannot express:
 | `direction_yaw` | `{dir: degrees}` | Model rotation per direction: `s` 0, `se` 45, `e` 90, `ne` 135, `n` 180, `nw` −135, `w` −90, `sw` −45. |
 | `camera` | object | How world units map to pixels (below). |
 | `normal_map`, `emissive_map` | string | File names of the other atlases. |
-| `animations` | object | Per animation: `loop` (bool) and `directions` → `{row, frames, durations, events}`. |
+| `sockets` | `[string]` | Socket names, when the spec declares sockets (see [Sockets](#sockets)). |
+| `animations` | object | Per animation: `loop` (bool) and `directions` → `{row, frames, durations, events, sockets}`. |
 
 Per animation and direction:
 
@@ -48,6 +49,7 @@ Per animation and direction:
 - `frames`: frame keys in play order.
 - `durations`: ms per frame (integers), same length as `frames`.
 - `events`: `{"<frame index>": ["event", ...]}`. The index is a string because JSON keys are strings.
+- `sockets` (only when the spec has sockets): `{"<socket>": [point or null, one per frame]}`.
 
 ### Directions on screen
 For direction yaw *y*, the facing vector on screen is `(sin y, cos y)` with x to the right and y down:
@@ -86,6 +88,24 @@ Durations are the source of truth; there is no fps in the file.
   emits frame-0 events inside `play_anim()`, in the same tick.
 - Common event names: `step_l`, `step_r`, `windup`, `hit`, `release`. They are free-form strings set in
   the spec.
+
+### Sockets
+A socket is a point that follows a bone: a muzzle, a hand that holds an item, a foot, a hit point. The
+spec declares it once (`sockets: {muzzle_L: {bone: pistol_L, offset: [0, 0.042, 0.50], when: "gun < 0.5"}}`,
+with an automatic `_R` twin) and the exporter writes its position for every frame and direction:
+
+- A point is `[x, y, depth]`. `x` and `y` are pixels from the pivot (x right, y down), so the socket
+  sits at `entity position + (x, y)` (times the draw scale).
+- `depth` is the ground distance in pixels from the character's vertical axis toward the viewer: `> 0`
+  in front of the body, `< 0` behind it. Use it to draw an effect or an attached object in front of or
+  behind the sprite.
+- `null` means the socket is hidden in that frame (its `when` expression is false, e.g. the pistol
+  muzzle while the rifle is drawn).
+
+Runtimes: `PxSprite2D.get_socket(name)` / `get_socket_depth(name)` / `has_socket(name)` in Godot (local
+coordinates of the node, whose origin is the pivot), `PxAnimator.TryGetSocket(name, out offset, out
+depth)` in MonoGame. Positions are exact to well under a pixel: on the Huntress, every muzzle socket is
+within 0.3 px of the centre of the muzzle-flash pixels in all 8 directions.
 
 ### Normal and emissive maps
 - **Normal map:** camera-space normals, encoded as RGB = *n* · 0.5 + 0.5, with x to the right on screen,

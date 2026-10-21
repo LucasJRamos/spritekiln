@@ -101,3 +101,35 @@ if __name__ == '__main__':
         json.dump(data, fh, indent=1, sort_keys=True)
         fh.write('\n')
     print(f'wrote {HASHES}: ' + ', '.join(f'{k} ({len(v["frames"])} frames)' for k, v in data.items()))
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    'anim, index, socket, flash',
+    [
+        ('shoot_r', 1, 'muzzle_R', 'flash_R'),
+        ('shoot_l', 1, 'muzzle_L', 'flash_L'),
+        ('shoot_heavy', 0, 'muzzle_rifle', 'rflash'),
+    ],
+)
+def test_huntress_muzzle_sockets_match_the_flash(tmp_path, anim, index, socket, flash):
+    """LAUNCH.md Phase 2: the muzzle a game would measure (centre of the muzzle-flash pixels) is the socket +-1 px."""
+    from spritekiln import spec as S
+    from spritekiln.anim import frames_of
+    from spritekiln.pipeline import render_frame
+    from spritekiln.render import Camera
+
+    from conftest import stage_spec
+
+    sp = S.load(stage_spec(tmp_path, os.path.join(REPO, SHOWCASE['huntress'])))
+    pivot = np.array(Camera.from_spec(sp).project([0.0, 0.0, 0.0]))
+    errors = {}
+    for d, yaw in sp['directions']:
+        env = frames_of(sp, anim, yaw)[index][0]
+        lit = render_frame(sp, env, yaw)
+        dark = render_frame(sp, dict(env, **{flash: 0}), yaw)
+        ys, xs = np.nonzero((lit.emissive[..., 3] > 0) & ~(dark.emissive[..., 3] > 0))  # pixels the flash adds
+        assert len(xs) >= 4, f'{d}: flash not visible'
+        measured = np.array([xs.mean() + 0.5, ys.mean() + 0.5]) - pivot
+        errors[d] = float(np.hypot(*(measured - lit.sockets[socket][:2])))
+    assert max(errors.values()) <= 1.0, errors
