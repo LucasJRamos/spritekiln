@@ -1,0 +1,110 @@
+pxforge: 1
+# Small, fast spec for golden tests. It touches every primitive type, mirroring, 2-bone IK,
+# a per-direction cheat with `yaw`, emissive + glow, a two-sided membrane, a conditional VFX arc,
+# a cycle with events and a key animation with a tween and a root lunge.
+name: minimal
+kind: character
+size: 32
+directions: 4
+camera: {pitch: 38, scale: 0.075, center: [0, 0.8, 0]}
+shadow: {rx: 7, ry: 2.5, alpha: 120}
+ramps:
+  body: ["#1a1020", "#3b2a4a", "#5d4f6c", "#8a7a9a", "#c0b3cc"]
+  trim: ["#20140c", "#5a3a1c", "#8c5a2a", "#c08a48"]
+  glow: ["#2a0a00", "#ff5a1f", "#ffb070"]
+materials:
+  body: {ramp: body}
+  trim: {ramp: trim}
+  cape: {ramp: body, two_sided: true, bands: [1, 3]}
+  eye: {ramp: glow, emissive: true, band: 2, glow: {color: "#ff5a1f", mix: 0.5, radius: 1}}
+  fx: {ramp: glow, emissive: true}
+  fx_core: {ramp: glow, emissive: true, band: 2}
+channels:
+  root: [0, 0, 0]
+  bob: 0.0
+  lean: 0.0
+  hand_L: [0.3, -0.05, 0.08]
+  smear: 0.0
+bones:
+  hips: {parent: root, pos: "[0, 0.55 + bob, 0]", rot: "[lean, 0, 0]"}
+  chest: {parent: hips, pos: [0, 0.3, 0]}
+  head: {parent: chest, pos: [0, 0.3, 0], rot: "[0, 0.3*pulse(yaw, 90, 60), 0]", scale: 1.2}
+  shoulder_L: {parent: chest, pos: [0.19, 0.1, 0]}
+ik:
+  arm_L: {start: shoulder_L, space: hips, target: hand_L, lengths: [0.2, 0.2],
+          pole: [0.3, 0, -1], up: [0, 0, 1], joint: elbow_L, end: wrist_L}
+parts:
+  torso:
+    material: body
+    space: hips
+    blend: 0.06
+    prims:
+      - ellipsoid: {c: [0, 0.18, 0], r: [0.2, 0.22, 0.14]}
+      - sphere: {c: [0, -0.02, 0], r: 0.15}
+  leg_L:
+    material: body
+    space: hips
+    prims: [{cone: {a: [0.09, -0.05, 0], b: [0.11, -0.5, 0.02], r: [0.07, 0.05]}}]
+  head:
+    material: body
+    space: head
+    prims: [{sphere: {c: [0, 0.08, 0], r: 0.12}}]
+  eye_L:
+    material: eye
+    space: head
+    prims: [{sphere: {c: [0.05, 0.09, 0.1], r: 0.05}}]
+  horn_L:
+    material: trim
+    space: head
+    prims: [{chain: {pts: [[0.07, 0.15, 0], [0.13, 0.24, -0.03], [0.11, 0.32, -0.08]], r: [0.03, 0.02, 0.008]}}]
+  helm:
+    material: trim
+    space: head
+    prims: [{box: {c: [0, 0.17, 0], half: [0.1, 0.025, 0.1], round: 0.01}}]
+  arm_L:
+    material: body
+    prims:
+      - cone: {a: "@shoulder_L", b: "@elbow_L", r: [0.05, 0.04]}
+      - cone: {a: "@elbow_L", b: "@wrist_L", r: [0.04, 0.035]}
+  belt:
+    material: trim
+    space: hips
+    prims: [{torus: {c: [0, 0.02, 0], R: 0.16, r: 0.025}}]
+  staff:
+    material: trim
+    space: wrist_R
+    prims: [{cylinder: {a: [0, 0, -0.1], b: [0, 0, 0.45], r: 0.022, round: 0.005}}]
+  fin:
+    material: trim
+    space: chest
+    prims: [{tri: {a: [0, 0.05, -0.13], b: [0, 0.25, -0.15], c: [0, 0.05, -0.3], th: 0.012}}]
+  cape:
+    material: cape
+    space: chest
+    prims:
+      - membrane:
+          hub: [0, 0.12, -0.15]
+          ring: [[0.2, 0.0, -0.18], [0.16, -0.45, -0.24], [-0.16, -0.45, -0.24], [-0.2, 0.0, -0.18]]
+          th: 0.012
+          scallop: [1]
+          fill_root: true
+  smear:
+    materials: [fx, fx_core]
+    space: chest
+    when: "smear > 0"
+    prims: [{arc: {c: [0, -0.1, 0.1], r: 0.42, a0: -1.2, a1: 1.2, width: 0.06, fade: smear}}]
+animations:
+  idle:
+    frames: 4
+    ms: 150
+    events: {0: step_l, 2: step_r}
+    channels:
+      bob: "0.03*sin(p)"
+      hand_L: "[0.3, -0.05 + 0.03*sin(p - 0.8), 0.08]"
+  attack:
+    loop: false
+    keys:
+      - {ms: 120, event: windup, set: {lean: -0.15, hand_L: [0.25, 0.1, -0.1]}}
+      - {ms: 50, event: hit, set: {lean: 0.2, smear: 1, root: [0, 0, 0.1], hand_L: [0.25, 0.05, 0.3]},
+         tween: 1, ease: out}
+      - {ms: 140, set: {lean: 0.05, smear: 0.6, root: [0, 0, 0.05]}}

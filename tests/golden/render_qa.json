@@ -1,0 +1,11 @@
+{
+ "errors": [],
+ "warnings": [],
+ "info": {
+  "colors_used": 16,
+  "palette_size": 23,
+  "idle_area_ratio_min_max": 0.74,
+  "attack_area_ratio_min_max": 0.82
+ },
+ "ok": true
+}

@@ -1,0 +1,5 @@
+{
+ "platform": "win32",
+ "machine": "AMD64",
+ "numpy": "2.5.4"
+}
