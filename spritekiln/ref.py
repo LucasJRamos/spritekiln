@@ -10,7 +10,8 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from . import palette as pal
-from .export import upscale, BG, font, _ascii
+from .errors import SpriteKilnError
+from .export import BG, _ascii, font, upscale
 
 BANDS = 10
 
@@ -84,7 +85,7 @@ def cutout(img, work=320, method='auto', tol=None):
         used = 'border'
     ys, xs = np.nonzero(mask_full)
     if len(ys) == 0:
-        raise ValueError('could not find the character in the reference image (try --tol or a PNG with transparency)')
+        raise SpriteKilnError('could not find the character in the reference image (try --tol or a PNG with transparency)')
     y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
     out = a[y0:y1, x0:x1].copy()
     m = mask_full[y0:y1, x0:x1]
@@ -119,7 +120,7 @@ def _norm_grid(mask, n=96):
     return g
 
 
-BAND_NAMES = ['topo (0-10%)', '10-20%', '20-30%', '30-40%', '40-50%', '50-60%', '60-70%', '70-80%', '80-90%', 'base (90-100%)']
+BAND_NAMES = ['top (0-10%)', '10-20%', '20-30%', '30-40%', '40-50%', '50-60%', '60-70%', '70-80%', '80-90%', 'bottom (90-100%)']
 
 
 def compare_masks(ref_mask, spr_mask):
@@ -130,16 +131,16 @@ def compare_masks(ref_mask, spr_mask):
     for i, (pr, ps) in enumerate(zip(mr['width_profile'], ms['width_profile'])):
         d = ps - pr
         if abs(d) > 0.12:
-            hints.append((abs(d), f'faixa {BAND_NAMES[i]}: render {"mais largo" if d > 0 else "mais estreito"} '
-                                  f'que a referência ({ps:.2f} vs {pr:.2f} da largura total)'))
+            hints.append((abs(d), f'band {BAND_NAMES[i]}: render {"wider" if d > 0 else "narrower"} '
+                                  f'than the reference ({ps:.2f} vs {pr:.2f} of the total width)'))
     ar = ms['aspect'] / mr['aspect']
     if abs(ar - 1) > 0.12:
-        hints.append((abs(ar - 1), f'proporção altura/largura: render {ms["aspect"]:.2f} vs referência {mr["aspect"]:.2f} '
-                                   f'({"alto/estreito demais" if ar > 1 else "baixo/largo demais"})'))
+        hints.append((abs(ar - 1), f'height/width aspect: render {ms["aspect"]:.2f} vs reference {mr["aspect"]:.2f} '
+                                   f'({"too tall/narrow" if ar > 1 else "too short/wide"})'))
     dc = ms['mass_center_y'] - mr['mass_center_y']
     if abs(dc) > 0.06:
-        hints.append((abs(dc), f'centro de massa {"mais baixo" if dc > 0 else "mais alto"} que na referência '
-                               f'(massa concentrada {"nas pernas" if dc > 0 else "no tronco/cabeça"})'))
+        hints.append((abs(dc), f'centre of mass {"lower" if dc > 0 else "higher"} than in the reference '
+                               f'(mass concentrated {"in the legs" if dc > 0 else "in the torso/head"})'))
     hints = [h for _, h in sorted(hints, reverse=True)]
     return dict(iou=round(iou, 3), ref=mr, render=ms, hints=hints), a, b
 
@@ -159,17 +160,17 @@ def sheet(ref_img, sprite, turn, iou_grids, ref_colors, spec_mats, out_path, tit
     im = Image.new('RGBA', (W, H + trow.size[1] + 110), BG)
     d = ImageDraw.Draw(im)
     x = 10
-    im.alpha_composite(r, (x, 20)); d.text((x, 4), 'referencia', fill=(230, 225, 235), font=font()); x += r.size[0] + 10
+    im.alpha_composite(r, (x, 20)); d.text((x, 4), 'reference', fill=(230, 225, 235), font=font()); x += r.size[0] + 10
     im.alpha_composite(big, (x, 20)); d.text((x, 4), 'sprite', fill=(230, 225, 235), font=font()); x += big.size[0] + 10
-    im.alpha_composite(ov_im, (x, 20)); d.text((x, 4), 'silhueta: vermelho=so ref, azul=so sprite', fill=(230, 225, 235), font=font())
+    im.alpha_composite(ov_im, (x, 20)); d.text((x, 4), 'silhouette: red=reference only, blue=sprite only', fill=(230, 225, 235), font=font())
     y = H + 30
-    im.alpha_composite(trow, (10, y)); d.text((10, y - 14), '8 direcoes: ' + _ascii(title), fill=(230, 225, 235), font=font())
+    im.alpha_composite(trow, (10, y)); d.text((10, y - 14), '8 directions: ' + _ascii(title), fill=(230, 225, 235), font=font())
     y += trow.size[1] + 12
-    d.text((10, y), 'paleta da referencia', fill=(230, 225, 235), font=font())
+    d.text((10, y), 'reference palette', fill=(230, 225, 235), font=font())
     for i, c in enumerate(ref_colors[:14]):
         d.rectangle([150 + i * 22, y, 170 + i * 22, y + 16], fill=c['hex'])
     y += 24
-    d.text((10, y), 'materiais do spec', fill=(230, 225, 235), font=font())
+    d.text((10, y), 'spec materials', fill=(230, 225, 235), font=font())
     xx = 150
     for name, M in spec_mats.items():
         for c in M['colors']:

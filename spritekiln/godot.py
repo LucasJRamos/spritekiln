@@ -1,4 +1,4 @@
-"""Export `pxforge render` output into a Godot 4 project.
+"""Export `spritekiln render` output into a Godot 4 project.
 
 For a spec whose render exists in `<spec dir>/out/<name>/`, writes to `<project>/<dest>/<name>/`:
   <name>.png, <name>_normal.png, <name>_emissive.png, <name>.json   (copied from the render)
@@ -15,6 +15,7 @@ import os
 import shutil
 
 from . import resources
+from .errors import ExportError
 
 ADDON_SRC = resources.data_dir('godot_addon')
 DEFAULT_DEST = 'assets/pxforge'
@@ -30,12 +31,12 @@ def _res(dest_res, *parts):
 
 
 def _find_project(explicit=None):
-    p = explicit or os.environ.get('PXFORGE_GODOT_PROJECT')
+    p = explicit or os.environ.get('SPRITEKILN_GODOT_PROJECT') or os.environ.get('PXFORGE_GODOT_PROJECT')
     if not p:
-        raise SystemExit('projeto Godot não informado: use --project <pasta> ou a variável PXFORGE_GODOT_PROJECT')
+        raise ExportError('no Godot project: use --project <folder> or set SPRITEKILN_GODOT_PROJECT')
     p = os.path.abspath(p)
     if not os.path.exists(os.path.join(p, 'project.godot')):
-        raise SystemExit(f'não é um projeto Godot (sem project.godot): {p}')
+        raise ExportError(f'not a Godot project (no project.godot): {p}')
     return p
 
 
@@ -44,7 +45,7 @@ def install_addon(project, update=False):
     if os.path.exists(dst) and not update:
         return False
     if not os.path.exists(ADDON_SRC):
-        raise SystemExit(f'addon não encontrado em {ADDON_SRC}')
+        raise ExportError(f'Godot addon not found in {ADDON_SRC}')
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     if os.path.exists(dst):
         shutil.rmtree(dst)
@@ -107,6 +108,11 @@ def _scene_tscn(name, frames_res, json_res, emissive_res, pivot, first_anim):
             + '\n'.join(body) + '\n')
 
 
+def _write(path, text):
+    with open(path, 'w', encoding='utf-8') as fh:
+        fh.write(text)
+
+
 def _has_pixels(png):
     try:
         from PIL import Image
@@ -122,8 +128,9 @@ def export_godot(spec, project, dest=DEFAULT_DEST, lit=False, update_addon=False
     src = render_dir or os.path.join(spec['_dir'], 'out', name)
     jpath = os.path.join(src, f'{name}.json')
     if not os.path.exists(jpath):
-        raise SystemExit(f'render não encontrado: {jpath}  (rode `pxforge render` antes)')
-    meta = json.load(open(jpath, encoding='utf-8'))
+        raise ExportError(f'render not found: {jpath}  (run `spritekiln render` first)')
+    with open(jpath, encoding='utf-8') as fh:
+        meta = json.load(fh)
     px = meta['pxforge']
     dest = dest.replace('\\', '/').strip('/')
     if dest.startswith('res://'):
@@ -142,25 +149,24 @@ def export_godot(spec, project, dest=DEFAULT_DEST, lit=False, update_addon=False
     # 2. resources
     atlas_res = _res(res, meta['meta']['image'])
     frames_path = os.path.join(out_dir, f'{name}.tres')
-    open(frames_path, 'w', encoding='utf-8').write(_sprite_frames_tres(meta, atlas_res))
+    _write(frames_path, _sprite_frames_tres(meta, atlas_res))
     written['frames'] = frames_path
 
     lit_frames_res = None
     nm = px.get('normal_map')
     if nm and os.path.exists(os.path.join(out_dir, nm)):
         canvas_path = os.path.join(out_dir, f'{name}_canvas.tres')
-        open(canvas_path, 'w', encoding='utf-8').write(_canvas_texture_tres(atlas_res, _res(res, nm)))
+        _write(canvas_path, _canvas_texture_tres(atlas_res, _res(res, nm)))
         lit_path = os.path.join(out_dir, f'{name}_lit.tres')
         lit_frames_res = _res(res, f'{name}_lit.tres')
-        open(lit_path, 'w', encoding='utf-8').write(
-            _sprite_frames_tres(meta, _res(res, f'{name}_canvas.tres'), 'CanvasTexture'))
+        _write(lit_path, _sprite_frames_tres(meta, _res(res, f'{name}_canvas.tres'), 'CanvasTexture'))
         written['canvas'] = canvas_path; written['lit'] = lit_path
 
     emissive_res = None
     em = px.get('emissive_map')
     if em and os.path.exists(os.path.join(out_dir, em)) and _has_pixels(os.path.join(out_dir, em)):
         em_path = os.path.join(out_dir, f'{name}_emissive.tres')
-        open(em_path, 'w', encoding='utf-8').write(_sprite_frames_tres(meta, _res(res, em)))
+        _write(em_path, _sprite_frames_tres(meta, _res(res, em)))
         emissive_res = _res(res, f'{name}_emissive.tres')
         written['emissive'] = em_path
     elif em and os.path.exists(os.path.join(out_dir, em)):
@@ -171,9 +177,9 @@ def export_godot(spec, project, dest=DEFAULT_DEST, lit=False, update_addon=False
     first = 'idle' if 'idle' in anims else anims[0]
     first_dir = px['directions'][0]
     scene_path = os.path.join(out_dir, f'{name}.tscn')
-    open(scene_path, 'w', encoding='utf-8').write(
-        _scene_tscn(name, lit_frames_res if (lit and lit_frames_res) else _res(res, f'{name}.tres'),
-                    _res(res, f'{name}.json'), emissive_res, px['pivot'], f'{first}_{first_dir}'))
+    frames_res = lit_frames_res if (lit and lit_frames_res) else _res(res, f'{name}.tres')
+    _write(scene_path, _scene_tscn(name, frames_res, _res(res, f'{name}.json'), emissive_res, px['pivot'],
+                                   f'{first}_{first_dir}'))
     written['scene'] = scene_path
 
     written['addon_installed'] = install_addon(project, update_addon)

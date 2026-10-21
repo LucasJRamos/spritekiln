@@ -8,6 +8,7 @@ sx (+1 on _L side, -1 on _R side), and the functions below.
 import ast
 import numpy as np
 
+from .errors import SpriteKilnError
 from .sdf import rot_x, rot_y, rot_z
 
 
@@ -52,7 +53,7 @@ _ALLOWED = (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name, ast.
             ast.Lt, ast.Gt, ast.LtE, ast.GtE, ast.Eq, ast.NotEq, ast.And, ast.Or, ast.Not, ast.FloorDiv)
 
 
-class ExprError(ValueError):
+class ExprError(SpriteKilnError, ValueError):
     pass
 
 

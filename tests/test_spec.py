@@ -125,12 +125,22 @@ def test_palette_files_and_fallback(tmp_path):
     assert 'stone' in s['ramps'] and s['materials']['stone']['colors']
 
 
-def test_size_override_keeps_framing(tmp_path, monkeypatch):
-    monkeypatch.setenv('PXFORGE_SIZE', '32')
-    s = S.load(write(tmp_path, BASE + 'size: 64\ncamera: {scale: 0.05}\nshadow: {rx: 10, ry: 4}\n'))
+def test_size_override_keeps_framing(tmp_path):
+    s = S.load(write(tmp_path, BASE + 'size: 64\ncamera: {scale: 0.05}\nshadow: {rx: 10, ry: 4}\n'), size=32)
     assert s['size'] == 32
     assert s['camera']['scale'] == pytest.approx(0.1)
     assert s['shadow']['rx'] == pytest.approx(5) and s['shadow']['ry'] == pytest.approx(2)
+
+
+def test_load_errors_are_spec_errors(tmp_path):
+    with pytest.raises(S.SpecError, match='file not found'):
+        S.load(str(tmp_path / 'missing.yaml'))
+    with pytest.raises(S.SpecError, match=r'bad\.yaml:3:1: YAML syntax'):
+        S.load(write(tmp_path, 'name: a\nsize: 64\n\tkind: prop\n', 'bad.yaml'))
+    with pytest.raises(S.SpecError, match='palette: file not found: nope.yaml'):
+        S.load(write(tmp_path, BASE + 'palette: nope.yaml\n'))
+    with pytest.raises(S.SpecError, match=r"unknown direction\(s\) \['x'\]"):
+        S.load(write(tmp_path, BASE + 'directions: [s, x]\n'))
 
 
 def test_not_a_mapping(tmp_path):

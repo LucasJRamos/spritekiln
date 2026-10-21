@@ -1,10 +1,11 @@
-"""Load, mirror and sanity-check pxforge YAML specs."""
+"""Load, mirror and sanity-check SpriteKiln YAML specs."""
 import copy
 import os
 import re
 import yaml
 
 from . import resources
+from .errors import SpriteKilnError
 
 DIRECTIONS8 = [('s', 0), ('se', 45), ('e', 90), ('ne', 135), ('n', 180), ('nw', -135), ('w', -90), ('sw', -45)]
 DIRECTIONS4 = [('s', 0), ('e', 90), ('n', 180), ('w', -90)]
@@ -18,7 +19,7 @@ DEFAULT_MATERIAL = dict(ramp=None, emissive=False, line=True, outline=True, two_
 _SIDE = re.compile(r'_L(?![A-Za-z0-9])')
 
 
-class SpecError(ValueError):
+class SpecError(SpriteKilnError, ValueError):
     pass
 
 
@@ -74,14 +75,26 @@ def load_palette(ref, base_dir):
     path = ref if os.path.isabs(ref) else os.path.join(base_dir, ref)
     if not os.path.exists(path):
         path = resources.builtin_palette(ref) or path      # `palette: gothic` or a moved shared palette
-    with open(path, encoding='utf-8') as fh:
-        data = yload(fh)
+    if not os.path.exists(path):
+        raise SpecError(f'palette: file not found: {ref} (relative to {base_dir}, and not a built-in palette)')
+    data = _read_yaml(path)
     return data.get('ramps', data)
 
 
-def load(path):
-    with open(path, encoding='utf-8') as fh:
-        raw = yload(fh)
+def _read_yaml(path):
+    try:
+        with open(path, encoding='utf-8') as fh:
+            return yload(fh)
+    except FileNotFoundError:
+        raise SpecError(f'{path}: file not found') from None
+    except yaml.MarkedYAMLError as e:
+        m = e.problem_mark
+        raise SpecError(f'{path}:{m.line + 1}:{m.column + 1}: YAML syntax: {e.problem}') from None
+
+
+def load(path, size=None):
+    """Read a spec. `size` re-renders it at another frame size, keeping the framing (`render --size`)."""
+    raw = _read_yaml(path)
     if not isinstance(raw, dict):
         raise SpecError(f'{path}: spec must be a YAML mapping')
     base = os.path.dirname(os.path.abspath(path))
@@ -92,8 +105,8 @@ def load(path):
     s.setdefault('kind', 'character')
     s.setdefault('size', 64)
     cam = dict(DEFAULT_CAMERA); cam.update(s.get('camera') or {}); s['camera'] = cam
-    if os.environ.get('PXFORGE_SIZE'):                     # render --size override keeps the framing
-        new = int(os.environ['PXFORGE_SIZE'])
+    if size:
+        new = int(size)
         cam['scale'] = cam['scale'] * s['size'] / new
         if new >= 128:
             cam['supersample'] = 2; cam['coverage'] = 2
@@ -113,6 +126,9 @@ def load(path):
         s['directions'] = [('s', 0)]
     elif isinstance(d, list):
         lut = dict(DIRECTIONS8)
+        bad = [x for x in d if x not in lut]
+        if bad:
+            raise SpecError(f'directions: unknown direction(s) {bad} (use {", ".join(lut)})')
         s['directions'] = [(x, lut[x]) for x in d]
     else:
         raise SpecError('directions must be 1, 4, 8 or a list like [s, e, n, w]')

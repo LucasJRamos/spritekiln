@@ -73,10 +73,8 @@ def test_extract_respects_alpha():
     assert [c['hex'] for c in out] == ['#c82828']
 
 
-@pytest.mark.xfail(strict=True, raises=ValueError,
-                   reason='known bug (LAUNCH.md audit #20): k-means++ init divides by zero when the image '
-                          'has fewer distinct colours than k; fix in Phase 1')
 def test_extract_with_fewer_colours_than_k():
+    # regression (LAUNCH.md audit #20): k-means++ init used to divide by zero
     img = two_colour_image()
     img[30:, :, 3] = 0
     out = P.extract(img, k=2)

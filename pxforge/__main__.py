@@ -1,4 +1,4 @@
-from spritekiln.cli import main
+from pxforge import main
 
 if __name__ == '__main__':
     main()

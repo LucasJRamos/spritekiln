@@ -16,11 +16,12 @@ from .pixelize import compose, aux_maps, hx
 _SPEC_CACHE = {}
 
 
-def get_spec(path):
+def get_spec(path, size=None):
     m = os.path.getmtime(path)
-    if path not in _SPEC_CACHE or _SPEC_CACHE[path][0] != m:
-        _SPEC_CACHE[path] = (m, specmod.load(path))
-    return _SPEC_CACHE[path][1]
+    key = (path, size)
+    if key not in _SPEC_CACHE or _SPEC_CACHE[key][0] != m:
+        _SPEC_CACHE[key] = (m, specmod.load(path, size=size))
+    return _SPEC_CACHE[key][1]
 
 
 def _geom_key(spec, env, yaw):
@@ -80,15 +81,15 @@ def frame_image(spec, env, yaw, force=False, maps=True):
 
 
 def _job(args):
-    path, anim, d_name, yaw, i, force = args
-    spec = get_spec(path)
+    path, size, anim, d_name, yaw, i, force = args
+    spec = get_spec(path, size)
     env, ms, ev = frames_of(spec, anim)[i] if anim else (rest_env(spec), 100, [])
     img, nm, em = frame_image(spec, env, yaw, force)
     return (anim, d_name, i), img, nm, em, ms, ev
 
 
-def render_all(path, anims=None, dirs=None, jobs=None, force=False, progress=print):
-    spec = get_spec(path)
+def render_all(path, anims=None, dirs=None, jobs=None, force=False, progress=print, size=None):
+    spec = get_spec(path, size)
     anims = anims or list(spec['animations'])
     dlist = [(n, y) for n, y in spec['directions'] if not dirs or n in dirs]
     tasks = []
@@ -96,7 +97,7 @@ def render_all(path, anims=None, dirs=None, jobs=None, force=False, progress=pri
         n = len(frames_of(spec, a))
         for d, y in dlist:
             for i in range(n):
-                tasks.append((path, a, d, y, i, force))
+                tasks.append((path, size, a, d, y, i, force))
     out = {}
     jobs = jobs or max(1, (os.cpu_count() or 2) - 1)
     done = 0

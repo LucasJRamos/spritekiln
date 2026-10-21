@@ -40,7 +40,7 @@ Issues = "https://github.com/LucasJRamos/spritekiln/issues"
 
 [project.scripts]
 spritekiln = "spritekiln.cli:main"
-pxforge = "pxforge.cli:main"
+pxforge = "pxforge:main"
 
 [tool.hatch.version]
 path = "spritekiln/__init__.py"

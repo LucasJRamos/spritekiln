@@ -15,3 +15,9 @@ for _name in _MODULES:
     _mod = importlib.import_module(f'spritekiln.{_name}')
     sys.modules[f'{__name__}.{_name}'] = _mod
     globals()[_name] = _mod
+
+
+def main(argv=None):
+    """`pxforge` command: the spritekiln CLI under its old name."""
+    from spritekiln.cli import main as _main
+    _main(argv, prog='pxforge')

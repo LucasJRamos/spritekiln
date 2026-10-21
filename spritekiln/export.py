@@ -5,6 +5,8 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+from .anim import is_loop
+
 BG = (46, 42, 56, 255)
 
 
@@ -83,7 +85,7 @@ def export(spec, anims, dlist, out, dst, gif_scale=5):
     idx = 0
     for r, (a, d) in enumerate(rows):
         n = len([k for k in out if k[0] == a and k[1] == d])
-        loop = bool(spec['animations'][a].get('loop', 'keys' not in spec['animations'][a]))
+        loop = is_loop(spec['animations'][a])
         meta['meta']['frameTags'].append({'name': f'{a}_{d}', 'from': idx, 'to': idx + n - 1,
                                           'direction': 'forward'})
         A = meta['pxforge']['animations'].setdefault(a, {'loop': loop, 'directions': {}})

@@ -1,4 +1,4 @@
-"""pxforge command line.  Run `python -m pxforge -h`."""
+"""SpriteKiln command line. Run `spritekiln -h` (or `python -m spritekiln -h`)."""
 import argparse
 import json
 import os
@@ -8,67 +8,79 @@ import time
 
 import numpy as np
 
+from . import __version__
+from .errors import SpriteKilnError
 
-def _spec(path):
+
+def _spec(path, size=None):
     from . import spec as S
-    try:
-        return S.load(path)
-    except Exception as e:  # noqa
-        sys.exit(f'erro ao carregar spec: {e}')
+    return S.load(path, size=size)
+
+
+def _pose_env(sp, anim, frame):
+    from .anim import frames_of
+    from .rig import rest_env
+    if not anim:
+        return rest_env(sp)
+    frames = frames_of(sp, anim)
+    if not -len(frames) <= frame < len(frames):
+        raise SpriteKilnError(f'--frame {frame}: animation "{anim}" has {len(frames)} frames (0..{len(frames) - 1})')
+    return frames[frame][0]
 
 
 def cmd_validate(a):
     from . import spec as S
+    from .anim import frames_of
     sp = _spec(a.spec)
     probs = S.validate(sp)
     if probs:
-        print('INVÁLIDO:'); [print('  -', p) for p in probs]
-        sys.exit(1)
-    from .anim import frames_of
-    print(f'OK: {sp["name"]} - {len(sp["parts"])} partes, {len(sp["bones"])} bones, '
-          f'{len(sp["directions"])} direções, animações: ' +
-          ', '.join(f'{k}({len(frames_of(sp, k))})' for k in sp['animations']))
+        print('INVALID:')
+        for p in probs:
+            print('  -', p)
+        return 1
+    print(f'OK: {sp["name"]} - {len(sp["parts"])} parts, {len(sp["bones"])} bones, '
+          f'{len(sp["directions"])} directions, animations: '
+          + ', '.join(f'{k}({len(frames_of(sp, k))})' for k in sp['animations']))
+    return 0
 
 
 def cmd_pose(a):
     """Quick look: one pose in several directions, zoomed (cheap; use it while modelling)."""
-    from .pipeline import frame_image
-    from .anim import frames_of
-    from .rig import rest_env
-    from .export import upscale
-    sp = _spec(a.spec)
-    env = frames_of(sp, a.anim)[a.frame][0] if a.anim else rest_env(sp)
-    dirs = [d for d in sp['directions'] if not a.dirs or d[0] in a.dirs.split(',')]
     from . import spec as S
+    from .export import upscale
+    from .pipeline import frame_image
+    sp = _spec(a.spec)
+    env = _pose_env(sp, a.anim, a.frame)
+    dirs = [d for d in sp['directions'] if not a.dirs or d[0] in a.dirs.split(',')]
     if a.dirs == 'all' or (not a.dirs and len(sp['directions']) < 8 and sp['kind'] == 'character'):
         dirs = S.DIRECTIONS8
+    if not dirs:
+        raise SpriteKilnError(f'--dirs {a.dirs}: no such direction (have: {", ".join(d for d, _ in sp["directions"])})')
     t = time.time()
     imgs = [frame_image(sp, env, y, maps=False)[0] for _, y in dirs]
     out = a.out or os.path.join(sp['_dir'], 'out', f'pose_{a.anim or "rest"}_{a.frame}.png')
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     upscale(np.concatenate(imgs, 1), a.scale).save(out)
     print(f'{out}  ({", ".join(d for d, _ in dirs)}; {time.time() - t:.1f}s)')
 
 
 def cmd_render(a):
-    from .pipeline import render_all
-    from .export import export
     from . import qa
-    if a.size:
-        os.environ['PXFORGE_SIZE'] = str(a.size)
+    from .export import export
+    from .pipeline import render_all
     t = time.time()
     sp, anims, dlist, out = render_all(os.path.abspath(a.spec), a.anims.split(',') if a.anims else None,
-                                       a.dirs.split(',') if a.dirs else None, a.jobs, a.force)
+                                       a.dirs.split(',') if a.dirs else None, a.jobs, a.force, size=a.size)
     dst = a.out or os.path.join(sp['_dir'], 'out', sp['name'] + (f'_{a.size}' if a.size else ''))
-    meta = export(sp, anims, dlist, out, dst)
+    export(sp, anims, dlist, out, dst)
     rep = qa.check(sp, anims, dlist, out)
     with open(os.path.join(dst, 'qa.json'), 'w', encoding='utf-8') as fh:
         json.dump(rep, fh, indent=1, ensure_ascii=False)
-    print(f'{len(out)} frames em {time.time() - t:.0f}s -> {dst}')
+    print(f'{len(out)} frames in {time.time() - t:.0f}s -> {dst}')
     print(qa.summary(rep))
-    print('revisão visual: ' + ', '.join(os.path.join(dst, 'preview', f'contact_{x}.png') for x in anims))
+    print('review: ' + ', '.join(os.path.join(dst, 'preview', f'contact_{x}.png') for x in anims))
     if a.godot is not None:
-        from .godot import export_godot, _find_project
+        from .godot import _find_project, export_godot
         w = export_godot(sp, _find_project(a.godot or None), render_dir=dst)
         print(f'godot: {w["scene"]}')
 
@@ -79,153 +91,200 @@ def cmd_palette(a):
         r = P.ramp(a.input, a.steps, a.hue_shift)
         print('[' + ', '.join(f'"{c}"' for c in r) + ']')
         return
-    from .ref import load, cutout
-    img = load(a.input)
-    cut, mask, used = cutout(img)
-    fams = P.families(P.extract(np.asarray(cut), mask, a.k))
-    y = P.palette_yaml(fams, a.steps)
+    from .ref import cutout, load
+    cut, mask, used = cutout(load(a.input))
+    y = P.palette_yaml(P.families(P.extract(np.asarray(cut), mask, a.k)), a.steps)
     if a.out:
-        open(a.out, 'w', encoding='utf-8').write(y); print('salvo', a.out)
+        with open(a.out, 'w', encoding='utf-8') as fh:
+            fh.write(y)
+        print('saved', a.out)
     print(y)
 
 
 def cmd_ref(a):
-    from . import ref as R
     from . import palette as P
+    from . import ref as R
     if a.action == 'prep':
-        img = R.load(a.image)
-        cut, mask, used = R.cutout(img, tol=a.tol)
+        cut, mask, used = R.cutout(R.load(a.image), tol=a.tol)
         dst = a.out or os.path.splitext(a.image)[0] + '_ref'
         os.makedirs(dst, exist_ok=True)
         cut.save(os.path.join(dst, 'cutout.png'))
         m = R.metrics(mask)
         fams = P.families(P.extract(np.asarray(cut), mask, a.k))
-        open(os.path.join(dst, 'palette.yaml'), 'w', encoding='utf-8').write(P.palette_yaml(fams))
+        with open(os.path.join(dst, 'palette.yaml'), 'w', encoding='utf-8') as fh:
+            fh.write(P.palette_yaml(fams))
         info = dict(method=used, size=cut.size, metrics=m,
                     families=[dict(base=f['base'], share=round(f['share'], 3), neutral=f['neutral'],
                                    hue=round(f['hue'])) for f in fams])
-        json.dump(info, open(os.path.join(dst, 'ref.json'), 'w'), indent=1)
-        print(f'recorte ({used}) -> {dst}/cutout.png  | paleta -> {dst}/palette.yaml')
-        print(f'aspecto altura/largura {m["aspect"]:.2f}; perfil de largura por faixa (topo->base): '
+        with open(os.path.join(dst, 'ref.json'), 'w', encoding='utf-8') as fh:
+            json.dump(info, fh, indent=1)
+        print(f'cutout ({used}) -> {dst}/cutout.png  | palette -> {dst}/palette.yaml')
+        print(f'height/width aspect {m["aspect"]:.2f}; width profile per band (top->bottom): '
               + ' '.join(f'{v:.2f}' for v in m['width_profile']))
         if used == 'border':
-            print('obs: fundo removido por cor de borda; confira cutout.png (se cortou errado use --tol, '
-                  'uma PNG com transparência, ou instale rembg)')
+            print('note: background removed by border colour; check cutout.png (if it cut wrong, use --tol, '
+                  'a PNG with transparency, or install the [splash] extra for rembg)')
         return
     # compare
-    from .pipeline import frame_image
-    from .anim import frames_of
-    from .rig import rest_env
     from . import spec as S
+    from .pipeline import frame_image
     sp = _spec(a.spec)
-    img = R.load(a.image)
-    cut, mask, used = R.cutout(img, tol=a.tol)
-    env = frames_of(sp, a.anim)[a.frame][0] if a.anim else rest_env(sp)
-    lut = dict(S.DIRECTIONS8)
-    spr = frame_image(sp, env, lut[a.dir], maps=False)[0]
-    smask = spr[..., 3] == 255
-    res, ga, gb = R.compare_masks(mask, smask)
+    cut, mask, used = R.cutout(R.load(a.image), tol=a.tol)
+    env = _pose_env(sp, a.anim, a.frame)
+    spr = frame_image(sp, env, dict(S.DIRECTIONS8)[a.dir], maps=False)[0]
+    res, ga, gb = R.compare_masks(mask, spr[..., 3] == 255)
     turn = [frame_image(sp, env, y, maps=False)[0] for _, y in S.DIRECTIONS8]
-    cols = R.ref_palette(cut, mask)
     out = a.out or os.path.join(sp['_dir'], 'out', f'compare_{a.dir}.png')
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    R.sheet(cut, spr, turn, (ga, gb), cols, sp['materials'], out, f'{sp["name"]} ({a.anim or "rest"})')
-    json.dump(res, open(os.path.splitext(out)[0] + '.json', 'w'), indent=1, ensure_ascii=False)
-    print(f'IoU silhueta ({a.dir}): {res["iou"]:.3f}   (>0.80 ótimo, 0.65-0.80 ok, <0.65 refazer proporções)')
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    R.sheet(cut, spr, turn, (ga, gb), R.ref_palette(cut, mask), sp['materials'], out,
+            f'{sp["name"]} ({a.anim or "rest"})')
+    with open(os.path.splitext(out)[0] + '.json', 'w', encoding='utf-8') as fh:
+        json.dump(res, fh, indent=1, ensure_ascii=False)
+    print(f'silhouette IoU ({a.dir}): {res["iou"]:.3f}   (>0.80 great, 0.65-0.80 ok, <0.65 redo the proportions)')
     for h in res['hints'][:8]:
         print('  -', h)
-    print('folha de comparação:', out)
+    print('comparison sheet:', out)
 
 
 def cmd_godot(a):
-    from .godot import export_godot, _find_project, install_addon, DEFAULT_DEST
+    from .godot import DEFAULT_DEST, _find_project, export_godot, install_addon
     project = _find_project(a.project)
     if a.install_addon:
-        print('addon', 'atualizado' if install_addon(project, True) else 'instalado', '->',
-              os.path.join(project, 'addons', 'pxforge'))
+        install_addon(project, True)
+        print('addon installed ->', os.path.join(project, 'addons', 'pxforge'))
         if not a.spec:
             return
     if not a.spec:
-        sys.exit('informe o spec (ou use --install-addon sozinho)')
+        raise SpriteKilnError('give a spec (or use --install-addon alone)')
     sp = _spec(a.spec)
     w = export_godot(sp, project, a.dest or DEFAULT_DEST, lit=a.lit, update_addon=a.update_addon)
     print(f'{sp["name"]} -> {w["res"]}/')
-    print('  cena pronta:', w['scene'])
+    print('  scene:', w['scene'])
     print('  SpriteFrames:', w['frames'] + ('  (+ _lit, _canvas)' if 'lit' in w else ''))
     if 'emissive' in w:
-        print('  emissivo:', w['emissive'])
+        print('  emissive:', w['emissive'])
     if w['addon_installed']:
-        print('  addon instalado em', os.path.join(project, 'addons', 'pxforge'),
-              '(ative em Projeto > Configurações > Plugins se ainda não estiver)')
+        print('  addon installed in', os.path.join(project, 'addons', 'pxforge'),
+              '(enable it in Project > Project Settings > Plugins if needed)')
 
 
 def cmd_new(a):
     from . import resources
     tpl = resources.template(a.template)
     if not tpl:
-        sys.exit(f'template não encontrado: {a.template} (disponíveis: {", ".join(resources.templates())})')
+        raise SpriteKilnError(f'template not found: {a.template} (available: {", ".join(resources.templates())})')
     dst_dir = os.path.join(a.dir, a.name)
-    os.makedirs(dst_dir, exist_ok=True)
     dst = os.path.join(dst_dir, f'{a.name}.yaml')
     if os.path.exists(dst):
-        sys.exit(f'já existe: {dst}')
-    txt = open(tpl, encoding='utf-8').read().replace('name: TEMPLATE', f'name: {a.name}')
-    open(dst, 'w', encoding='utf-8').write(txt)
+        raise SpriteKilnError(f'already exists: {dst}')
+    os.makedirs(dst_dir, exist_ok=True)
+    with open(tpl, encoding='utf-8') as fh:
+        txt = fh.read().replace('name: TEMPLATE', f'name: {a.name}')
+    with open(dst, 'w', encoding='utf-8') as fh:
+        fh.write(txt)
     if a.ref:
         shutil.copy(a.ref, os.path.join(dst_dir, 'splash' + os.path.splitext(a.ref)[1]))
-    print('criado', dst)
+    print('created', dst)
 
 
-def main(argv=None):
+DIRS = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw']
+
+
+def build_parser(prog='spritekiln'):
+    p = argparse.ArgumentParser(prog=prog, description='Procedural SDF models in YAML -> animated 8-direction pixel art')
+    p.add_argument('--version', action='version', version=f'spritekiln {__version__}')
+    sub = p.add_subparsers(dest='cmd', required=True)
+
+    s = sub.add_parser('validate', help='check a spec')
+    s.add_argument('spec')
+    s.set_defaults(f=cmd_validate)
+
+    s = sub.add_parser('pose', help='quick preview of one pose (rest by default)')
+    s.add_argument('spec')
+    s.add_argument('--anim')
+    s.add_argument('--frame', type=int, default=0)
+    s.add_argument('--dirs', help='e.g. s,se,e or all')
+    s.add_argument('--scale', type=int, default=4, help='zoom of the preview PNG (default 4)')
+    s.add_argument('-o', '--out')
+    s.set_defaults(f=cmd_pose)
+
+    s = sub.add_parser('render', help='render animations and export atlas, JSON, GIFs and QA')
+    s.add_argument('spec')
+    s.add_argument('--anims', help='comma-separated (default: all)')
+    s.add_argument('--dirs', help='comma-separated (default: all of the spec)')
+    s.add_argument('-o', '--out')
+    s.add_argument('--jobs', type=int, help='worker processes')
+    s.add_argument('--force', action='store_true', help='ignore the render cache')
+    s.add_argument('--size', type=int, help='32/48/64/128: rescale the camera, keeping the framing')
+    s.add_argument('--godot', nargs='?', const='', metavar='PROJECT',
+                   help='after rendering, export to a Godot project (default: $SPRITEKILN_GODOT_PROJECT)')
+    s.set_defaults(f=cmd_render)
+
+    s = sub.add_parser('godot', help='export a rendered spec to a Godot 4 project (SpriteFrames + scene)')
+    s.add_argument('spec', nargs='?')
+    s.add_argument('--project', help='folder with project.godot (default: $SPRITEKILN_GODOT_PROJECT)')
+    s.add_argument('--dest', help='folder inside the project (default: assets/pxforge)')
+    s.add_argument('--lit', action='store_true', help='the scene uses the SpriteFrames with the normal map (Light2D)')
+    s.add_argument('--install-addon', action='store_true', help='install/update addons/pxforge in the project')
+    s.add_argument('--update-addon', action='store_true', help='overwrite the addon in the project when exporting')
+    s.set_defaults(f=cmd_godot)
+
+    s = sub.add_parser('palette', help='hue-shifted ramps / extract a palette from an image')
+    s.add_argument('action', choices=['ramp', 'extract'])
+    s.add_argument('input', help='base colour (#hex) or image')
+    s.add_argument('--steps', type=int, default=6)
+    s.add_argument('--hue-shift', type=float, default=22)
+    s.add_argument('--k', type=int, default=10)
+    s.add_argument('-o', '--out')
+    s.set_defaults(f=cmd_palette)
+
+    s = sub.add_parser('ref', help='splash art: prepare a reference and compare it with the model')
+    s.add_argument('action', choices=['prep', 'compare'])
+    s.add_argument('a1', help='prep: image | compare: spec')
+    s.add_argument('a2', nargs='?', help='compare: image')
+    s.add_argument('--dir', default='s', choices=DIRS, help='direction the splash art shows')
+    s.add_argument('--anim')
+    s.add_argument('--frame', type=int, default=0)
+    s.add_argument('--tol', type=float)
+    s.add_argument('--k', type=int, default=10)
+    s.add_argument('-o', '--out')
+    s.set_defaults(f=cmd_ref)
+
+    s = sub.add_parser('new', help='create a spec from a template')
+    s.add_argument('name')
+    s.add_argument('--template', default='humanoid')
+    s.add_argument('--dir', default=os.path.join('specs', 'characters'))
+    s.add_argument('--ref', help='splash art to copy next to the spec')
+    s.set_defaults(f=cmd_new)
+    return p
+
+
+def main(argv=None, prog='spritekiln'):
     for st in (sys.stdout, sys.stderr):
         try:
             st.reconfigure(encoding='utf-8', errors='replace')
-        except Exception:  # noqa
+        except Exception:  # noqa: BLE001 - not every stream can be reconfigured
             pass
-    p = argparse.ArgumentParser(prog='pxforge', description='SDF 3D -> pixel art em 8 direções')
-    sub = p.add_subparsers(dest='cmd', required=True)
-    s = sub.add_parser('validate', help='checa o spec YAML'); s.add_argument('spec'); s.set_defaults(f=cmd_validate)
-    s = sub.add_parser('pose', help='preview rápido de uma pose (rest por padrão)')
-    s.add_argument('spec'); s.add_argument('--anim'); s.add_argument('--frame', type=int, default=0)
-    s.add_argument('--dirs', help='ex.: s,se,e ou all'); s.add_argument('--scale', type=int, default=4)
-    s.add_argument('-o', '--out'); s.set_defaults(f=cmd_pose)
-    s = sub.add_parser('render', help='renderiza animações + exporta atlas/JSON/GIF/QA')
-    s.add_argument('spec'); s.add_argument('--anims'); s.add_argument('--dirs'); s.add_argument('-o', '--out')
-    s.add_argument('--jobs', type=int); s.add_argument('--force', action='store_true')
-    s.add_argument('--size', type=int, help='32/48/64/128: re-escala a câmera mantendo o enquadramento')
-    s.add_argument('--godot', nargs='?', const='', metavar='PROJETO',
-                   help='após renderizar, exporta para o projeto Godot (padrão: $PXFORGE_GODOT_PROJECT)')
-    s.set_defaults(f=cmd_render)
-    s = sub.add_parser('godot', help='exporta o render de um spec para um projeto Godot 4 (SpriteFrames + cena)')
-    s.add_argument('spec', nargs='?'); s.add_argument('--project', help='pasta com project.godot (ou $PXFORGE_GODOT_PROJECT)')
-    s.add_argument('--dest', help=f'pasta dentro do projeto (padrão: {"assets/pxforge"})')
-    s.add_argument('--lit', action='store_true', help='cena usa o SpriteFrames com normal map (Light2D)')
-    s.add_argument('--install-addon', action='store_true', help='instala/atualiza addons/pxforge no projeto')
-    s.add_argument('--update-addon', action='store_true', help='sobrescreve o addon no projeto ao exportar')
-    s.set_defaults(f=cmd_godot)
-    s = sub.add_parser('palette', help='rampas com hue shift / extrair de imagem')
-    s.add_argument('action', choices=['ramp', 'extract']); s.add_argument('input', help='cor base (#hex) ou imagem')
-    s.add_argument('--steps', type=int, default=6); s.add_argument('--hue-shift', type=float, default=22)
-    s.add_argument('--k', type=int, default=10); s.add_argument('-o', '--out'); s.set_defaults(f=cmd_palette)
-    s = sub.add_parser('ref', help='splash art: preparar referência e comparar com o modelo')
-    s.add_argument('action', choices=['prep', 'compare'])
-    s.add_argument('a1', help='prep: imagem | compare: spec'); s.add_argument('a2', nargs='?', help='compare: imagem')
-    s.add_argument('--dir', default='s', help='direção que a splash art mostra (s, se, e, ...)')
-    s.add_argument('--anim'); s.add_argument('--frame', type=int, default=0); s.add_argument('--tol', type=float)
-    s.add_argument('--k', type=int, default=10); s.add_argument('-o', '--out'); s.set_defaults(f=cmd_ref)
-    s = sub.add_parser('new', help='cria um personagem a partir de um template')
-    s.add_argument('name'); s.add_argument('--template', default='humanoid')
-    s.add_argument('--dir', default=os.path.join('specs', 'characters')); s.add_argument('--ref', help='splash art')
-    s.set_defaults(f=cmd_new)
+    p = build_parser(prog)
     a = p.parse_args(argv)
+    a.prog = prog
     if a.cmd == 'ref':
         if a.action == 'prep':
             a.image = a.a1
         else:
             if not a.a2:
-                p.error('ref compare SPEC IMAGEM')
+                p.error('ref compare SPEC IMAGE')
             a.spec, a.image = a.a1, a.a2
-    a.f(a)
+    try:
+        rc = a.f(a)
+    except SpriteKilnError as e:
+        print(f'error: {e}', file=sys.stderr)
+        rc = 1
+    except KeyboardInterrupt:
+        print('interrupted', file=sys.stderr)
+        rc = 130
+    if rc:
+        sys.exit(rc)
 
 
 if __name__ == '__main__':

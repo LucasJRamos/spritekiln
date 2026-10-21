@@ -14,6 +14,7 @@ animations:
 import numpy as np
 
 from .expr import evaluate
+from .spec import SpecError
 
 EASE = {
     'linear': lambda x: x,
@@ -21,6 +22,11 @@ EASE = {
     'out': lambda x: 1 - (1 - x) ** 2,
     'inout': lambda x: x * x * (3 - 2 * x),
 }
+
+
+def is_loop(A):
+    """Cycles (frames + channels) loop by default; key animations (attacks, hits) play once."""
+    return bool(A.get('loop', 'keys' not in A))
 
 
 def _base(spec):
@@ -38,7 +44,7 @@ def _interp(a, b, t):
 def frames_of(spec, name):
     """-> list of (env, duration_ms, events)."""
     if name not in spec['animations']:
-        raise KeyError(f'animation "{name}" not in spec (have: {", ".join(spec["animations"])})')
+        raise SpecError(f'animation "{name}" not in spec (have: {", ".join(spec["animations"])})')
     A = spec['animations'][name]
     base = _base(spec)
     out = []
@@ -52,7 +58,7 @@ def frames_of(spec, name):
             env.update(p=i / n_keys * 2 * np.pi, t=i / max(n_keys - 1, 1), f=i, n=n_keys)
             for ch, v in (k.get('set') or {}).items():
                 if ch not in base:
-                    raise KeyError(f'keys[{i}].set: unknown channel "{ch}" (declare it under channels:)')
+                    raise SpecError(f'keys[{i}].set: unknown channel "{ch}" (declare it under channels:)')
                 env[ch] = evaluate(v, env)
             poses.append((env, int(k.get('ms', A.get('ms', 100))), k.get('event')))
             prev = env
@@ -77,7 +83,7 @@ def frames_of(spec, name):
         env.update(p=i / n * 2 * np.pi, t=i / n, f=i, n=n)
         for ch, v in (A.get('channels') or {}).items():
             if ch not in base:
-                raise KeyError(f'channels: unknown channel "{ch}" (declare it under top-level channels:)')
+                raise SpecError(f'channels: unknown channel "{ch}" (declare it under top-level channels:)')
             env[ch] = evaluate(v, env)
         d = ms[i] if isinstance(ms, list) else int(evaluate(ms, env)) if isinstance(ms, str) else int(ms)
         ev = events.get(i)
