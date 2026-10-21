@@ -6,7 +6,9 @@
 import importlib
 import sys
 
-from spritekiln import __version__  # noqa: F401
+from spritekiln import __version__, system  # noqa: F401
+
+system.limit_blas_threads()               # the shim serves the CLI: load numpy with one BLAS thread
 
 _MODULES = ('anim', 'cli', 'export', 'expr', 'godot', 'palette', 'pipeline', 'pixelize', 'qa', 'ref',
             'render', 'rig', 'sdf', 'spec')

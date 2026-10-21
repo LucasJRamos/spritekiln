@@ -6,9 +6,7 @@ import shutil
 import sys
 import time
 
-import numpy as np
-
-from . import __version__
+from . import __version__, system
 from .errors import SpriteKilnError
 
 
@@ -49,6 +47,7 @@ def cmd_pose(a):
     from . import spec as S
     from .export import upscale
     from .pipeline import frame_image
+    import numpy as np
     sp = _spec(a.spec)
     env = _pose_env(sp, a.anim, a.frame)
     dirs = [d for d in sp['directions'] if not a.dirs or d[0] in a.dirs.split(',')]
@@ -70,7 +69,8 @@ def cmd_render(a):
     from .pipeline import render_all
     t = time.time()
     sp, anims, dlist, out = render_all(os.path.abspath(a.spec), a.anims.split(',') if a.anims else None,
-                                       a.dirs.split(',') if a.dirs else None, a.jobs, a.force, size=a.size)
+                                       a.dirs.split(',') if a.dirs else None, a.jobs, a.force, progress=True,
+                                       size=a.size, log=_note)
     dst = a.out or os.path.join(sp['_dir'], 'out', sp['name'] + (f'_{a.size}' if a.size else ''))
     export(sp, anims, dlist, out, dst)
     rep = qa.check(sp, anims, dlist, out)
@@ -85,7 +85,44 @@ def cmd_render(a):
         print(f'godot: {w["scene"]}')
 
 
+def _note(msg):
+    print(msg, file=sys.stderr, flush=True)
+
+
+def cmd_cache(a):
+    from . import cache
+    roots = a.paths or ['.']
+    dirs = sorted({d for r in roots for d in cache.find_dirs(r, legacy=True)})
+    kiln = [d for d in dirs if os.path.basename(d) == cache.DIRNAME]
+    legacy = [d for d in dirs if os.path.basename(d) == cache.LEGACY_DIRNAME]
+    if a.action == 'info':
+        for d in kiln:
+            print(f'{cache.size_mb(d):9.1f} MB  {d}')
+        for d in legacy:
+            print(f'{cache.size_mb(d):9.1f} MB  {d}  (old pxforge cache, never read: `cache clear --legacy`)')
+        if not dirs:
+            print('no render cache found')
+        return
+    if a.action == 'prune':
+        if a.max_mb is None and a.older_than is None:
+            raise SpriteKilnError('cache prune needs --max-mb and/or --older-than')
+        for d in kiln:
+            for spec_dir in sorted(os.listdir(d)):
+                n, mb = cache.prune(os.path.join(d, spec_dir), a.max_mb, a.older_than)
+                if n:
+                    print(f'{os.path.join(d, spec_dir)}: removed {n} entries ({mb:.1f} MB)')
+        return
+    for d in kiln + (legacy if a.legacy else []):
+        mb = cache.size_mb(d)
+        shutil.rmtree(d, ignore_errors=True)
+        print(f'removed {d} ({mb:.1f} MB)')
+    if legacy and not a.legacy:
+        print(f'{len(legacy)} old pxforge cache folder(s) kept; add --legacy to remove them too')
+
+
 def cmd_palette(a):
+    import numpy as np
+
     from . import palette as P
     if a.action == 'ramp':
         r = P.ramp(a.input, a.steps, a.hue_shift)
@@ -102,6 +139,8 @@ def cmd_palette(a):
 
 
 def cmd_ref(a):
+    import numpy as np
+
     from . import palette as P
     from . import ref as R
     if a.action == 'prep':
@@ -229,6 +268,14 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--update-addon', action='store_true', help='overwrite the addon in the project when exporting')
     s.set_defaults(f=cmd_godot)
 
+    s = sub.add_parser('cache', help='show, prune or clear render caches')
+    s.add_argument('action', choices=['info', 'prune', 'clear'])
+    s.add_argument('paths', nargs='*', help='spec files or folders to search (default: current folder)')
+    s.add_argument('--max-mb', type=float, help='prune: keep each spec cache under this size (oldest go first)')
+    s.add_argument('--older-than', type=float, metavar='DAYS', help='prune: drop entries unused for DAYS')
+    s.add_argument('--legacy', action='store_true', help='clear: also remove old pxforge .pxcache folders')
+    s.set_defaults(f=cmd_cache)
+
     s = sub.add_parser('palette', help='hue-shifted ramps / extract a palette from an image')
     s.add_argument('action', choices=['ramp', 'extract'])
     s.add_argument('input', help='base colour (#hex) or image')
@@ -260,6 +307,7 @@ def build_parser(prog='spritekiln'):
 
 
 def main(argv=None, prog='spritekiln'):
+    system.limit_blas_threads()                       # before numpy loads: ~500 MB less committed memory
     for st in (sys.stdout, sys.stderr):
         try:
             st.reconfigure(encoding='utf-8', errors='replace')
