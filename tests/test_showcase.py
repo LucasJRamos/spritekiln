@@ -32,9 +32,9 @@ def _sha(data):
     return hashlib.sha1(data).hexdigest()[:16]
 
 
-def hashes_of(out_dir):
+def hashes_of(out_dir, name=None):
     """Per-frame pixel hashes (color, normal, emissive) and per-animation metadata hashes."""
-    name = os.path.basename(os.path.normpath(out_dir))
+    name = name or os.path.basename(os.path.normpath(out_dir))
     with open(os.path.join(out_dir, f'{name}.json'), encoding='utf-8') as fh:
         meta = json.load(fh)
     px = meta['pxforge']

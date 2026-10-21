@@ -1,6 +1,6 @@
 # Launch plan: pxforge → SpriteKiln v0.1.0
 
-> **Status:** DRAFT, awaiting maintainer approval. Current phase: **0 (foundation)**.
+> **Status:** Phase 0 done on 2026-10-21, awaiting the maintainer's review (checkpoint). Next: Phase 1.
 > Internal working document. It is trimmed or removed before the public v0.1.0 release.
 
 ## Goal
@@ -39,15 +39,16 @@ requirements.
 - English first, `README.pt-BR.md` translation; translate comments, docs, skills and CLI messages.
 - Templar and Huntress are the showcase, including models, animations and the original splash arts
   ("From this → to this").
-- Proposed name: **SpriteKiln** (package/CLI `spritekiln`), pending confirmation. Rechecked
+- Name: **SpriteKiln** (package/CLI `spritekiln`), confirmed 2026-10-21. Rechecked
   2026-10-21: `spritekiln` and `sprite-kiln` are free on PyPI; no GitHub repo named spritekiln.
 
+## Answered on 2026-10-21 (see `docs/decisions.md`)
+Name **SpriteKiln** (ADR-001) · owner **LucasJRamos** (ADR-002) · showcase **all rights reserved,
+demonstration only** (ADR-003) · Unity validation on **6000.3** (ADR-005) · **Python 3.10+** (ADR-004).
+
 ## Open questions (maintainer)
-1. Name: SpriteKiln or keep pxforge?
-2. Repository owner: `PlayRPG` org or `LucasJRamos`?
-3. Showcase license: "all rights reserved, demonstration only" or CC BY-NC-ND 4.0?
-4. Unity: found 6000.3.6f1 and 6000.4.0f1 installed; validate on 6000.3 (LTS line)?
-5. Minimum Python: 3.10+?
+- Delete `legacy/` from disk, or keep it locally (it is already out of git)?
+- Confirm that the cacador's `splash_teste.jpg` is an upscaled render of the cacador itself (CC0).
 
 ## Audit (2026-10-21)
 State: ~2,270 lines of Python (`pxforge/`), no git, no tests, no CI, no license. Code untouched since
@@ -118,23 +119,27 @@ this file), `requirements.txt` (Phase 1, after `pyproject` is complete).
 ---
 
 ## Phase 0: foundation (no behavior change)
-- [ ] 0.1 `git init` (branch `main`), `.gitignore` (`.venv/`, `.pxcache/`, `out/`, `*.egg-info/`,
+- [x] 0.1 `git init` (branch `main`), `.gitignore` (`.venv/`, `.pxcache/`, `out/`, `*.egg-info/`,
       `__pycache__/`, `ref prep` outputs). Local-only paths in `.git/info/exclude` (`KICKOFF.md`,
       `legacy/`, `research/`).
-- [ ] 0.2 Audit (section above).
-- [ ] 0.3 Licensing: root `LICENSE` (plain MIT, for GitHub detection), `LICENSES/` with the full texts
-      (MIT, CC0-1.0, showcase license), and a [REUSE](https://reuse.software)-style `REUSE.toml` that maps
-      paths to licenses. Showcase files stay where they are until Phase 5/6 (the game uses the paths).
-- [ ] 0.4 pytest baseline (`[project.optional-dependencies] dev`): unit tests for `expr`, `spec`,
+- [x] 0.2 Audit (section above).
+- [x] 0.3 Licensing: root `LICENSE` (MIT + scope note), `LICENSES/` with the full texts (MIT, CC0-1.0,
+      showcase license), and a [REUSE](https://reuse.software) `REUSE.toml` that maps paths to licenses
+      (`reuse lint` passes). Showcase files stay where they are until Phase 5/6 (the game uses the
+      paths). See ADR-003.
+- [x] 0.4 pytest baseline (`[project.optional-dependencies] dev`): unit tests for `expr`, `spec`,
       `palette`.
-- [ ] 0.5 Golden images: `pose --dirs all` of the gargoyle and of a minimal fixture spec, plus a full
+- [x] 0.5 Golden images: `pose --dirs all` of the gargoyle and of a minimal fixture spec, plus a full
       `render` (atlas, normal, emissive, JSON) of the fixture. Each test uses a fresh temporary cache,
       so a stale cache cannot hide a regression. Tolerance: exact on the platform that produced the
       goldens (recorded next to them); elsewhere ≤ 0.5 % of pixels may differ.
-- [ ] 0.6 Showcase reproduction: a cache-less re-render of Templar and Huntress must match the current
+- [x] 0.6 Showcase reproduction: a cache-less re-render of Templar and Huntress must match the current
       `out/` (identical to the game's assets). Pixel hashes per atlas and per frame go to
       `tests/golden/showcase.json` (no showcase pixels in `tests/`); opt-in slow test (`pytest -m slow`).
-- [ ] 0.7 `docs/decisions.md` with the ADRs taken so far.
+      Result 2026-10-21: atlases, normal and emissive maps, JSON and `qa.json` are **byte-identical**
+      for both (`--jobs 2`, empty cache: Templar 456 frames in 2,557 s, Huntress 536 frames in
+      1,091 s, main process peak 250 MB).
+- [x] 0.7 `docs/decisions.md` with the ADRs taken so far.
 
 **Done when:** `pytest` is green, golden images are versioned, this plan is approved.
 
