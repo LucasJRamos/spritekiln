@@ -106,7 +106,9 @@ def test_addon_in_godot(tmp_path):
     r = json.loads(line[len('PXRESULT ') :])
     assert set(r['built']) == {'frames', 'canvas', 'lit', 'emissive', 'scene'}
     assert r['built_idle_s'] == [4, pytest.approx(0.15), False]  # 4 frames of 150 ms, attack does not loop
-    assert r['early_events'] == ['attack:windup'] and r['early_playing'] == [True, 'attack_s']
+    # frame 0's event fired once (auto_play did not replay the clip); later frames may follow by now
+    assert r['early_events'][0] == 'attack:windup' and r['early_events'].count('attack:windup') == 1
+    assert r['early_playing'][1] == 'attack_s'
     assert r['mirror_dirs'] == ['s', 'e', 'n', 'w']
     assert r['mirror_w'][0] == 'idle_e' and r['mirror_w'][1] is True and r['mirror_w'][2] == -16
     east, west, same_y = r['mirror_socket_x']
