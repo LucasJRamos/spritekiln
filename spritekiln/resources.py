@@ -15,11 +15,13 @@ _SOURCE = {
     'palettes': os.path.join(_REPO, 'specs', 'palettes'),
     'templates': os.path.join(_REPO, 'specs', 'templates'),
     'godot_addon': os.path.join(_REPO, 'integrations', 'godot', 'addons', 'pxforge'),
+    'agent': os.path.join(_REPO, 'docs', 'agent'),
 }
 _PACKAGED = {
     'palettes': os.path.join(_DATA, 'palettes'),
     'templates': os.path.join(_DATA, 'templates'),
     'godot_addon': os.path.join(_DATA, 'godot', 'addons', 'pxforge'),
+    'agent': os.path.join(_DATA, 'agent'),
 }
 
 

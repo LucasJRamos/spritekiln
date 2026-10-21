@@ -54,6 +54,7 @@ packages = ["spritekiln", "pxforge"]
 "specs/palettes/props.yaml" = "spritekiln/data/palettes/props.yaml"
 "specs/templates/humanoid.yaml" = "spritekiln/data/templates/humanoid.yaml"
 "integrations/godot/addons/pxforge" = "spritekiln/data/godot/addons/pxforge"
+"docs/agent" = "spritekiln/data/agent"
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -65,6 +66,8 @@ include = [
     "specs/templates/",
     "specs/characters/gargula/gargula.yaml",
     "integrations/",
+    "docs/agent/",
+    "docs/format.md",
     "LICENSE",
     "LICENSES/",
     "README.md",

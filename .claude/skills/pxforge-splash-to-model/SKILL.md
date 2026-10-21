@@ -1,73 +1,83 @@
 ---
 name: pxforge-splash-to-model
-description: Transforma uma splash art / concept art de personagem original em um modelo pxforge (spec YAML) fiel à arte e legível em pixel art 64px nas 8 direções. Use quando o usuário fornecer uma imagem de personagem e pedir o modelo, o sprite ou as animações dele.
+description: Turn an original splash or concept art into a SpriteKiln model (spec YAML) faithful to the art and legible at 64 px in 8 directions. Use when the user provides a character image and asks for its model, sprite or animations. (Folder name kept for projects that link to it; same as the spritekiln skill.)
 ---
 
-# Splash art → modelo pxforge
+# From a splash art to a model
 
-Objetivo: capturar a **identidade** do personagem (silhueta, proporções, formas marcantes, paleta) — não
-copiar pinceladas. A 64 px só sobrevive o que é grande e contrastado. Leia antes `../pxforge/SKILL.md` e
-`../pxforge/SPEC.md`.
+Goal: capture the character's **identity** (silhouette, proportions, striking shapes, palette), not the
+brush strokes. At 64 px only what is big and contrasted survives. Read [workflow.md](workflow.md),
+[modeling.md](modeling.md) and [spec.md](SPEC.md) first.
 
-## 1. Preparar a referência
+## 1. Prepare the reference
 ```
-python -m pxforge new <nome> --ref <caminho/splash.png>          # cria specs/characters/<nome>/
-python -m pxforge ref prep specs/characters/<nome>/splash.png     # -> splash_ref/cutout.png, palette.yaml, ref.json
+python -m pxforge new <name> --ref <path/splash.png>        # creates <specs>/characters/<name>/ with splash.png
+python -m pxforge ref prep <specs>/characters/<name>/splash.png    # -> splash_ref/: cutout.png, cutout_pitch38.png,
+                                                      #    palette.yaml, ref.json (proportions)
 ```
-- Abra (Read) a splash original **e** `cutout.png`. Se o recorte pegou fundo ou cortou partes, rode de novo
-  com `--tol` (maior = mais agressivo), peça ao usuário uma PNG com transparência, ou instale `rembg`.
-- Decida qual **direção** a arte mostra (frontal = `s`, 3/4 frontal = `se`/`sw`, perfil = `e`/`w`).
+- Look at the original splash **and** `cutout.png`. The background is removed from the border inwards, so
+  flat, gradient and vignetted backgrounds work, and openings such as the gap between the legs stay
+  transparent. If it cut wrong: try `--tol` 4–15 (colour step, default 9), ask for a PNG with
+  transparency, or install the `splash` extra (rembg) for busy backgrounds.
+- Decide which **direction** the art shows (front = `s`, 3/4 front = `se`/`sw`, profile = `e`/`w`).
 
-## 2. Escrever o brief (no topo do spec)
-Antes de qualquer geometria, preencha `brief:` olhando a imagem:
-```
+## 2. Write the brief (top of the spec)
+Before any geometry, fill `brief:` while looking at the image:
+```yaml
 brief:
-  summary: uma frase de quem é e como se porta
-  reference: splash.png (vista se)
-  proportions: "cabeça = 1/4 da altura; ombros 1.6x a largura do quadril; pernas curtas"
-  must_keep: [3-6 traços que identificam o personagem a distância]
-  simplify: [o que vai sumir ou virar forma única a 64px]
-  palette_notes: [materiais e cores dominantes]
+  summary: one sentence on who this is and how they carry themselves
+  reference: splash.png (seen from se)
+  proportions: "head = 1/4 of the height; shoulders 1.6x the hips; short legs"
+  must_keep: [3-6 traits that identify the character from afar]
+  simplify: [what will vanish or merge at 64 px]
+  palette_notes: [dominant materials and colours]
 ```
-Regra: no máximo 5–6 `must_keep`. Ornamentos pequenos viram uma mancha de cor ou somem. Exagere o que
-é icônico (chapéu, arma, cabelo, capa) — em pixel art de 64 px o exagero é fidelidade.
+At most 5–6 `must_keep`. Small ornaments become a colour spot or vanish. Exaggerate what is iconic (hat,
+weapon, hair, cape): at 64 px, exaggeration is fidelity.
 
-## 3. Paleta
-`splash_ref/palette.yaml` traz famílias de cor com rampas hue-shifted já prontas (`fam1`, `fam2`...).
-Copie para `specs/palettes/<nome>.yaml`, **renomeie** as rampas (skin, cloth, hair, metal...), descarte
-famílias de fundo/ruído e una famílias quase iguais. Ajuste manual com
-`python -m pxforge palette ramp "#hex" --steps 5`. 3–6 materiais + 1 emissivo é o ideal.
-No spec: `palette: [../../palettes/gothic.yaml, ../../palettes/<nome>.yaml]` (gothic traz fx_* e base).
+## 3. Palette
+`splash_ref/palette.yaml` has colour families with hue-shifted ramps ready (`fam1`, `fam2`...). Copy it to
+the project's palettes folder as `<name>.yaml`, **rename** the ramps (skin, cloth, hair, metal...), drop
+background or noise families and merge near-identical ones. Adjust with
+`python -m pxforge palette ramp "#hex" --steps 5`. 3–6 materials plus one emissive is ideal. In the spec:
+`palette: [gothic, ../../palettes/<name>.yaml]` (gothic brings the `fx_*` ramps and basics).
 
-## 4. Bloco de massas (blockout)
-Parta do template (`humanoid.yaml`) ou de um spec parecido. Ordem:
-1. **Escala do mundo**: altura total ≈ 1.6–2.0; ajuste `torso_rot.pos` (altura da pelve), comprimentos do IK.
-2. **Massas grandes**: torso, cabeça (escala do bone `head`), quadril, pernas — só elipsoides/cones.
-3. Rode `pose --dirs all` e `ref compare <spec> <splash> --dir <dir>`.
-4. Itere até **IoU ≥ 0.70** na direção da arte e as dicas por faixa não apontarem desvios grandes.
-   As dicas dizem em que altura o sprite está largo/estreito demais — corrija a parte daquela altura.
-   Não persiga IoU acima de ~0.85: a splash tem perspectiva/pose própria; legibilidade vale mais.
+## 4. Blockout
+Start from the template (humanoid) or a similar spec:
+1. **World scale:** total height 1.6–2.0; adjust the pelvis height (`torso_rot.pos`) and the IK lengths.
+2. **Big masses:** torso, head (`head` bone scale), hips, legs: ellipsoids and cones only.
+3. `pose --dirs all` and `ref compare <spec> <splash> --dir <dir>`.
+4. Iterate until the **camera-corrected IoU ≥ 0.65** in the art's direction and no band hint is large.
+   `ref compare` squashes the splash by cos(pitch) like the game camera sees a front view; against the raw
+   splash the IoU tops out near 0.56, so do not chase raw numbers. The hints say at which height the sprite
+   is too wide or too narrow: fix the part at that height. Do not chase IoU above ~0.85; the splash has its
+   own perspective and pose, and legibility matters more.
 
-## 5. Formas marcantes e materiais
-Adicione um `must_keep` por vez (chifres = `chain`, capa = `membrane` ou cone aberto com `cut`, arma =
-`box`/`cylinder` num frame de mão, cabelo = elipsoides com `blend`). Depois de cada um: `pose --dirs all`.
-Cheque as **8 direções**, não só a da arte: o lado de trás e os perfis precisam fazer sentido. Invente o
-que a splash não mostra de forma coerente com o design e registre a decisão no `brief`.
+## 5. Striking shapes and materials
+Add one `must_keep` at a time (horns = `chain`, cape = `membrane` or an open cone with `cut`, weapon =
+`box`/`cylinder` in a hand frame, hair = blended ellipsoids). After each one: `pose --dirs all`. Check the
+**8 directions**, not only the art's; invent what the splash does not show, coherently, and record the
+decision in `brief`.
 
-## 6. Comparação final e revisão
+## 6. Final comparison and review
 ```
-python -m pxforge ref compare <spec> <splash> --dir <dir>     # -> out/compare_<dir>.png
+python -m pxforge ref compare <spec> <splash> --dir <dir>          # -> out/compare_<dir>.png + .json
+python -m pxforge review <spec> --ref <splash> --ref-dir <dir> [--bg <game floor>] [--tint <scene light>]
 ```
-Abra a folha (referência | sprite | overlay de silhueta | 8 direções | paletas). Chame o agente
-`pixel-art-director` com a folha + splash para uma crítica. Aplique as correções de prioridade alta.
+Open the comparison sheet (reference | sprite | silhouette overlay | 8 directions | palettes) and the review
+sheet. Then an art-direction pass ([art-direction.md](art-direction.md)); apply the high-priority fixes.
 
-## 7. Animar
-Com o modelo aprovado, siga `pxforge-animation`. Personalidade da splash (pesado, ágil, arrogante)
-deve aparecer no idle e no timing do ataque.
+## 7. Animate
+With the model approved, follow [animation.md](animation.md). The personality of the splash (heavy, agile,
+arrogant) must show in the idle and in the timing of the attack.
 
-## Armadilhas
-- Splash art com pose dinâmica (perna levantada, arma erguida): compare com um frame de animação
-  parecido (`--anim attack --frame 2`) em vez da pose de repouso.
-- Arte cortada (sem pés): o IoU fica inválido — compare só proporções da parte visível e avise.
-- Personagem com arma maior que o corpo: deixe a arma fora do recorte de comparação (anote no brief) e
-  confira margem no QA.
+## Pitfalls
+- A splash with a dynamic pose (raised leg, raised weapon): compare against a similar animation frame
+  (`--anim attack --frame 2`) instead of the rest pose.
+- A cropped splash (no feet): the IoU is meaningless; compare only the proportions of the visible part and
+  say so.
+- A weapon bigger than the body: keep it out of the comparison (note it in the brief) and check margins in
+  QA.
+
+## More
+Reference files in this folder: [workflow.md](workflow.md), [SPEC.md](SPEC.md), [modeling.md](modeling.md), [animation.md](animation.md), [art-direction.md](art-direction.md), [recipe.md](recipe.md).

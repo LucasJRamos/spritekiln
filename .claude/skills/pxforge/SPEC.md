@@ -1,174 +1,178 @@
-# pxforge — referência do spec YAML
+# Spec reference
 
-Um personagem/prop é **um arquivo YAML** (`specs/characters/<nome>/<nome>.yaml`). O toolkit lê o spec, monta um
-esqueleto, gera geometria SDF (primitivas suaves), renderiza em câmera top-down 3/4 e converte para pixel art.
+A character or prop is **one YAML file** (`<specs>/characters/<name>/<name>.yaml`). SpriteKiln reads the
+spec, builds a skeleton, generates SDF geometry (smooth primitives), renders it with a top-down 3/4 camera
+and turns the result into pixel art. Editors with the YAML extension autocomplete specs from the JSON
+Schema `spritekiln/data/spec.schema.json`.
 
-```
-pxforge: 1
-name: gargula            # nome dos arquivos exportados
+```yaml
+spritekiln: 1            # spec format version (first line)
+name: gargoyle           # names the exported files
 kind: character          # character | prop
-size: 64                 # pixels do frame (32/48/64/128); `render --size` re-escala sem editar
+size: 64                 # frame size in px (32/48/64/96/128); `render --size` rescales without editing
 directions: 8            # 1 | 4 | 8 | [s, e, n, w]
-palette: ../../palettes/gothic.yaml   # ou lista de arquivos
-camera: {pitch: 38, scale: 0.050, center: [0, 1.0, 0]}   # scale = unidades de mundo por pixel
-shadow: {rx: 13.5, ry: 4.5, alpha: 120}                  # elipse no chão (px); `shadow: null` desliga
+palette: gothic          # built-in name, file path(s) relative to the spec, or a list
+camera: {pitch: 38, scale: 0.050, center: [0, 1.0, 0]}   # scale = world units per pixel
+shadow: {rx: 13.5, ry: 4.5, alpha: 120}                  # ground ellipse in px; `shadow: null` turns it off
 light:  {dir: [-0.55, 1, 0.45], rim: [0.8, 0.35, -0.9], rim_strength: 0.45, ambient: 0.12}
-brief: {...}             # texto livre: resumo, must_keep, simplify, referência (o toolkit ignora)
+brief: {...}             # free text: summary, must_keep, simplify, reference (ignored by the renderer)
 materials: {...}
 channels: {...}
 bones: {...}
 ik: {...}
 parts: {...}
 animations: {...}
+sockets: {...}           # attachment points exported per frame (optional)
+timing: {...}            # timing targets checked by validate and QA (optional)
+review: {...}            # art-direction targets, QA warnings (optional)
 ```
 
-## Unidades e eixos
-- Mundo em "metros de jogo": personagem humano ≈ 1.6–1.9 de altura. Chão em `y = 0`.
-- **+Y para cima, +Z = frente do personagem** (direção `s` = olhando para a câmera), **+X = lado esquerdo do
-  personagem** (aparece à direita da tela na direção `s`).
-- Com `scale: 0.05`, 1 pixel = 0.05 unidade. Movimento de 1px de respiração ≈ 0.05 de `bob`.
-- Direções: `s, se, e, ne, n, nw, w, sw` = yaw 0, 45, 90, 135, 180, -135, -90, -45 (graus). A luz é fixa
-  no mundo e o modelo gira, então o sombreamento é coerente entre direções.
+## Units and axes
+- The world is in "game metres": a human is 1.6–1.9 tall. The ground is `y = 0`.
+- **+Y is up, +Z is the character's front** (direction `s` faces the camera), **+X is the character's
+  left** (it shows on the screen's right in direction `s`).
+- With `scale: 0.05`, 1 pixel = 0.05 units: 1 px of breathing is about 0.05 of `bob`.
+- Directions `s, se, e, ne, n, nw, w, sw` = yaw 0, 45, 90, 135, 180, -135, -90, -45 degrees. The light is
+  fixed in the world and the model turns, so shading is coherent across directions.
 
-## Expressões
-Qualquer número/vetor pode ser string com expressão: `"[0, 0.78 + bob, 0]"`, `"0.045*sin(p)"`.
-- Listas viram vetores numpy (`[1,0,0] + [0,1,0]` soma).
-- Variáveis: todos os canais, `p` (fase 0..2π no ciclo), `t` (0..1), `f` (frame), `n` (nº de frames),
-  `yaw` (direção sendo renderizada, graus) e `dir` (`"s"`, `"se"`...) — valem em **todo lugar**, inclusive
-  nos canais das animações: trapaceie por direção direto na key, como pixel artists fazem
-  (`rifle_pitch: "-0.08 + -0.2*pulse(yaw, 0, 70)"`, `bob: "0.02*(dir == 'n')"`). O nº de frames não pode
-  depender da direção.
-- Funções: `sin cos tan abs min max sqrt clamp lerp/mix unit smoothstep pulse(x,c,w) pos(x)=max(0,x)
-  neg(x) roty rotx rotz v(x,y,z) radians floor sign exp noise(x,seed)`, constantes `pi tau`, operador `@`.
+## Expressions
+Any number or vector can be an expression string: `"[0, 0.78 + bob, 0]"`, `"0.045*sin(p)"`.
+- Lists are numpy vectors (`[1,0,0] + [0,1,0]` adds).
+- Variables: every channel, `p` (phase 0..2π in a cycle), `t` (0..1), `f` (frame), `n` (frame count),
+  `yaw` (direction being rendered, degrees) and `dir` (`"s"`, `"se"`...). They work **everywhere**,
+  including animation channels, so cheat per direction right in the key, as pixel artists do:
+  `rifle_pitch: "-0.08 + -0.2*pulse(yaw, 0, 70)"`, `bob: "0.02*(dir == 'n')"`. The frame count may not
+  depend on the direction.
+- Functions: `sin cos tan abs min max sqrt clamp lerp/mix unit smoothstep pulse(x,c,w) pos(x)=max(0,x)
+  neg(x) roty rotx rotz v(x,y,z) radians floor sign exp noise(x,seed)`, constants `pi tau`, operator `@`.
 
 ## materials
-```
+```yaml
 materials:
-  stone: {ramp: stone}                         # rampa da paleta; índice 0 = contorno
-  wing:  {ramp: wing, two_sided: true}         # membranas finas: luz dos dois lados
+  stone: {ramp: stone}                         # palette ramp; index 0 = outline
+  wing:  {ramp: wing, two_sided: true}         # thin membranes: lit from both sides
   eye:   {ramp: eye, emissive: true, band: 3, glow: {color: "#ff5a1f", mix: 0.55, radius: 1}}
   mouth: {ramp: mouth, bands: [1, 2], line: false}
 ```
-Campos: `ramp` (nome ou lista de hex), `emissive` (sem luz, sem contorno; usa `band`), `bands: [lo, hi]`
-(faixa de índices usada pela luz), `line` (participa das linhas internas), `line_band` (cor da linha interna,
-padrão 1), `outline` (contorno externo), `two_sided`, `glow`, `gamma` (curva luz→banda, padrão 1.05).
+Fields: `ramp` (name or list of hex colours; default: the material's name), `emissive` (unlit, no outline;
+uses `band`), `bands: [lo, hi]` (index range the light uses), `line` (takes part in inner lines),
+`line_band` (colour of inner lines, default 1), `outline` (outer outline), `two_sided`, `glow`, `gamma`
+(light → band curve, default 1.05).
 
 ## channels
-Valores animáveis com default. Escalares ou vetores. Tudo que a animação muda passa por aqui.
-`root` (vetor) é especial: desloca o frame `root` (lunge, pulo) e a sombra o acompanha.
+Animatable values with defaults, scalars or vectors. Everything an animation changes goes through a
+channel. `root` (vector) is special: it moves the `root` frame (lunge, jump) and the shadow follows it.
 
-## Espelhamento `_L` / `_R`
-Escreva **só o lado `_L` (x positivo)**. Todo bone/ik/part/canal cujo nome tem `_L` ganha um gêmeo `_R`
-automático (renomeando `_L→_R` em tudo, inclusive expressões). No gêmeo, vetores locais têm x negado e
-rotações Euler viram `(rx, -ry, -rz)`.
-- **Canais `_R` usam a mesma convenção do `_L`**: x positivo = para fora do corpo. Pose simétrica =
-  mesmos valores nos dois lados. Mão direita cruzando para o lado esquerdo = x negativo em `hand_R`.
-- **Não use canais assimétricos globais (`twist`, `roll`, `head_yaw`) dentro de expressões de itens `_L`**
-  — eles seriam espelhados. Ponha-os num bone central e faça o `_L` herdar dele (veja `legyaw`, `wingbase`).
-- Para algo só de um lado (espada na mão direita), use um nome sem `_L`, ex. `sword` com `space: wrist_R`.
+## Mirroring `_L` / `_R`
+Write **only the `_L` side (positive x)**. Every bone, IK chain, part, channel and socket whose name has
+`_L` gets an automatic `_R` twin (renaming `_L` → `_R` everywhere, expressions included). In the twin, local
+vectors have x negated and Euler rotations become `(rx, -ry, -rz)`.
+- **`_R` channels use the same convention as `_L`**: positive x = away from the body. A symmetric pose has
+  the same values on both sides; the right hand crossing to the left side is a negative x in `hand_R`.
+- **Do not use global asymmetric channels (`twist`, `roll`, `head_yaw`) inside expressions of `_L` items**:
+  they would be mirrored. Put them on a central bone and make the `_L` bone inherit from it (see `legyaw`,
+  `wingbase` in the examples).
+- For something on one side only (a sword in the right hand), use a name without `_L`, e.g. `sword` with
+  `space: wrist_R`.
 
 ## bones
-```
+```yaml
 bones:
   torso_rot: {parent: root, pos: "[0, 0.78 + bob, 0]", rot: "[lean, twist, roll]"}
   pelvis:    {parent: torso_rot, scale: "[1/sqrt(squash), squash, 1/sqrt(squash)]"}
   head:      {parent: headbase, rot: "[head_pitch, head_yaw, 0]", scale: 1.3}
   sole_L:    {parent: footyaw, at: ankle_L, rot: "[pitch_foot_L, 0.15, 0]"}
 ```
-- `pos` no espaço do pai; `rot` Euler em radianos `[x, y, z]` aplicado como Ry·Rz·Rx (yaw, roll, pitch).
-- `scale` escalar ou vetor (squash & stretch). Raios das primitivas escalam junto.
-- `inherit_rot: false` / `inherit_scale: false`: só a posição segue o pai.
-- `at: <frame>`: a origem vem de outro frame (ex. pé posicionado no tornozelo do IK) e a rotação do `parent`.
+- `pos` is in the parent's space; `rot` is Euler radians `[x, y, z]` applied as Ry·Rz·Rx (yaw, roll, pitch).
+- `scale` is a scalar or a vector (squash and stretch); primitive radii scale with it.
+- `inherit_rot: false` / `inherit_scale: false`: only the position follows the parent.
+- `at: <frame>`: the origin comes from another frame (e.g. a foot placed at the IK ankle) and the rotation
+  from `parent`.
 
-## ik (2 ossos)
-```
+## ik (two bones)
+```yaml
 ik:
   arm_L: {start: shoulder_L, space: torso_rot, target: hand_L, lengths: [0.36, 0.36],
           pole: [0.5, -0.1, -1.0], pole_space: torso_rot, up: [0, 0, 1], joint: elbow_L, end: wrist_L}
 ```
-Cria os frames `joint` e `end` (eixo z local = direção do antebraço). `target` é um ponto em `space`
-(normalmente um canal). `pole` = para onde o cotovelo/joelho aponta. `up` (opcional) define o eixo y do frame
-final — use `[0,0,1]` em braços que pendem na vertical.
+Creates the frames `joint` and `end` (local z axis = forearm direction). `target` is a point in `space`
+(usually a channel). `pole` is where the elbow or knee points. `up` (optional) sets the end frame's y axis;
+use `[0, 0, 1]` for arms hanging down.
 
-## parts (geometria)
-```
+## parts (geometry)
+```yaml
 parts:
   torso:
     material: stone
-    space: pelvis          # coordenadas das primitivas neste frame (padrão root)
-    blend: 0.09            # união suave entre as primitivas da parte
-    line: true             # linhas internas onde esta parte sobrepõe outra
-    when: "smear_w > 0"    # parte condicional
+    space: pelvis          # primitive coordinates are in this frame (default root)
+    blend: 0.09            # smooth union between the part's primitives
+    line: true             # inner lines where this part overlaps another
+    when: "smear_w > 0"    # conditional part
     prims: [...]
-    cut: [...]             # primitivas subtraídas (cut_blend)
+    cut: [...]             # subtracted primitives (cut_blend)
 ```
-Pontos podem ser `[x,y,z]` (no `space`), `"@frame"` (origem de um frame), `{at: frame, off: [x,y,z]}`
-ou `{between: ["@a", "@b"], t: 0.45}`.
+Points can be `[x, y, z]` (in `space`), `"@frame"` (a frame's origin), `{at: frame, off: [x, y, z]}` or
+`{between: ["@a", "@b"], t: 0.45}`.
 
-Primitivas (um item = um mapa de uma chave):
-| tipo | campos |
+Primitives (each item is a one-key mapping):
+
+| type | fields |
 |---|---|
 | `sphere` | `c, r` |
-| `ellipsoid` | `c, r:[rx,ry,rz], rot:[x,y,z]` ou `align: [p0, p1]` (eixo z de p0→p1) |
-| `cone` | `a, b, r:[r1, r2]` (cápsula afunilada — membros, chifres, garras) |
-| `chain` | `pts: [...], r: [...]` (sequência de cones — cauda, tentáculo, chifre curvo) |
-| `box` | `c, half:[hx,hy,hz], rot, round` (lâminas, armaduras, props) |
+| `ellipsoid` | `c, r: [rx, ry, rz], rot: [x, y, z]` or `align: [p0, p1]` (z axis from p0 to p1) |
+| `cone` | `a, b, r: [r1, r2]` (tapered capsule: limbs, horns, claws) |
+| `chain` | `pts: [...], r: [...]` (a run of cones: tails, tentacles, curved horns) |
+| `box` | `c, half: [hx, hy, hz], rot, round` (blades, armour, props) |
 | `cylinder` | `a, b, r, round` |
-| `torus` | `c, R, r, rot` (anéis, auréolas, correntes) |
+| `torus` | `c, R, r, rot` (rings, halos, chains) |
 | `tri` | `a, b, c, th` |
-| `membrane` | `hub, ring:[...], th, scallop:[idx...], scallop_depth, fill_root` (asas, capas, velas) |
-| `arc` | `c, r, a0, a1, width, fade, dip, segments` — VFX de smear; use `materials: [tail, mid, core]` |
+| `membrane` | `hub, ring: [...], th, scallop: [idx...], scallop_depth, fill_root` (wings, capes, sails) |
+| `arc` | `c, r, a0, a1, width, fade, dip, segments`: smear VFX; use `materials: [tail, mid, core]` |
 
 ## animations
-**Ciclo por expressão** (loops: idle, walk, run, voar):
-```
+**Expression cycles** (loops: idle, walk, run, fly):
+```yaml
 idle:
   frames: 8
-  ms: 130                    # ou lista por frame
-  events: {0: step_l}        # vão para o JSON (gameplay)
+  ms: 130                    # or a list per frame, or an expression
+  events: {0: step_l}        # go to the JSON for gameplay code
   channels: {bob: "0.045*sin(p) - 0.01", tail: "0.7*sin(p)"}
 ```
-**Pose a pose** (ataques, hit, morte): cada key = 1 frame; canais não citados voltam ao default
-(`carry: true` herda da key anterior).
-```
+**Pose to pose** (attacks, hits, deaths): one key = one frame; channels a key does not set go back to their
+defaults (`carry: true` inherits from the previous key instead).
+```yaml
 attack:
   loop: false
   keys:
-    - {ms: 170, event: windup, set: {...}}          # antecipação segurada
-    - {ms: 55, set: {..., smear_w: 0.11}}           # golpe rápido com smear
-    - {ms: 120, set: {...}, tween: 1, ease: out}    # gera 1 frame interpolado até a próxima key
+    - {ms: 170, event: windup, set: {...}}          # held anticipation
+    - {ms: 55, set: {..., smear_w: 0.11}}           # fast strike with a smear
+    - {ms: 120, set: {...}, tween: 1, ease: out}    # adds 1 interpolated frame toward the next key
 ```
+An event on frame *i* fires when frame *i* becomes visible: at the sum of the durations before it.
 
-## sockets (pontos de encaixe)
-```
+## sockets (attachment points)
+```yaml
 sockets:
-  muzzle_L: {bone: pistol_L, offset: [0, 0.042, 0.50], when: "gun < 0.5"}   # gêmeo muzzle_R automático
+  muzzle_L: {bone: pistol_L, offset: [0, 0.042, 0.50], when: "gun < 0.5"}   # automatic muzzle_R twin
   hand_L: {bone: wrist_L}
   hit: {bone: hammer, offset: [0, 0, 0.6]}
 ```
-`bone` = qualquer frame (bone, joint/end de IK, `root`); `offset` no espaço dele; `when` falso = `null` no
-quadro. O JSON traz, por animação/direção/quadro, `[x, y, depth]`: px relativos ao pivô e profundidade
-(> 0 na frente do corpo, < 0 atrás). No Godot: `get_socket(&"muzzle_R")`. Ponha o socket no centro do
-efeito que o jogo vai criar (clarão, impacto), não na ponta da arma.
+`bone` is any frame (a bone, an IK joint or end, `root`); `offset` is in its space; while `when` is false
+the socket is `null` in that frame. The JSON gives `[x, y, depth]` per animation, direction and frame:
+pixels from the pivot, and depth (> 0 in front of the body, < 0 behind). In Godot: `get_socket(&"muzzle_R")`.
+Put a socket at the centre of the effect the game will spawn (flash, impact), not at the tip of the weapon.
 
-## timing (tempos-alvo)
+## timing (targets)
+```yaml
+timing: {shoot_r: {release: 2f, total: 7f}, attack: {hit: 150ms}}   # 60 fps, 1 frame of tolerance
 ```
-timing: {shoot_r: {release: 2f, total: 7f}, attack: {hit: 150ms}}   # fps 60, tolerância 1 quadro
-```
-`validate` e o QA reprovam se o evento (ou o total do clip) cair fora do alvo. Um evento no frame i dispara
-quando o frame i aparece (soma das durações anteriores). Opcional: `timing: {fps: 30, tolerance: 2, ...}`.
+`validate` and QA fail when an event (or a clip's total) misses its target. Optional:
+`timing: {fps: 30, tolerance: 2, ...}`.
 
-## review (metas de direção de arte)
-```
+## review (art-direction targets)
+```yaml
 review: {min_lstar: 20, tint: [0.68, 0.71, 1.02], background: floor.png, materials: {lining: {min_px: 30}}}
 ```
-Viram avisos do QA; `review` (comando) mede tudo e gera folhas: L* (mediana/p90) sob a luz `tint`, contraste
-com o chão, px por material e direção, bandas usadas, IoU com a splash corrigido para a câmera, comparação
-com outro asset (`--against`).
-
-## Saídas de `pxforge render`
-`out/<nome>/`: `<nome>.png` (atlas: uma linha por animação×direção), `<nome>.json` (formato Aseprite +
-bloco `spritekiln` — `pxforge` pelo comando antigo — com direções, yaw, pivô, câmera, durações, eventos e
-sockets; ver `docs/format.md`), `<nome>_normal.png` (normal map em espaço de
-câmera, para luz dinâmica), `<nome>_emissive.png`, `preview/<anim>_8dir.gif`, `preview/contact_<anim>.png`
-(folha para revisão visual), `qa.json`. Cache em `.kilncache/` (use `--force` ou `spritekiln cache clear`).
+They become QA warnings. `python -m pxforge review` measures everything and writes sheets: L* (median/p90) under
+the `tint` light, contrast with the floor, pixels per material and direction, bands used, IoU against the
+camera-corrected splash, comparison with another asset (`--against`). See [art-direction.md](art-direction.md).

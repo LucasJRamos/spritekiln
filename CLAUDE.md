@@ -1,35 +1,38 @@
-# pxforge — instruções para o Claude
+# SpriteKiln: notes for Claude Code
 
-Toolkit para criar personagens, monstros e props originais em **pixel art animada em 8 direções**
-(top-down 3/4, padrão 64x64) a partir de modelos 3D procedurais (SDF) descritos em YAML.
-Operado com **Claude Opus** (agents em `.claude/agents/` usam `model: opus`).
+Development rules for this repository are in `AGENTS.md` ("Developing SpriteKiln"); the generated block
+below is about making assets.
 
-## Como trabalhar aqui
-- Para qualquer tarefa de asset, carregue a skill `pxforge` (e `pxforge-splash-to-model` quando houver
-  splash art, `pxforge-animation` para animações). Formato completo: `.claude/skills/pxforge/SPEC.md`.
-- Delegue: `character-modeler` (geometria/paleta), `animator` (animações), `pixel-art-director` (revisão,
-  não edita). Para um personagem novo a partir de splash art: modeler → director → modeler (correções) →
-  animator → director → render final.
-- Sempre `python -m pxforge validate` depois de editar um spec e **olhe as imagens** geradas (Read no PNG)
-  antes de afirmar que algo está bom.
-- Itere com `pose` (barato). `render` completo só no fim (≈190 frames por personagem).
-- Specs ficam em `specs/characters/<nome>/<nome>.yaml`; saídas em `specs/characters/<nome>/out/` (geradas,
-  não editar à mão). Cache em `.kilncache/` (pode apagar; `spritekiln cache info|prune|clear`).
-- Mantenha consistência entre assets do jogo: mesmo `camera.pitch` (38), mesma `light`, `camera.scale`
-  proporcional ao tamanho de mundo, paletas em `specs/palettes/`.
-- Código em `spritekiln/` (Python puro: numpy, pillow, pyyaml); `pxforge/` é só um shim de compatibilidade
-  (`python -m pxforge` continua funcionando). Ao mudar o código, rode `.venv/Scripts/python.exe -m pytest`
-  (unitários + golden images; veja `docs/LAUNCH.md`).
+- For asset work, load the `spritekiln` skill (plus `spritekiln-splash-to-model` for a splash art and
+  `spritekiln-animation` for animations), and delegate as in `docs/agent/recipe.md`: `character-modeler`,
+  `pixel-art-director` (reviews, never edits), `animator`.
+- Use this folder's virtual environment: `.venv/Scripts/python.exe -m spritekiln ...` (Windows) when the
+  `spritekiln` command is not on the PATH.
 
-## Comandos
-```
-python -m pxforge validate|pose|render|review|ref|palette|new|godot|cache  (-h em cada um)
-```
-Use o Python do `.venv/` desta pasta (`.venv/Scripts/python.exe -m pxforge ...`).
+## Maintainer notes (Hunt Tower)
+The maintainer's game `D:/GameProjects/tower-hunt` runs this toolkit through its `tools/px.cmd` (this
+folder's `.venv`, `python -m pxforge`, `PXFORGE_GODOT_PROJECT`) and links the skill folders
+`.claude/skills/pxforge*` (generated alongside the `spritekiln*` ones). Keep those working until the game
+migrates (Phase 6 of `docs/LAUNCH.md`), and never edit the game from here.
 
-## Godot (tower-hunt)
-O jogo fica em `D:/GameProjects/tower-hunt` e chama o toolkit via `tools/px.cmd` de lá. `python -m pxforge
-godot <spec>` (ou `render <spec> --godot`) exporta `out/<nome>/` para `<projeto>/assets/pxforge/<nome>/`
-(SpriteFrames .tres, CanvasTexture com normal map, cena .tscn com PxSprite2D) e instala
-`integrations/godot/addons/pxforge` no projeto. Projeto alvo: `--project` ou `$PXFORGE_GODOT_PROJECT`.
-Código do exporter em `pxforge/godot.py`; runtime GDScript em `integrations/godot/addons/pxforge/`.
+<!-- spritekiln:begin (generated from docs/agent by spritekiln; edit the sources, not this block) -->
+## SpriteKiln assets
+Sprites in this project are made with SpriteKiln: a YAML spec (skeleton, SDF primitives, materials, palette,
+animations) is rendered into animated 8-direction pixel art (atlas + JSON + normal/emissive maps).
+
+Read before working on an asset: `docs/agent/workflow.md` (commands and the working loop) and `docs/agent/spec.md` (the spec
+format). Then, as needed: `docs/agent/modeling.md`, `docs/agent/splash-to-model.md`, `docs/agent/animation.md`,
+`docs/agent/art-direction.md` and `docs/agent/recipe.md` (the modeler → art director → animator recipe).
+
+Rules that matter:
+- Run `spritekiln validate <spec>` after every edit; problems come with file:line:column.
+- Iterate with `spritekiln pose <spec> --dirs all` (about 1 s per direction); `spritekiln render` only at the end.
+- Never call something visual good without looking at the PNG. If you cannot see images, use the numbers of
+  `spritekiln review` (value, contrast, pixels per material, IoU) and `qa.json`.
+- Keep the camera pitch, light and `camera.scale` shared by every asset of the game.
+- Outputs under `out/` are generated: never edit them.
+- `spritekiln export <spec>` hands a render to the engine configured in `spritekiln.toml`.
+- With an MCP client, `spritekiln mcp` serves these operations as tools that return images and JSON.
+
+Claude Code: skills `spritekiln`, `spritekiln-splash-to-model`, `spritekiln-animation`; agents `character-modeler`, `animator`, `pixel-art-director` (see `recipe.md` for the order).
+<!-- spritekiln:end -->
