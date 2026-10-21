@@ -86,9 +86,9 @@ def camera_info(spec, cam):
     }
 
 
-def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln'):
+def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln', look=None):
     """Write atlases, JSON and previews. `block`: key of the exporter's JSON block ('pxforge' for projects
-    whose runtime predates the rename)."""
+    whose runtime predates the rename). `look`: preview.viewer() for GIFs and contact sheets over a background."""
     os.makedirs(dst, exist_ok=True)
     pv = os.path.join(dst, 'preview')
     os.makedirs(pv, exist_ok=True)
@@ -168,12 +168,18 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln'):
     Image.fromarray(atl['emissive']).save(os.path.join(dst, f'{name}_emissive.png'))
     with open(os.path.join(dst, f'{name}.json'), 'w', encoding='utf-8') as fh:
         json.dump(meta, fh, indent=1)
+
     # previews
+    def shown(fr):
+        return look(fr.img, fr.emissive) if look else fr.img
+
     for a in anims:
         n = len([k for k in out if k[0] == a and k[1] == dlist[0][0]])
-        durs = [out[(a, dlist[0][0], i)][3] for i in range(n)]
-        strip = [np.concatenate([out[(a, d, i)][0] for d, _ in dlist], 1) for i in range(n)]
+        durs = [out[(a, dlist[0][0], i)].ms for i in range(n)]
+        strip = [np.concatenate([shown(out[(a, d, i)]) for d, _ in dlist], 1) for i in range(n)]
         save_gif(os.path.join(pv, f'{a}_{len(dlist)}dir.gif'), strip, durs, gif_scale if len(dlist) <= 4 else 3)
-        sheet = contact_sheet([[out[(a, d, i)][0] for i in range(n)] for d, _ in dlist], [d for d, _ in dlist], n, S, 3)
+        sheet = contact_sheet(
+            [[shown(out[(a, d, i)]) for i in range(n)] for d, _ in dlist], [d for d, _ in dlist], n, S, 3
+        )
         sheet.save(os.path.join(pv, f'contact_{a}.png'))
     return meta
