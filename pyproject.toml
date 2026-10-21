@@ -7,6 +7,7 @@ dependencies = ["numpy>=1.24", "pillow>=10.0", "pyyaml>=6.0"]
 
 [project.optional-dependencies]
 splash = ["rembg[cpu]"]
+dev = ["pytest>=8"]
 
 [project.scripts]
 pxforge = "pxforge.cli:main"
@@ -17,3 +18,11 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["pxforge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-m 'not slow'"
+markers = [
+    "slow: long renders (showcase reproduction); run with `pytest -m slow`",
+]

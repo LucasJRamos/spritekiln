@@ -105,6 +105,11 @@ byte-identical to `specs/**/out/` (empty emissive maps are deleted by the export
 19. Expressions are sandboxed (AST whitelist, no attributes, no builtins), but `**` can still burn CPU on
     hostile input. Acceptable for local specs; note it for the MCP server.
 
+**Found by the Phase 0 tests**
+20. `palette.kmeans` crashes (`ValueError: Probabilities contain NaN`) when the image has fewer distinct
+    colours than `k`: `palette extract` and `ref prep` fail on flat-colour art. Pinned by a strict
+    `xfail` in `tests/test_palette.py`; fix in Phase 1.
+
 **What leaves the repository:** `legacy/` (not versioned; delete when the maintainer agrees),
 `research/` (not versioned: raw session material with game captures and scratchpad paths; Phase 2 ports
 the scripts into `review`, Phase 5 copies chosen images into `showcase/`), `KICKOFF.md` (superseded by
@@ -151,6 +156,7 @@ this file), `requirements.txt` (Phase 1, after `pyproject` is complete).
       `cache prune` (audit #2).
 - [ ] Errors as exceptions in the library, friendly messages in the CLI; remove the `PXFORGE_SIZE`
       side channel (audit #9, #10). CLI and QA messages in English.
+- [ ] Fix `palette.kmeans` with fewer distinct colours than `k` (audit #20; turn the `xfail` into a test).
 - [ ] ruff (lint + format); GitHub Actions on Windows, Ubuntu, macOS × Python 3.10–3.13 running unit
       tests, goldens and a small render.
 
