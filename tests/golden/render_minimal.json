@@ -755,6 +755,7 @@
    "n": 180,
    "w": -90
   },
+  "view": "topdown",
   "camera": {
    "projection": "orthographic",
    "pitch_deg": 38.0,
