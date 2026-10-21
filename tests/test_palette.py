@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 import yaml
 
-from pxforge import palette as P
-from pxforge.pixelize import hx
+from spritekiln import palette as P
+from spritekiln.pixelize import hx
 
 HEX = re.compile(r'^#[0-9a-f]{6}$')
 

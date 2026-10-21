@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from pxforge.cli import main
+from spritekiln.cli import main
 
 from conftest import FIXTURES, GOLDEN, REPO, assert_image_matches, stage_spec
 

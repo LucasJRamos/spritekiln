@@ -62,8 +62,8 @@ def _expected(name):
 @pytest.mark.parametrize('name', list(SHOWCASE))
 def test_showcase_reproduces(tmp_path, name):
     from conftest import stage_spec
-    from pxforge.export import export
-    from pxforge.pipeline import render_all
+    from spritekiln.export import export
+    from spritekiln.pipeline import render_all
 
     anims = os.environ.get('SHOWCASE_ANIMS')
     jobs = int(os.environ.get('SHOWCASE_JOBS', '2'))

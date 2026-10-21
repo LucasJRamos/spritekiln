@@ -5,7 +5,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from pxforge import spec as S
+from spritekiln import spec as S
 
 from conftest import REPO
 
@@ -163,7 +163,7 @@ def test_validate_reports_expression_errors_with_location(tmp_path):
 
 
 def test_rest_pose_builds_mirrored_ik(tmp_path):
-    from pxforge.rig import build, rest_env
+    from spritekiln.rig import build, rest_env
     s = S.load(write(tmp_path, BASE))
     groups, frames = build(s, rest_env(s))
     assert {g.name for g in groups} == {'torso', 'arm_L', 'arm_R'}

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pxforge.expr import ExprError, compile_expr, evaluate
+from spritekiln.expr import ExprError, compile_expr, evaluate
 
 
 def test_plain_values_pass_through():
