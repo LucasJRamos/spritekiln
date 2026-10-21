@@ -24,13 +24,13 @@ def _spec(path, size=None, warn=True):
     return sp
 
 
-def _pose_env(sp, anim, frame):
+def _pose_env(sp, anim, frame, yaw=0.0):
     from .anim import frames_of
     from .rig import rest_env
 
     if not anim:
-        return rest_env(sp)
-    frames = frames_of(sp, anim)
+        return rest_env(sp, yaw)
+    frames = frames_of(sp, anim, yaw)
     if not -len(frames) <= frame < len(frames):
         raise SpriteKilnError(f'--frame {frame}: animation "{anim}" has {len(frames)} frames (0..{len(frames) - 1})')
     return frames[frame][0]
@@ -69,14 +69,14 @@ def cmd_pose(a):
     from .pipeline import frame_image
 
     sp = _spec(a.spec)
-    env = _pose_env(sp, a.anim, a.frame)
+    _pose_env(sp, a.anim, a.frame)  # checks --anim/--frame before rendering
     dirs = [d for d in sp['directions'] if not a.dirs or d[0] in a.dirs.split(',')]
     if a.dirs == 'all' or (not a.dirs and len(sp['directions']) < 8 and sp['kind'] == 'character'):
         dirs = S.DIRECTIONS8
     if not dirs:
         raise SpriteKilnError(f'--dirs {a.dirs}: no such direction (have: {", ".join(d for d, _ in sp["directions"])})')
     t = time.time()
-    imgs = [frame_image(sp, env, y, maps=False)[0] for _, y in dirs]
+    imgs = [frame_image(sp, _pose_env(sp, a.anim, a.frame, y), y, maps=False)[0] for _, y in dirs]
     out = a.out or os.path.join(sp['_dir'], 'out', f'pose_{a.anim or "rest"}_{a.frame}.png')
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     upscale(np.concatenate(imgs, 1), a.scale).save(out)
@@ -214,10 +214,10 @@ def cmd_ref(a):
 
     sp = _spec(a.spec)
     cut, mask, used = R.cutout(R.load(a.image), tol=a.tol)
-    env = _pose_env(sp, a.anim, a.frame)
-    spr = frame_image(sp, env, dict(S.DIRECTIONS8)[a.dir], maps=False)[0]
+    yaw = dict(S.DIRECTIONS8)[a.dir]
+    spr = frame_image(sp, _pose_env(sp, a.anim, a.frame, yaw), yaw, maps=False)[0]
     res, ga, gb = R.compare_masks(mask, spr[..., 3] == 255)
-    turn = [frame_image(sp, env, y, maps=False)[0] for _, y in S.DIRECTIONS8]
+    turn = [frame_image(sp, _pose_env(sp, a.anim, a.frame, y), y, maps=False)[0] for _, y in S.DIRECTIONS8]
     out = a.out or os.path.join(sp['_dir'], 'out', f'compare_{a.dir}.png')
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     R.sheet(

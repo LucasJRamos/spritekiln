@@ -126,6 +126,8 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln'):
             'animations': {},
         },
     }
+    if spec.get('sockets'):
+        meta[block]['sockets'] = list(spec['sockets'])
     idx = 0
     for r, (a, d) in enumerate(rows):
         n = len([k for k in out if k[0] == a and k[1] == d])
@@ -133,8 +135,12 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln'):
         meta['meta']['frameTags'].append({'name': f'{a}_{d}', 'from': idx, 'to': idx + n - 1, 'direction': 'forward'})
         A = meta[block]['animations'].setdefault(a, {'loop': loop, 'directions': {}})
         names, durs, events = [], [], {}
+        sockets = {k: [] for k in spec.get('sockets') or {}}
         for i in range(n):
-            img, nm, em, ms, ev = out[(a, d, i)]
+            fr = out[(a, d, i)]
+            img, nm, em, ms, ev = fr.img, fr.normal, fr.emissive, fr.ms, fr.events
+            for k in sockets:
+                sockets[k].append(fr.sockets.get(k))
             ys, xs = r * S, i * S
             atl['color'][ys : ys + S, xs : xs + S] = img
             if nm is not None:
@@ -155,6 +161,8 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln'):
                 events[i] = ev
             idx += 1
         A['directions'][d] = {'row': r, 'frames': names, 'durations': durs, 'events': events}
+        if sockets:
+            A['directions'][d]['sockets'] = sockets
     Image.fromarray(atl['color']).save(os.path.join(dst, f'{name}.png'))
     Image.fromarray(atl['normal']).save(os.path.join(dst, f'{name}_normal.png'))
     Image.fromarray(atl['emissive']).save(os.path.join(dst, f'{name}_emissive.png'))

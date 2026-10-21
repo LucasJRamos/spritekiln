@@ -12,6 +12,12 @@ from .errors import SpriteKilnError
 DIRECTIONS8 = [('s', 0), ('se', 45), ('e', 90), ('ne', 135), ('n', 180), ('nw', -135), ('w', -90), ('sw', -45)]
 DIRECTIONS4 = [('s', 0), ('e', 90), ('n', 180), ('w', -90)]
 
+
+def direction_name(yaw):
+    """Name of the direction nearest to `yaw` degrees ('s' for 0, 'e' for 90...)."""
+    return min(DIRECTIONS8, key=lambda d: abs((float(yaw) - d[1] + 180) % 360 - 180))[0]
+
+
 DEFAULT_CAMERA = dict(pitch=38.0, scale=0.048, center=[0.0, 1.0, 0.0], supersample=3, coverage=4)
 DEFAULT_LIGHT = dict(
     dir=[-0.55, 1.0, 0.45], rim=[0.8, 0.35, -0.9], rim_strength=0.45, ambient=0.12, shadows=True, ao=True
@@ -195,6 +201,7 @@ def load(path, size=None):
     s['bones'] = mirror_section(s.get('bones'))
     s['ik'] = mirror_section(s.get('ik'))
     s['parts'] = mirror_section(s.get('parts'))
+    s['sockets'] = mirror_section(s.get('sockets'))
     s.setdefault('animations', {})
     if 'shadow' not in s:
         s['shadow'] = {'rx': 13.5 * s['size'] / 64, 'ry': 4.5 * s['size'] / 64}
@@ -237,7 +244,7 @@ def _located(message, spec, marks):
 
 def _problems(spec):
     from .anim import frames_of
-    from .rig import build, rest_env
+    from .rig import build, rest_env, socket_points
 
     problems = []
     frames_known = set(spec['bones']) | {'root'}
@@ -256,23 +263,39 @@ def _problems(spec):
                 problems.append(f'parts.{name}.material: unknown material "{m}" (define it under materials:)')
         if not p.get('prims'):
             problems.append(f'parts.{name}: no prims')
+    for name, sk in spec['sockets'].items():
+        if sk.get('bone') not in frames_known:
+            problems.append(f'sockets.{name}.bone: unknown frame "{sk.get("bone")}"')
     if problems:
         return problems
-    try:
-        build(spec, rest_env(spec))
-    except Exception as e:  # noqa
-        problems.append(f'rest pose: {e}')
-    for an in spec['animations']:
+    # every direction: channels and bones may depend on `yaw`/`dir`
+    for d, yaw in spec['directions']:
         try:
-            fr = frames_of(spec, an)
+            build(spec, rest_env(spec, yaw))
         except Exception as e:  # noqa: BLE001 - report any failure as a spec problem
-            msg = str(e)
-            problems.append(msg if msg.startswith(f'animations.{an}') else f'animations.{an}: {msg}')
-            continue
-        for i, (env, _ms, _ev) in enumerate(fr):
+            problems.append(f'rest pose ({d}): {e}')
+            break
+    for an in spec['animations']:
+        count = None
+        for d, yaw in spec['directions']:
             try:
-                build(spec, env)
+                fr = frames_of(spec, an, yaw)
             except Exception as e:  # noqa: BLE001
-                problems.append(f'animations.{an} (frame {i}): {e}')
+                msg = str(e)
+                problems.append(msg if msg.startswith(f'animations.{an}') else f'animations.{an} ({d}): {msg}')
+                break
+            if count is not None and len(fr) != count:
+                problems.append(f'animations.{an}: {len(fr)} frames in direction {d} but {count} in the others')
+                break
+            count = len(fr)
+            failed = False
+            for i, (env, _ms, _ev) in enumerate(fr):
+                try:
+                    socket_points(spec, env, build(spec, env)[1])
+                except Exception as e:  # noqa: BLE001
+                    problems.append(f'animations.{an} ({d}, frame {i}): {e}')
+                    failed = True
+                    break
+            if failed:
                 break
     return problems

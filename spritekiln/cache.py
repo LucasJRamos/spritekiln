@@ -33,6 +33,12 @@ def _engine_hash():
 ENGINE = _engine_hash()
 
 
+def _plain(v):
+    if isinstance(v, str):
+        return v
+    return np.asarray(v, float).round(6).tolist()
+
+
 def key(spec, env, yaw):
     """Hash of everything that changes geometry/lighting (not the palette, applied after the cache)."""
     payload = dict(
@@ -43,7 +49,7 @@ def key(spec, env, yaw):
         light=spec['light'],
         size=spec['size'],
         mats={k: (v['emissive'], v['two_sided']) for k, v in spec['materials'].items()},
-        env={k: np.asarray(v).round(6).tolist() for k, v in env.items()},
+        env={k: _plain(v) for k, v in env.items()},
         yaw=yaw,
         engine=ENGINE,
         v=FORMAT,

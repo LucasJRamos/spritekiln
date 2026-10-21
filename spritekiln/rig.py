@@ -48,11 +48,14 @@ def basis_z(z, up):
     return np.stack([x, y, z], 1)
 
 
-def rest_env(spec):
+def rest_env(spec, yaw=0.0):
+    """Channel defaults, plus the variables every expression sees: p, t, f, n, yaw (degrees) and dir ('s'...)."""
+    from .spec import direction_name
+
     env = {}
     for k, v in spec['channels'].items():
         env[k] = evaluate(v, {}) if not isinstance(v, (int, float)) else float(v)
-    env.update(p=0.0, t=0.0, f=0, n=1, yaw=0.0)
+    env.update(p=0.0, t=0.0, f=0, n=1, yaw=float(yaw), dir=direction_name(yaw))
     return env
 
 
@@ -309,3 +312,22 @@ def build(spec, env):
             )
         )
     return groups, ctx.frames
+
+
+def socket_points(spec, env, frames=None):
+    """Model-space position of every socket ({name: xyz, or None while its `when` is false}).
+
+    `frames` are the frames already built for this pose; any other frame a socket needs is built here.
+    """
+    ctx = Ctx(spec, env)
+    ctx.frames = dict(frames or {})
+    out = {}
+    for name, sk in (spec.get('sockets') or {}).items():
+        w = f'sockets.{name}'
+        if 'when' in sk and not ctx.val(sk['when'], w + '.when'):
+            out[name] = None
+            continue
+        frame = ctx.frame(sk['bone'], w + '.bone')
+        off = ctx.val(sk.get('offset', [0, 0, 0]), w + '.offset', sk.get('_mirror', False), vec=True)
+        out[name] = frame.apply(off)
+    return out

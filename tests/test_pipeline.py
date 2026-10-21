@@ -97,11 +97,11 @@ def test_resume_from_cache_and_pool_matches_in_process(tmp_path):
     _, _, _, pooled = pipeline.render_all(path, ['idle'], ['s', 'e'], jobs=2, log=notes.append)
     assert 'resuming: 8 of 8 frames already in the cache' in notes
     _, _, _, fresh_pool = pipeline.render_all(path, ['idle'], ['s', 'e'], jobs=2, force=True)
-    for k, (img, nm, _em, ms, ev) in first.items():
+    for k, fr in first.items():
         for other in (pooled, fresh_pool):
-            np.testing.assert_array_equal(img, other[k][0])
-            np.testing.assert_array_equal(nm, other[k][1])
-            assert (ms, ev) == other[k][3:]
+            np.testing.assert_array_equal(fr.img, other[k].img)
+            np.testing.assert_array_equal(fr.normal, other[k].normal)
+            assert (fr.ms, fr.events, fr.sockets, fr.materials) == other[k][3:]
 
 
 def test_dead_worker_degrades_to_fewer_jobs(tmp_path, monkeypatch):
@@ -111,13 +111,13 @@ def test_dead_worker_degrades_to_fewer_jobs(tmp_path, monkeypatch):
     def flaky_pool(tasks, jobs, out, on_done):
         calls.append(jobs)
         if len(calls) == 1:  # first pool "dies" after one frame
-            r = pipeline._job(tasks[0])
-            out[r[0]] = r[1:]
+            key, frame = pipeline._job(tasks[0])
+            out[key] = frame
             on_done()
             return tasks[1:]
         for t in tasks:
-            r = pipeline._job(t)
-            out[r[0]] = r[1:]
+            key, frame = pipeline._job(t)
+            out[key] = frame
             on_done()
         return []
 

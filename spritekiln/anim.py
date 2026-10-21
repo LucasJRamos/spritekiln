@@ -30,10 +30,10 @@ def is_loop(A):
     return bool(A.get('loop', 'keys' not in A))
 
 
-def _base(spec):
+def _base(spec, yaw):
     from .rig import rest_env
 
-    return rest_env(spec)
+    return rest_env(spec, yaw)
 
 
 def _interp(a, b, t):
@@ -50,12 +50,13 @@ def _eval(v, env, where):
         raise ExprError(f'{where}: {e}') from None
 
 
-def frames_of(spec, name):
-    """-> list of (env, duration_ms, events)."""
+def frames_of(spec, name, yaw=0.0):
+    """-> list of (env, duration_ms, events) as seen from direction `yaw`: channel expressions can use `yaw`
+    and `dir` to cheat per direction, as pixel artists do. The frame count never depends on the direction."""
     if name not in spec['animations']:
         raise SpecError(f'animation "{name}" not in spec (have: {", ".join(spec["animations"])})')
     A = spec['animations'][name]
-    base = _base(spec)
+    base = _base(spec, yaw)
     out = []
     if 'keys' in A:
         keys = A['keys']

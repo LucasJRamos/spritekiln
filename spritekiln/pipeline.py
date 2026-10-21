@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+from typing import NamedTuple
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from concurrent.futures.process import BrokenProcessPool
 
@@ -14,7 +15,8 @@ from .anim import frames_of
 from .errors import RenderError
 from .pixelize import aux_maps, compose, hx
 from .render import Camera, Light, Scene, render, to_pixels
-from .rig import build, rest_env
+from .rig import build, rest_env, socket_points
+from .sdf import rot_y
 
 _SPEC_CACHE = {}
 _FRAMES_CACHE = {}
@@ -28,12 +30,12 @@ def get_spec(path, size=None):
     return _SPEC_CACHE[key][1]
 
 
-def _frames(path, size, anim):
+def _frames(path, size, anim, yaw):
     """frames_of() memoized per worker: a job renders one frame but the animation is evaluated once."""
     spec = get_spec(path, size)
-    key = (path, size, anim, id(spec))
+    key = (path, size, anim, yaw, id(spec))
     if key not in _FRAMES_CACHE:
-        _FRAMES_CACHE[key] = frames_of(spec, anim)
+        _FRAMES_CACHE[key] = frames_of(spec, anim, yaw)
     return spec, _FRAMES_CACHE[key]
 
 
@@ -65,26 +67,68 @@ def shadow_for(spec, env, yaw, cam):
     return (cx, cy + 0.5, sh.get('rx', 13.5) * lift, sh.get('ry', 4.5) * lift, rgba)
 
 
-def frame_image(spec, env, yaw, force=False, maps=True):
-    env = dict(env, yaw=float(yaw))  # expressions may cheat per direction with `yaw`
+class Frame(NamedTuple):
+    """One rendered frame of one direction."""
+
+    img: np.ndarray  # RGBA color
+    normal: np.ndarray | None
+    emissive: np.ndarray | None
+    ms: int = 100
+    events: list = []
+    sockets: dict = {}  # name -> [x, y, depth] px from the pivot, or None while hidden
+    materials: dict = {}  # material -> opaque pixels
+
+
+def sockets_2d(spec, env, yaw, frames, cam):
+    """Sockets in frame pixels relative to the pivot, plus depth: signed ground distance (px) from the
+    character's vertical axis toward the viewer (> 0 in front of the body, < 0 behind)."""
+    pts = socket_points(spec, env, frames)
+    if not pts:
+        return {}
+    R = rot_y(np.radians(yaw))
+    px, py = cam.project([0.0, 0.0, 0.0])
+    axis_z = (R @ frames['root'].o)[2] if 'root' in frames else 0.0
+    out = {}
+    for name, p in pts.items():
+        if p is None:
+            out[name] = None
+            continue
+        w = R @ p
+        x, y = cam.project(w)
+        out[name] = [round(float(x - px), 2), round(float(y - py), 2), round(float((w[2] - axis_z) / cam.scale), 2)]
+    return out
+
+
+def render_frame(spec, env, yaw, force=False, maps=True):
+    """Render one pose seen from `yaw` -> Frame (without timing; see _job)."""
+    env = dict(env, yaw=float(yaw), dir=specmod.direction_name(yaw))  # per-direction cheats in bones/parts
     (G, V, D, N), groups, frames, cam = render_buffers(spec, env, yaw, force)
     img = compose(G, V, D, groups, spec['materials'], shadow_for(spec, env, yaw, cam))
-    if not maps:
-        return img, None, None
-    nm, em = aux_maps(img, G, N, groups, spec['materials'], cam)
-    return img, nm, em
+    nm, em = aux_maps(img, G, N, groups, spec['materials'], cam) if maps else (None, None)
+    mats = {}
+    if groups:
+        names = np.array([g.mat for g in groups] + [''])
+        visible = names[np.where(G >= 0, G, -1)][(G >= 0) & (img[..., 3] == 255)]
+        u, c = np.unique(visible, return_counts=True)
+        mats = {str(k): int(v) for k, v in zip(u, c)}
+    return Frame(img, nm, em, sockets=sockets_2d(spec, env, yaw, frames, cam), materials=mats)
+
+
+def frame_image(spec, env, yaw, force=False, maps=True):
+    """(color, normal, emissive) of one pose seen from `yaw`."""
+    f = render_frame(spec, env, yaw, force, maps)
+    return f.img, f.normal, f.emissive
 
 
 def _job(args):
     path, size, anim, d_name, yaw, i, force = args
     if anim:
-        spec, frames = _frames(path, size, anim)
+        spec, frames = _frames(path, size, anim, yaw)
         env, ms, ev = frames[i]
     else:
         spec = get_spec(path, size)
-        env, ms, ev = rest_env(spec), 100, []
-    img, nm, em = frame_image(spec, env, yaw, force)
-    return (anim, d_name, i), img, nm, em, ms, ev
+        env, ms, ev = rest_env(spec, yaw), 100, []
+    return (anim, d_name, i), render_frame(spec, env, yaw, force)._replace(ms=ms, events=ev)
 
 
 # ---------------------------------------------------------------- memory-aware pool
@@ -154,8 +198,8 @@ def _run_pool(tasks, jobs, out, on_done):
                 finished, _ = wait(futures, return_when=FIRST_COMPLETED)
                 for fu in finished:
                     futures.pop(fu)
-                    r = fu.result()
-                    out[r[0]] = r[1:]
+                    key, frame = fu.result()
+                    out[key] = frame
                     on_done()
         except BrokenProcessPool:
             done = set(out)
@@ -186,9 +230,8 @@ def render_all(
         raise specmod.SpecError(f'no direction matches {dirs} (have: {", ".join(n for n, _ in spec["directions"])})')
     tasks, cached = [], 0
     for a in anims:
-        frames = frames_of(spec, a)
         for d, y in dlist:
-            for i, (env, _, _) in enumerate(frames):
+            for i, (env, _, _) in enumerate(frames_of(spec, a, y)):
                 tasks.append((path, size, a, d, y, i, force))
                 if not force and os.path.exists(cache.entry(spec, dict(env, yaw=float(y)), y)):
                     cached += 1
@@ -208,8 +251,8 @@ def render_all(
         while remaining:
             if jobs <= 1:
                 for t in remaining:
-                    r = _job(t)
-                    out[r[0]] = r[1:]
+                    key, frame = _job(t)
+                    out[key] = frame
                     on_done()
                 remaining = []
             else:

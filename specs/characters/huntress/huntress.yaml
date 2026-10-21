@@ -73,9 +73,9 @@ brief:
     - "aim_heavy / shoot_heavy: use rifle_pitch: \"-0.3*pulse(yaw, 0, 70)\" (levanta o cano só perto de s, onde o rifle
       aponta para a câmera e some de ponta)"
     - "tiro em s (shoot_r / shoot_l / run_shoot): gyaw ~ +0.15 para a pistola não ficar de ponta para a câmera"
-    - "(animator, T1.19) `yaw` vale 0 nos canais das animações (frames_of avalia antes da direção); só bones/partes/ik veem a
-      direção. Por isso a trapaça do rifle virou o canal rpitch_s (padrão 0; aim/shoot_heavy usam -0.3), somado como
-      rpitch_s*pulse(yaw, 0, 70) no bone rifle e no alvo do IK dos braços; gyaw das pistolas ficou 0.15 constante"
+    - "trapaças por direção ficam nas próprias keys: `yaw` e `dir` valem nos canais das animações (spritekiln 0.1,
+      Fase 2). Ex.: rifle_pitch: \"-0.08 + -0.2*pulse(yaw, 0, 70)\" levanta o cano só perto de s; as pistolas abrem
+      com gyaw_X: \"0.15 + 0.30*pulse(yaw, 0, 70)\". Antes eram os canais auxiliares gyaw_s, rpitch_s e ryaw_s"
 
 materials:
   skin:     {ramp: pale, bands: [2, 5]}
@@ -115,7 +115,6 @@ channels:
   gpitch_L: 0                     # pistola em relação ao antebraço: 0 = alinhada; negativo = cano para cima (recuo)
   gyaw_L: 0.35                    # pistola gira para fora (+) em relação ao antebraço
   flash_L: 0                      # clarão na boca da pistola (0..1)
-  gyaw_s: 0                       # (animator) abertura extra das pistolas só perto de s: gyaw_X + gyaw_s*pulse(yaw, 0, 70)
   mine_L: 0                       # 1 = mina na mão (a pistola dessa mão vai para o coldre)
   foot_L: [0.10, 0, 0.02]
   pitch_foot_L: 0
@@ -128,9 +127,6 @@ channels:
   rifle_pitch: 0                  # + = cano para baixo
   rifle_yaw: 0.0                  # + = cano para a esquerda dela (compense -twist para mirar à frente)
   rifle_roll: 0
-  rpitch_s: 0                     # (animator) pitch extra do rifle só perto de s: rifle_pitch + rpitch_s*pulse(yaw, 0, 70). Trapaça
-                                  # por direção no rig porque `yaw` vale 0 nos canais das animações (só bones/partes veem a direção)
-  ryaw_s: 0                       # (animator) idem para o yaw do rifle: rifle_yaw + ryaw_s*pulse(yaw, 0, 70)
   rgrip_R: [0.0, -0.06, -0.05]    # onde fica o pulso direito no rifle (espaço do rifle)
   rgrip_L: [0.0, -0.06, 0.26]     # pulso esquerdo sob o guarda-mão
   rflash: 0                       # clarão do rifle (0..1)
@@ -164,15 +160,15 @@ bones:
   sole_L:     {parent: footyaw, at: ankle_L, rot: "[pitch_foot_L, 0.08, 0]"}
   coatbase:   {parent: pelvis, pos: [0, 0.15, 0], rot: "[-coat*0.30 - lean*0.5, 0, 0]"}
   pistolbase_L: {parent: wrist_L, rot: [0, 0, 1.5708]}
-  pistol_L:   {parent: pistolbase_L, rot: "[gpitch_L, gyaw_L + gyaw_s*pulse(yaw, 0, 70), 0]"}   # +z = cano, +y = topo da arma
-  rifle:      {parent: torso_rot, pos: "rifle_pos", rot: "[rifle_pitch + rpitch_s*pulse(yaw, 0, 70), rifle_yaw + ryaw_s*pulse(yaw, 0, 70), rifle_roll]"}   # +z = cano, +y = luneta
+  pistol_L:   {parent: pistolbase_L, rot: "[gpitch_L, gyaw_L, 0]"}   # +z = cano, +y = topo da arma
+  rifle:      {parent: torso_rot, pos: "rifle_pos", rot: "[rifle_pitch, rifle_yaw, rifle_roll]"}   # +z = cano, +y = luneta
   fxspace:    {parent: root, rot: "[0, twist*0.3, 0]"}
   fxr:        {parent: torso_rot, pos: [-0.20, 0.47, 0.0], rot: [0, 0, 1.5708]}   # arco vertical no ombro direito (x local = cima)
 
 ik:
   # com gun=1 a mão vai para o ponto rgrip do rifle (a expressão já desfaz o espelhamento do lado _R)
   arm_L: {start: shoulder_L, space: torso_rot,
-          target: "mix(hand_L, v(sgn_L, 1, 1)*(rifle_pos + roty(rifle_yaw + ryaw_s*pulse(yaw, 0, 70)) @ rotz(rifle_roll) @ rotx(rifle_pitch + rpitch_s*pulse(yaw, 0, 70)) @ rgrip_L), clamp(gun, 0, 1)*(1 - free_L))",
+          target: "mix(hand_L, v(sgn_L, 1, 1)*(rifle_pos + roty(rifle_yaw) @ rotz(rifle_roll) @ rotx(rifle_pitch) @ rgrip_L), clamp(gun, 0, 1)*(1 - free_L))",
           lengths: [0.28, 0.265], pole: "elbow_L", pole_space: torso_rot, up: [1, 0, 0], joint: elbow_L, end: wrist_L}
   leg_L: {start: hip_L, space: root, target: "foot_L + [0, 0.10, -0.03]", lengths: [0.49, 0.47],
           pole: [0.1, 0, 1.0], pole_space: legyaw, joint: knee_L, end: ankle_L}
@@ -506,8 +502,7 @@ animations:
   # Corridas casando a velocidade do jogo (0,040 u/px): o pé de apoio recua 1 passo de tabela por quadro.
   #   run:       0,364 u / 70 ms = 5,2 u/s = 130 px/s
   #   run_shoot: 0,312 u / 75 ms = 4,16 u/s = 104 px/s (x0,8)
-  # `yaw` vale 0 nos canais das animações: trapaça por direção só no rig, pelos canais gyaw_s (pistolas), rpitch_s e
-  # ryaw_s (rifle), multiplicados por pulse(yaw, 0, 70) nos bones (ver channels).
+  # trapaças por direção: `yaw`/`dir` valem nos canais (ex.: rifle_pitch: "-0.08 + -0.2*pulse(yaw, 0, 70)").
 
   idle:                    # pose da splash (test_ref): pistola direita erguida junto ao chapéu, esquerda baixa
     frames: 8
@@ -569,16 +564,15 @@ animations:
       hand_R: [0.15, 0.33, 0.50]
       elbow_L: [0.6, -1.0, -0.3]
       elbow_R: [0.6, -1.0, -0.3]
-      gyaw_L: 0.15
-      gyaw_R: 0.15
-      gyaw_s: 0.30
+      gyaw_L: "0.15 + 0.30*pulse(yaw, 0, 70)"
+      gyaw_R: "0.15 + 0.30*pulse(yaw, 0, 70)"
       coat: "0.40 + 0.15*sin(2*p - 1.2)"
 
   shoot_r:                 # tiro leve, mão direita. release em 33 ms (2 f), total 117 ms (7 f)
     loop: false
     keys:
       - {ms: 33, set: &aim {hand_L: [0.15, 0.33, 0.50], hand_R: [0.15, 0.33, 0.50], elbow_L: [0.6, -1.0, -0.3], elbow_R: [0.6, -1.0, -0.3],
-          gyaw_L: 0.15, gyaw_R: 0.15, gyaw_s: 0.30, lean: 0.08,
+          gyaw_L: "0.15 + 0.30*pulse(yaw, 0, 70)", gyaw_R: "0.15 + 0.30*pulse(yaw, 0, 70)", lean: 0.08,
           foot_L: [0.11, 0, 0.12], foot_R: [0.10, 0, -0.08], coat: 0.05}}
       - {ms: 33, event: release, set: {<<: *aim, hand_R: [0.16, 0.35, 0.44], gpitch_R: -0.2, flash_R: 1, twist: -0.04, head_pitch: -0.02, coat: 0.1}}
       - {ms: 25, set: {<<: *aim, hand_R: [0.16, 0.37, 0.42], gpitch_R: -0.42, twist: -0.05, head_pitch: -0.03, coat: 0.12}}
@@ -668,11 +662,11 @@ animations:
           hand_L: [0.12, 0.40, 0.24], rifle_pos: [-0.22, 0.47, 0.0], rifle_yaw: -0.2, rifle_pitch: -1.2,
           elbow_R: [1.0, -0.6, 0.0], foot_L: [0.12, 0, 0.18], foot_R: [0.12, 0, -0.14], coat: 0.25,
           vsm_w: 0.07, vsm_a0: 3.5, vsm_a1: 1.8, vsm_fade: 0.7}}
-      - {ms: 60, set: {gun: 1, twist: -0.62, rifle_yaw: 0.72, rifle_pitch: 0.10, rpitch_s: -0.2, ryaw_s: -0.35, head_yaw: 0.45, head_pitch: 0.08,
+      - {ms: 60, set: {gun: 1, twist: -0.62, rifle_yaw: "0.72 + -0.35*pulse(yaw, 0, 70)", rifle_pitch: "0.10 + -0.2*pulse(yaw, 0, 70)", head_yaw: 0.45, head_pitch: 0.08,
           lean: 0.05, elbow_R: [1.0, -0.6, 0.0], elbow_L: [0.2, -1.0, 0.0],
           foot_L: [0.12, 0, 0.18], foot_R: [0.12, 0, -0.14], pitch_foot_R: 0.1, coat: 0.12,
           vsm_w: 0.05, vsm_a0: 1.8, vsm_a1: 0.3, vsm_fade: 0.5}}
-      - {ms: 60, set: &rifle_aim {gun: 1, twist: -0.6, rifle_yaw: 0.6, rifle_pitch: 0.0, rpitch_s: -0.2, ryaw_s: -0.35, head_yaw: 0.5, head_pitch: 0.1,
+      - {ms: 60, set: &rifle_aim {gun: 1, twist: -0.6, rifle_yaw: "0.6 + -0.35*pulse(yaw, 0, 70)", rifle_pitch: "0.0 + -0.2*pulse(yaw, 0, 70)", head_yaw: 0.5, head_pitch: 0.1,
           lean: 0.06, elbow_R: [1.0, -0.6, 0.0], elbow_L: [0.2, -1.0, 0.0],
           foot_L: [0.12, 0, 0.18], foot_R: [0.12, 0, -0.14], pitch_foot_R: 0.1}}
 
@@ -689,13 +683,13 @@ animations:
   shoot_heavy:             # release no quadro 0 (clarão forte), recuo grande do ombro e do tronco, volta. 200 ms
     loop: false
     keys:
-      - {ms: 33, event: release, set: {<<: *rifle_aim, rflash: 1, rifle_pitch: -0.08, lean: 0.0,
+      - {ms: 33, event: release, set: {<<: *rifle_aim, rflash: 1, rifle_pitch: "-0.08 + -0.2*pulse(yaw, 0, 70)", lean: 0.0,
           rifle_pos: [-0.03, 0.46, 0.27]}}
-      - {ms: 33, set: {<<: *rifle_aim, rflash: 0.4, rifle_pitch: -0.40, rifle_pos: [-0.03, 0.49, 0.19],
+      - {ms: 33, set: {<<: *rifle_aim, rflash: 0.4, rifle_pitch: "-0.40 + -0.2*pulse(yaw, 0, 70)", rifle_pos: [-0.03, 0.49, 0.19],
           lean: -0.14, twist: -0.72, bob: -0.02, head_pitch: -0.06, coat: -0.15}}
-      - {ms: 50, set: {<<: *rifle_aim, rifle_pitch: -0.22, rifle_pos: [-0.03, 0.47, 0.24],
+      - {ms: 50, set: {<<: *rifle_aim, rifle_pitch: "-0.22 + -0.2*pulse(yaw, 0, 70)", rifle_pos: [-0.03, 0.47, 0.24],
           lean: -0.06, twist: -0.66, bob: -0.01, head_pitch: 0.02, coat: -0.05}}
-      - {ms: 84, set: {<<: *rifle_aim, rifle_pitch: -0.05, lean: 0.04, coat: 0.03}}
+      - {ms: 84, set: {<<: *rifle_aim, rifle_pitch: "-0.05 + -0.2*pulse(yaw, 0, 70)", lean: 0.04, coat: 0.03}}
 
   rifle_holster:           # 200 ms: rifle sobe por cima do ombro e volta às costas, saca as pistolas (gun 1->0 no quadro 2) e
                            # termina na pose do quadro 0 do idle (emenda sem salto); interrompível
