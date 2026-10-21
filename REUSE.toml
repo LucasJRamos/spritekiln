@@ -12,7 +12,9 @@ SPDX-License-Identifier = "MIT"
 path = [
   "specs/characters/gargula/**",
   "specs/characters/cacador/**",
-  "specs/props/**",
+  "specs/props/crates/**",
+  "specs/props/gas_lamp/**",
+  "specs/props/training_dummy/**",
   "specs/templates/**",
   "specs/palettes/gothic.yaml",
   "specs/palettes/props.yaml",
@@ -26,6 +28,7 @@ SPDX-License-Identifier = "CC0-1.0"
 path = [
   "specs/characters/templar/**",
   "specs/characters/huntress/**",
+  "specs/props/mine/**",
   "specs/palettes/templar.yaml",
   "specs/palettes/huntress.yaml",
   "showcase/**",

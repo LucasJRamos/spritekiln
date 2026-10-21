@@ -24,6 +24,9 @@ root `LICENSE` is the MIT text followed by a scope note, as the maintainer asked
 license detector may label the repository with several licenses instead of a single "MIT" badge. If that
 matters at launch, move the scope note to the README and keep `LICENSE` as plain MIT.
 
+Amended 2026-10-21: the `mine` prop moves to the showcase. It belongs to the Huntress's kit and uses her
+palette, so it could not be reused as CC0 anyway.
+
 The cacador's `splash_teste.jpg` looks like an upscaled render of the cacador spec itself, so it follows
 the example license (CC0). Confirm before launch.
 

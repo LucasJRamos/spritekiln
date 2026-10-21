@@ -27,11 +27,12 @@ The MIT license above covers the source code, documentation and integrations in
 this repository. Two groups of files are licensed differently; REUSE.toml maps
 every path to its license and LICENSES/ holds the full texts:
 
-- Example assets (gargoyle, cacador, props, the humanoid template and the
-  gothic/props palettes) are dedicated to the public domain under CC0 1.0
-  (LICENSES/CC0-1.0.txt).
+- Example assets (gargoyle, cacador, the crates, gas lamp and training dummy
+  props, the humanoid template and the gothic/props palettes) are dedicated to
+  the public domain under CC0 1.0 (LICENSES/CC0-1.0.txt).
 - Showcase assets (the Templar and Huntress characters from the game Hunt
-  Tower: specs, splash arts, palettes, renders and game captures) are
+  Tower, with the Huntress's mine: specs, splash arts, palettes, renders and
+  game captures) are
   Copyright (c) 2026 Lucas Ramos / PlayRPG, all rights reserved. They are
   included for demonstration only and are NOT licensed for reuse
   (LICENSES/LicenseRef-Showcase.txt).

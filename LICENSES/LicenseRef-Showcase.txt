@@ -3,9 +3,9 @@ Showcase assets: all rights reserved
 Copyright (c) 2026 Lucas Ramos / PlayRPG. All rights reserved.
 
 This applies to the files that REUSE.toml marks as "LicenseRef-Showcase": the
-Templar and Huntress characters from the game Hunt Tower, including their
-specs, splash arts, palettes, rendered sprites, animations and game captures,
-and anything derived from them.
+Templar and Huntress characters from the game Hunt Tower and the Huntress's
+mine prop, including their specs, splash arts, palettes, rendered sprites,
+animations and game captures, and anything derived from them.
 
 These files are included in this repository for demonstration only. They are
 not licensed for reuse. You may view them, and you may run the toolkit on them

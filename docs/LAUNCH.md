@@ -50,8 +50,6 @@ demonstration only** (ADR-003) · Unity validation on **6000.3** (ADR-005) · **
 ## Open questions (maintainer)
 - Delete `legacy/` from disk, or keep it locally (it is already out of git)?
 - Confirm that the cacador's `splash_teste.jpg` is an upscaled render of the cacador itself (CC0).
-- The `mine` prop is CC0 (props), but its spec uses the Huntress palette, which is showcase (all rights
-  reserved), so nobody can reuse it as shipped. Move the mine to the showcase, or give it a CC0 palette?
 
 ## Audit (2026-10-21)
 State: ~2,270 lines of Python (`pxforge/`), no git, no tests, no CI, no license. Code untouched since
