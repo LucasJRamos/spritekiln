@@ -161,6 +161,57 @@ def cmd_cache(a):
         print(f'{len(legacy)} old pxforge cache folder(s) kept; add --legacy to remove them too')
 
 
+def cmd_review(a):
+    from . import preview
+    from .review import run
+
+    _spec(a.spec)  # warnings first
+    rep = run(
+        a.spec,
+        anims=a.anims.split(',') if a.anims else None,
+        dirs=a.dirs.split(',') if a.dirs else None,
+        bg_path=a.bg,
+        tint=preview.parse_tint(a.tint),
+        against=a.against,
+        ref=a.ref,
+        ref_dir=a.ref_dir,
+        ref_anim=a.ref_anim,
+        ref_frame=a.ref_frame,
+        scale=a.scale,
+        out_dir=a.out,
+        jobs=a.jobs,
+        log=_note,
+    )
+    bg = rep['background']
+    print(f'{rep["spec"]}: rest pose' + (f' over {bg["image"]} (floor L* {bg["lstar_median"]:.0f})' if bg else ''))
+    print('dir   L*med  L*p90  contrast  area  colours  top materials (px)')
+    for d, e in rep['directions'].items():
+        mats = rep['poses']['rest'][d]['frames'][0]['materials']
+        top = ', '.join(f'{m} {n}' for m, n in list(mats.items())[:4])
+        contrast = f'{e["contrast"]:+8.1f}' if 'contrast' in e else '       -'
+        L = f'{e["lstar_median"]:6.1f} {e["lstar_p90"]:6.1f}'
+        print(f'{d:4s} {L} {contrast} {e["area"]:6.0f} {e["colors"]:7.0f}  {top}')
+    if 'against' in rep:
+        ag = rep['against']
+        print(
+            f'vs {ag["spec"]}: '
+            + ', '.join(
+                f'{d} area x{v["area_ratio"]:.2f} L* {v["lstar_median_delta"]:+.1f}'
+                for d, v in ag['directions'].items()
+            )
+        )
+    if 'reference' in rep:
+        r = rep['reference']
+        print(
+            f'reference IoU ({r["direction"]}, {r["pose"]}): {r["iou"]:.3f} corrected for {r["pitch"]:g} deg '
+            f'(raw {r["iou_raw"]:.3f})'
+        )
+    for w in rep['warnings']:
+        print('warning:', w)
+    print('report:', rep['files']['json'])
+    print('sheet:', rep['files']['sheet'], *rep['files']['clips'].values())
+
+
 def cmd_palette(a):
     import numpy as np
 
@@ -354,6 +405,21 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--install-addon', action='store_true', help='install/update addons/pxforge in the project')
     s.add_argument('--update-addon', action='store_true', help='overwrite the addon in the project when exporting')
     s.set_defaults(f=cmd_godot)
+
+    s = sub.add_parser('review', help='art-direction report: value, materials, bands, IoU, legibility (JSON + PNG)')
+    s.add_argument('spec')
+    s.add_argument('--anims', help='also review these clips (all frames; zoomed sheets per clip)')
+    s.add_argument('--dirs', help='comma-separated (default: the 8 directions)')
+    _preview_args(s)
+    s.add_argument('--against', metavar='SPEC', help='compare legibility with another asset (e.g. the Templar)')
+    s.add_argument('--ref', metavar='IMAGE', help='splash art: silhouette IoU, corrected for the camera pitch')
+    s.add_argument('--ref-dir', default='s', choices=DIRS, help='direction the splash art shows')
+    s.add_argument('--ref-anim', help='compare this animation instead of the rest pose')
+    s.add_argument('--ref-frame', type=int, default=0)
+    s.add_argument('--scale', type=int, default=4, help='zoom of the sheets (default 4)')
+    s.add_argument('--jobs', type=int)
+    s.add_argument('-o', '--out', help='folder (default: <spec dir>/out/review/<name>)')
+    s.set_defaults(f=cmd_review)
 
     s = sub.add_parser('cache', help='show, prune or clear render caches')
     s.add_argument('action', choices=['info', 'prune', 'clear'])

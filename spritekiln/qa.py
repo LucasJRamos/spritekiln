@@ -77,6 +77,14 @@ def check(spec, anims, dlist, out):
         if min(areas) > 0:
             rep['info'][f'{a}_area_ratio_min_max'] = round(min(areas) / max(areas), 2)
     rep['errors'] += timing_problems(spec, anims)
+    if spec.get('review'):
+        from .review import frame_stats, scene, target_warnings
+
+        tint = scene(spec)[1]
+        stats = {}
+        for (a, d, _i), fr in sorted(out.items()):
+            stats.setdefault((a, d), []).append(frame_stats(fr, spec, tint))
+        rep['warnings'] += target_warnings(spec, stats)
     rep['ok'] = not rep['errors']
     return rep
 

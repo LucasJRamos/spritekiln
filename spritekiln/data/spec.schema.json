@@ -76,6 +76,28 @@
     "bones": {"type": "object", "additionalProperties": {"$ref": "#/$defs/bone"}},
     "ik": {"type": "object", "additionalProperties": {"$ref": "#/$defs/ik"}},
     "parts": {"type": "object", "additionalProperties": {"$ref": "#/$defs/part"}},
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Art-direction targets (spritekiln review; QA warnings) and the scene the asset lives in.",
+      "properties": {
+        "min_lstar": {"type": "number", "description": "Minimum median CIE L* of the sprite (under `tint`)."},
+        "tint": {
+          "description": "Scene light used for L* and previews: [r, g, b] multipliers, \"0.7,0.7,1.0\" or \"#b3b5ff\".",
+          "anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 3, "maxItems": 3}]
+        },
+        "background": {"type": "string", "description": "Floor image (relative to the spec) for review sheets."},
+        "materials": {
+          "type": "object",
+          "description": "Material -> {min_px, max_px}: opaque pixels per direction (median over a clip's frames).",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {"min_px": {"type": "integer", "minimum": 0}, "max_px": {"type": "integer", "minimum": 0}}
+          }
+        }
+      }
+    },
     "timing": {
       "type": "object",
       "description": "Targets checked by validate and QA: when events fire and how long clips last. Example: {shoot_r: {release: 2f, total: 7f}}.",

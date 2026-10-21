@@ -267,6 +267,9 @@ def _problems(spec):
                 problems.append(f'parts.{name}.material: unknown material "{m}" (define it under materials:)')
         if not p.get('prims'):
             problems.append(f'parts.{name}: no prims')
+    from .review import check_review_block
+
+    problems += check_review_block(spec)
     for name, sk in spec['sockets'].items():
         if sk.get('bone') not in frames_known:
             problems.append(f'sockets.{name}.bone: unknown frame "{sk.get("bone")}"')
