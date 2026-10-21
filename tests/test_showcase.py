@@ -37,7 +37,7 @@ def hashes_of(out_dir, name=None):
     name = name or os.path.basename(os.path.normpath(out_dir))
     with open(os.path.join(out_dir, f'{name}.json'), encoding='utf-8') as fh:
         meta = json.load(fh)
-    px = meta['pxforge']
+    px = meta.get('spritekiln') or meta['pxforge']
     atlases = [np.asarray(Image.open(os.path.join(out_dir, f)).convert('RGBA'))
                for f in (meta['meta']['image'], px['normal_map'], px['emissive_map'])]
     frames = {}
@@ -48,7 +48,9 @@ def hashes_of(out_dir, name=None):
     for a, A in px['animations'].items():   # atlas rows depend on which animations were rendered
         dirs = {d: {k: v for k, v in D.items() if k != 'row'} for d, D in A['directions'].items()}
         anims[a] = _sha(json.dumps(dict(A, directions=dirs), sort_keys=True).encode())
-    head = {k: v for k, v in px.items() if k != 'animations'}
+    # the fields pxforge 0.1 wrote; later additions (format, generator, camera) do not change the frames
+    head = {k: px[k] for k in ('name', 'frame_size', 'pivot', 'directions', 'direction_yaw', 'normal_map',
+                               'emissive_map')}
     return dict(frame_size=px['frame_size'], header=_sha(json.dumps(head, sort_keys=True).encode()),
                 animations=anims, frames=frames)
 

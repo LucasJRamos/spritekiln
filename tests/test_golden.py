@@ -12,7 +12,7 @@ from PIL import Image
 
 from spritekiln.cli import main
 
-from conftest import FIXTURES, GOLDEN, REPO, assert_image_matches, stage_spec
+from conftest import FIXTURES, GOLDEN, REPO, assert_image_matches, golden_is_native, stage_spec
 
 GARGOYLE = os.path.join(REPO, 'specs', 'characters', 'gargula', 'gargula.yaml')
 MINIMAL = os.path.join(FIXTURES, 'minimal', 'minimal.yaml')
@@ -29,6 +29,14 @@ def test_pose_all_directions(tmp_path, update_golden, spec, args, golden):
     assert_image_matches(out, golden, update_golden)
 
 
+def _versionless(data):
+    """Drop the fields that change with every release."""
+    data = json.loads(json.dumps(data))
+    data.get('meta', {}).pop('version', None)
+    data.get('spritekiln', {}).pop('generator', None)
+    return data
+
+
 def test_render_minimal(tmp_path, update_golden):
     out = tmp_path / 'out'
     main(['render', stage_spec(tmp_path, MINIMAL), '--jobs', '1', '-o', str(out)])
@@ -43,7 +51,10 @@ def test_render_minimal(tmp_path, update_golden):
                 fh.write('\n')
             continue
         with open(path, encoding='utf-8') as fh:
-            assert actual == json.load(fh), f'{name} differs from tests/golden/render_{name}'
+            expected = json.load(fh)
+        if name == 'qa.json' and not golden_is_native():     # colour counts may move with float noise
+            actual, expected = [{k: d[k] for k in ('ok', 'errors')} for d in (actual, expected)]
+        assert _versionless(actual) == _versionless(expected), f'{name} differs from tests/golden/render_{name}'
     assert (out / 'preview' / 'idle_4dir.gif').exists()
     assert (out / 'preview' / 'contact_attack.png').exists()
 

@@ -51,7 +51,8 @@ namespace Pxforge
             using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
             var root = doc.RootElement;
             var meta = root.GetProperty("meta");
-            var px = root.GetProperty("pxforge");
+            // SpriteKiln output format 1; files from pxforge <= 0.1 (or the `pxforge` command) use the old key
+            var px = root.TryGetProperty("spritekiln", out var block) ? block : root.GetProperty("pxforge");
             var sheet = new PxSheet
             {
                 Texture = LoadTex(gd, Path.Combine(dir, meta.GetProperty("image").GetString()!)),

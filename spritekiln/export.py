@@ -1,11 +1,14 @@
-"""Atlas + JSON (Aseprite-compatible, with pxforge extras for MonoGame) + GIFs + contact sheets."""
+"""Atlas + JSON (Aseprite-compatible, plus the `spritekiln` block of docs/format.md) + GIFs + contact sheets."""
 import json
 import os
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+from . import __version__
 from .anim import is_loop
+
+FORMAT = 1           # output format version (docs/format.md); bump only on breaking changes
 
 BG = (46, 42, 56, 255)
 
@@ -65,7 +68,18 @@ def contact_sheet(rows, row_labels, col_count, S, k=3):
     return im
 
 
-def export(spec, anims, dlist, out, dst, gif_scale=5):
+def camera_info(spec, cam):
+    """How world units map to pixels (docs/format.md, 'camera')."""
+    p = np.radians(spec['camera']['pitch'])
+    return {'projection': 'orthographic', 'pitch_deg': float(spec['camera']['pitch']),
+            'world_units_per_px': cam.scale, 'px_per_unit': round(1 / cam.scale, 4),
+            'ground_k': round(float(np.sin(p)), 4), 'height_k': round(float(np.cos(p)), 4),
+            'center': [float(c) for c in cam.center]}
+
+
+def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln'):
+    """Write atlases, JSON and previews. `block`: key of the exporter's JSON block ('pxforge' for projects
+    whose runtime predates the rename)."""
     os.makedirs(dst, exist_ok=True)
     pv = os.path.join(dst, 'preview'); os.makedirs(pv, exist_ok=True)
     S = spec['size']; name = spec['name']
@@ -75,20 +89,21 @@ def export(spec, anims, dlist, out, dst, gif_scale=5):
     from .render import Camera
     cam = Camera.from_spec(spec)
     px, py = cam.project([0, 0, 0])
-    meta = {'frames': {}, 'meta': {'app': 'pxforge', 'version': '1', 'image': f'{name}.png',
+    meta = {'frames': {}, 'meta': {'app': 'spritekiln', 'version': __version__, 'image': f'{name}.png',
                                    'format': 'RGBA8888', 'size': {'w': cols * S, 'h': len(rows) * S},
                                    'scale': '1', 'frameTags': []},
-            'pxforge': {'name': name, 'frame_size': S, 'pivot': {'x': round(px, 2), 'y': round(py, 2)},
-                        'directions': [d for d, _ in dlist], 'direction_yaw': {d: y for d, y in dlist},
-                        'normal_map': f'{name}_normal.png',
-                        'emissive_map': f'{name}_emissive.png', 'animations': {}}}
+            block: {'format': FORMAT, 'generator': f'spritekiln {__version__}',
+                    'name': name, 'frame_size': S, 'pivot': {'x': round(px, 2), 'y': round(py, 2)},
+                    'directions': [d for d, _ in dlist], 'direction_yaw': {d: y for d, y in dlist},
+                    'camera': camera_info(spec, cam), 'normal_map': f'{name}_normal.png',
+                    'emissive_map': f'{name}_emissive.png', 'animations': {}}}
     idx = 0
     for r, (a, d) in enumerate(rows):
         n = len([k for k in out if k[0] == a and k[1] == d])
         loop = is_loop(spec['animations'][a])
         meta['meta']['frameTags'].append({'name': f'{a}_{d}', 'from': idx, 'to': idx + n - 1,
                                           'direction': 'forward'})
-        A = meta['pxforge']['animations'].setdefault(a, {'loop': loop, 'directions': {}})
+        A = meta[block]['animations'].setdefault(a, {'loop': loop, 'directions': {}})
         names, durs, events = [], [], {}
         for i in range(n):
             img, nm, em, ms, ev = out[(a, d, i)]

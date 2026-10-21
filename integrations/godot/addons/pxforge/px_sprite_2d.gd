@@ -140,17 +140,26 @@ func is_loop(name: StringName = anim) -> bool:
 # ---------------------------------------------------------------- internals
 
 func _sheet_name() -> String:
-	if sheet and sheet.data is Dictionary and sheet.data.has("pxforge"):
-		return str(sheet.data["pxforge"].get("name", "?"))
-	return "?"
+	var px := _block()
+	return str(px.get("name", "?")) if not px.is_empty() else "?"
+
+
+## The exporter's block: "spritekiln" (output format 1) or "pxforge" (older files, `pxforge` command).
+func _block() -> Dictionary:
+	if sheet == null or not (sheet.data is Dictionary):
+		return {}
+	for key in ["spritekiln", "pxforge"]:
+		if sheet.data.has(key):
+			return sheet.data[key]
+	return {}
 
 
 func _parse_sheet() -> void:
 	_dirs.clear()
 	_anims.clear()
-	if sheet == null or not (sheet.data is Dictionary) or not sheet.data.has("pxforge"):
+	var px := _block()
+	if px.is_empty():
 		return
-	var px: Dictionary = sheet.data["pxforge"]
 	var yaws: Dictionary = px.get("direction_yaw", {})
 	for d in px.get("directions", []):
 		_dirs.append({"name": StringName(d), "yaw": deg_to_rad(float(yaws.get(d, _default_yaw(d))))})

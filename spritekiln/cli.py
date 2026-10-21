@@ -72,7 +72,7 @@ def cmd_render(a):
                                        a.dirs.split(',') if a.dirs else None, a.jobs, a.force, progress=True,
                                        size=a.size, log=_note)
     dst = a.out or os.path.join(sp['_dir'], 'out', sp['name'] + (f'_{a.size}' if a.size else ''))
-    export(sp, anims, dlist, out, dst)
+    export(sp, anims, dlist, out, dst, block='pxforge' if a.prog == 'pxforge' else 'spritekiln')
     rep = qa.check(sp, anims, dlist, out)
     with open(os.path.join(dst, 'qa.json'), 'w', encoding='utf-8') as fh:
         json.dump(rep, fh, indent=1, ensure_ascii=False)

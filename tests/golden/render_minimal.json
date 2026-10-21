@@ -674,8 +674,8 @@
   }
  },
  "meta": {
-  "app": "pxforge",
-  "version": "1",
+  "app": "spritekiln",
+  "version": "0.1.0",
   "image": "minimal.png",
   "format": "RGBA8888",
   "size": {
@@ -734,7 +734,9 @@
    }
   ]
  },
- "pxforge": {
+ "spritekiln": {
+  "format": 1,
+  "generator": "spritekiln 0.1.0",
   "name": "minimal",
   "frame_size": 32,
   "pivot": {
@@ -752,6 +754,19 @@
    "e": 90,
    "n": 180,
    "w": -90
+  },
+  "camera": {
+   "projection": "orthographic",
+   "pitch_deg": 38.0,
+   "world_units_per_px": 0.075,
+   "px_per_unit": 13.3333,
+   "ground_k": 0.6157,
+   "height_k": 0.788,
+   "center": [
+    0.0,
+    0.8,
+    0.0
+   ]
   },
   "normal_map": "minimal_normal.png",
   "emissive_map": "minimal_emissive.png",

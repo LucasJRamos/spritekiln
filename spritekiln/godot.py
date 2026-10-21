@@ -21,6 +21,11 @@ ADDON_SRC = resources.data_dir('godot_addon')
 DEFAULT_DEST = 'assets/pxforge'
 
 
+def block(meta):
+    """The exporter's own block of a render JSON (format 1 "spritekiln", or "pxforge" from older files)."""
+    return meta.get('spritekiln') or meta.get('pxforge')
+
+
 def _q(s):
     """Godot resource string literal."""
     return json.dumps(str(s), ensure_ascii=False)
@@ -55,7 +60,7 @@ def install_addon(project, update=False):
 
 def _sprite_frames_tres(meta, atlas_res, atlas_type='Texture2D'):
     """Build a SpriteFrames .tres. speed = 1 fps so frame duration (s) = ms / 1000 exactly."""
-    px = meta['pxforge']
+    px = block(meta)
     frames = meta['frames']
     regions = {}          # (x, y, w, h) -> sub id
     lines_sub = []
@@ -131,7 +136,9 @@ def export_godot(spec, project, dest=DEFAULT_DEST, lit=False, update_addon=False
         raise ExportError(f'render not found: {jpath}  (run `spritekiln render` first)')
     with open(jpath, encoding='utf-8') as fh:
         meta = json.load(fh)
-    px = meta['pxforge']
+    px = block(meta)
+    if px is None:
+        raise ExportError(f'{jpath}: no "spritekiln" (or "pxforge") block; not a spritekiln render')
     dest = dest.replace('\\', '/').strip('/')
     if dest.startswith('res://'):
         dest = dest[6:].strip('/')
