@@ -3,9 +3,9 @@
 import os
 import sys
 import time
-from typing import NamedTuple
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from concurrent.futures.process import BrokenProcessPool
+from typing import NamedTuple
 
 import numpy as np
 
