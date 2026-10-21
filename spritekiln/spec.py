@@ -12,6 +12,12 @@ from .errors import SpriteKilnError
 DIRECTIONS8 = [('s', 0), ('se', 45), ('e', 90), ('ne', 135), ('n', 180), ('nw', -135), ('w', -90), ('sw', -45)]
 DIRECTIONS4 = [('s', 0), ('e', 90), ('n', 180), ('w', -90)]
 
+# `view` presets: defaults a spec gets unless it sets the value itself
+VIEWS = {
+    'topdown': dict(pitch=38.0, directions=8, shadow=True),  # top-down 3/4 (RPG, twin-stick, tactics)
+    'side': dict(pitch=0.0, directions=['e', 'w'], shadow=False),  # side-scroller / platformer profile
+}
+
 
 def direction_name(yaw):
     """Name of the direction nearest to `yaw` degrees ('s' for 0, 'e' for 90...)."""
@@ -133,7 +139,11 @@ def load(path, size=None):
     s.setdefault('name', os.path.splitext(os.path.basename(path))[0])
     s.setdefault('kind', 'character')
     s.setdefault('size', 64)
-    cam = dict(DEFAULT_CAMERA)
+    s.setdefault('view', 'topdown')
+    if s['view'] not in VIEWS:
+        raise SpecError(f'view: must be one of {", ".join(VIEWS)} (got {s["view"]!r})')
+    preset = VIEWS[s['view']]
+    cam = dict(DEFAULT_CAMERA, pitch=preset['pitch'])
     cam.update(s.get('camera') or {})
     s['camera'] = cam
     if size:
@@ -153,7 +163,7 @@ def load(path, size=None):
     li.update(s.get('light') or {})
     s['light'] = li
 
-    d = s.get('directions', 8 if s['kind'] == 'character' else 1)
+    d = s.get('directions', preset['directions'] if s['kind'] == 'character' else 1)
     if d == 8:
         s['directions'] = DIRECTIONS8
     elif d == 4:
@@ -203,8 +213,8 @@ def load(path, size=None):
     s['parts'] = mirror_section(s.get('parts'))
     s['sockets'] = mirror_section(s.get('sockets'))
     s.setdefault('animations', {})
-    if 'shadow' not in s:
-        s['shadow'] = {'rx': 13.5 * s['size'] / 64, 'ry': 4.5 * s['size'] / 64}
+    if 'shadow' not in s:  # a ground ellipse reads in top-down; a side view has the ground edge-on
+        s['shadow'] = {'rx': 13.5 * s['size'] / 64, 'ry': 4.5 * s['size'] / 64} if preset['shadow'] else None
     return s
 
 

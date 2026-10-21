@@ -197,7 +197,7 @@ def cmd_review(a):
 def cmd_init(a):
     from .scaffold import init
 
-    res = init(a.dir, a.engine, a.ai.split(','), a.specs, a.export_dir, a.godot_project, not a.no_mcp, a.force)
+    res = init(a.dir, a.engine, a.ai.split(','), a.specs, a.export_dir, a.godot_project, not a.no_mcp, a.force, a.view)
     print(f'SpriteKiln project in {res["root"]} (engine: {res["engine"]}; AI: {", ".join(res["ais"])})')
     for p in res['written']:
         print('  ', os.path.relpath(p, res['root']))
@@ -322,7 +322,7 @@ def cmd_godot(a):
 def cmd_new(a):
     from . import api
 
-    print('created', api.new(a.name, a.template, a.dir, a.ref))
+    print('created', api.new(a.name, a.template, a.dir, a.ref, view=a.view))
 
 
 DIRS = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw']
@@ -409,6 +409,12 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--godot-project', help='folder with project.godot, relative to the project (default .)')
     s.add_argument('--no-mcp', action='store_true', help="do not register `spritekiln mcp` in the AI client's config")
     s.add_argument('--force', action='store_true', help='rewrite an existing spritekiln.toml')
+    s.add_argument(
+        '--view',
+        default='topdown',
+        choices=['topdown', 'side'],
+        help='default camera for new specs: top-down 3/4 or side-scroller',
+    )
     s.set_defaults(f=cmd_init)
 
     s = sub.add_parser('mcp', help='serve SpriteKiln as MCP tools over stdio (needs the mcp extra)')
@@ -450,6 +456,9 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--template', default='humanoid')
     s.add_argument('--dir', help='parent folder (default: <specs of spritekiln.toml>/characters or specs/characters)')
     s.add_argument('--ref', help='splash art to copy next to the spec')
+    s.add_argument(
+        '--view', choices=['topdown', 'side'], help='camera preset (default: the project default or topdown)'
+    )
     s.set_defaults(f=cmd_new)
 
     s = sub.add_parser('export', help='export a rendered spec to the engine of spritekiln.toml (or --engine)')

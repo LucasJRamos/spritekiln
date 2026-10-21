@@ -38,6 +38,7 @@ The `spritekiln` block carries what Aseprite's format cannot express:
 | `pivot` | `{x, y}` | Ground point under the model origin, in px from the top-left of a cell. Place the sprite so that this point sits on the entity's position; it is the right point for y-sorting. |
 | `directions` | `[string]` | Exported directions, e.g. `["s", "se", "e", "ne", "n", "nw", "w", "sw"]`. |
 | `direction_yaw` | `{dir: degrees}` | Model rotation per direction: `s` 0, `se` 45, `e` 90, `ne` 135, `n` 180, `nw` −135, `w` −90, `sw` −45. |
+| `view` | string | `topdown` (3/4, the default) or `side` (side-scroller profile). |
 | `camera` | object | How world units map to pixels (below). |
 | `normal_map`, `emissive_map` | string | File names of the other atlases. |
 | `sockets` | `[string]` | Socket names, when the spec declares sockets (see [Sockets](#sockets)). |

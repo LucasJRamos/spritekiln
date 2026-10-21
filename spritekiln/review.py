@@ -145,7 +145,7 @@ def run(
     bg, tint = scene(spec, bg_path, tint)
     look = preview.viewer(bg, tint)
     dl = [(d, y) for d, y in spec['directions'] if not dirs or d in dirs]
-    if spec['kind'] == 'character' and not dirs:
+    if spec['kind'] == 'character' and not dirs and spec['view'] == 'topdown':
         dl = specmod.DIRECTIONS8
     out_dir = out_dir or os.path.join(spec['_dir'], 'out', 'review', spec['name'])
     os.makedirs(out_dir, exist_ok=True)

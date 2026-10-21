@@ -9,6 +9,7 @@ Schema `spritekiln/data/spec.schema.json`.
 spritekiln: 1            # spec format version (first line)
 name: gargoyle           # names the exported files
 kind: character          # character | prop
+view: topdown            # topdown (3/4, 8 directions) | side (side-scroller profile, e and w)
 size: 64                 # frame size in px (32/48/64/96/128); `render --size` rescales without editing
 directions: 8            # 1 | 4 | 8 | [s, e, n, w]
 palette: gothic          # built-in name, file path(s) relative to the spec, or a list
@@ -26,6 +27,17 @@ sockets: {...}           # attachment points exported per frame (optional)
 timing: {...}            # timing targets checked by validate and QA (optional)
 review: {...}            # art-direction targets, QA warnings (optional)
 ```
+
+## Views
+`view` picks a camera preset; anything the spec sets explicitly wins over it.
+
+| view | camera pitch | directions (characters) | ground shadow | for |
+|---|---|---|---|---|
+| `topdown` (default) | 38° | 8 | ellipse | RPGs, action games, tactics |
+| `side` | 0° (profile) | `[e, w]` | none | platformers, side-scrollers, fighting games |
+
+Everything else (modeling, animation, sockets, timing, review, export) works the same way. A small tilt
+(`camera: {pitch: 10}`) gives a side view that shows a little of the top. Keep one view per game.
 
 ## Units and axes
 - The world is in "game metres": a human is 1.6–1.9 tall. The ground is `y = 0`.

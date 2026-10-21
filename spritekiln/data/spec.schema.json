@@ -9,6 +9,11 @@
     "pxforge": {"const": 1, "description": "Old name of the version header; same meaning as `spritekiln: 1`."},
     "name": {"type": "string", "description": "Asset name; names the exported files. Defaults to the file name."},
     "kind": {"enum": ["character", "prop"], "default": "character"},
+    "view": {
+      "enum": ["topdown", "side"],
+      "default": "topdown",
+      "description": "topdown: 3/4 camera at 38 degrees, 8 directions, ground shadow. side: side-scroller profile (camera pitch 0, directions [e, w], no ground shadow). Explicit camera/directions/shadow values win."
+    },
     "size": {"type": "integer", "minimum": 8, "maximum": 512, "default": 64, "description": "Frame size in pixels."},
     "directions": {
       "description": "1, 4, 8 or a list of directions. Default: 8 for characters, 1 for props.",

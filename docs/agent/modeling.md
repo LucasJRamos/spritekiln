@@ -17,6 +17,14 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
 - **Consistency:** never change one asset's camera `pitch`, `light` or density (`camera.scale`); the
   whole game shares them. A bigger creature gets a bigger `size`.
 
+## Side view (`view: side`)
+- The silhouette is the **profile**: what reads is the outline seen from the side (nose, hat brim,
+  weapon length, cape, tail). Thickness along the line of sight (z) does not show; extend shapes along x
+  and y instead.
+- Only `e` and `w` are rendered, but the model is still 3D: both profiles must work, and the far arm and
+  leg sit behind the body (darker, partly hidden). Check `pose` in both directions.
+- No ground shadow by default (the ground is edge-on); the game usually draws its own.
+
 ## Procedure
 1. Start from a template (`spritekiln new <name>`) or the closest existing spec. Fill `brief:` first (see
    [splash-to-model.md](splash-to-model.md)).

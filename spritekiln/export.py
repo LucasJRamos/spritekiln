@@ -120,6 +120,7 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln', look=N
             'pivot': {'x': round(px, 2), 'y': round(py, 2)},
             'directions': [d for d, _ in dlist],
             'direction_yaw': {d: y for d, y in dlist},
+            'view': spec.get('view', 'topdown'),
             'camera': camera_info(spec, cam),
             'normal_map': f'{name}_normal.png',
             'emissive_map': f'{name}_emissive.png',

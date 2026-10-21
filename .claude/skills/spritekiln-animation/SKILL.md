@@ -41,6 +41,13 @@ missing (a cape that should sway), add a channel, use it in the bone or part exp
   `rifle_pitch: "-0.08 + -0.2*pulse(yaw, 0, 70)"` raises a barrel only near `s`, where it would point at
   the camera and vanish.
 
+## Side view (`view: side`)
+- Typical clips: idle, run, jump (take-off), rise and fall (loops or single frames), land, crouch, attack,
+  hurt, death; wall-slide and climb when the game has them.
+- Jumps are **in place**: the game moves the character; the clip shows the body (anticipation, stretch on
+  take-off, tuck at the apex, squash on landing). Use `root` only for a small offset inside the frame.
+- Mark gameplay moments as events: `takeoff`, `land`, `step_l`/`step_r`, `hit`.
+
 ## Events, timing and sockets (gameplay contract)
 - Mark events: `windup` on the anticipation, `hit` on the impact, `release` when a projectile or item
   leaves, `step_l`/`step_r` on contacts. They go to the JSON; engines emit them (`px_event` in Godot,

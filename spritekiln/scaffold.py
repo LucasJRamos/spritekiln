@@ -17,6 +17,7 @@ def init(
     godot_project=None,
     mcp=True,
     force=False,
+    view='topdown',
 ):
     """Write spritekiln.toml, the specs folder, the AI instructions and MCP client configs. Returns what was
     written (paths) and notes for the user."""
@@ -36,7 +37,13 @@ def init(
                 f'in {config.FILENAME} if the Godot project lives elsewhere'
             )
     with open(toml, 'w', encoding='utf-8', newline='\n') as fh:
-        fh.write(config.render(engine, specs, export_dir, godot_project or '.'))
+        defaults = {
+            'view': view,
+            'size': 64,
+            'palette': 'gothic',
+            'camera': {'pitch': 0 if view == 'side' else 38, 'scale': 0.04},
+        }
+        fh.write(config.render(engine, specs, export_dir, godot_project or '.', defaults))
     written = [toml]
     for sub in ('characters', 'props', 'palettes'):
         os.makedirs(os.path.join(root, specs, sub), exist_ok=True)

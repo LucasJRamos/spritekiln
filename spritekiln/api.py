@@ -13,9 +13,10 @@ from . import spec as specmod
 from .errors import SpriteKilnError
 
 
-def new(name, template='humanoid', folder=None, ref=None, start=None):
+def new(name, template='humanoid', folder=None, ref=None, start=None, view=None):
     """Create <folder>/<name>/<name>.yaml from a template; `folder` defaults to spritekiln.toml's specs folder
-    + /characters (or specs/characters). Project defaults (size, palette, camera, light) are applied."""
+    + /characters (or specs/characters). Project defaults (view, size, palette, camera, light) are applied;
+    `view` ('topdown' or 'side') overrides the project's."""
     if not re.fullmatch(r'[A-Za-z0-9_-]+', name or ''):
         raise SpriteKilnError(f'name {name!r}: use letters, digits, - and _ only')
     tpl = resources.template(template)
@@ -29,7 +30,20 @@ def new(name, template='humanoid', folder=None, ref=None, start=None):
         raise SpriteKilnError(f'already exists: {dst}')
     with open(tpl, encoding='utf-8') as fh:
         txt = fh.read().replace('name: TEMPLATE', f'name: {name}')
-    for key, value in (cfg.get('defaults') or {}).items():
+    defaults = dict(cfg.get('defaults') or {})
+    project_view = defaults.pop('view', None)
+    if view and view != (project_view or 'topdown') and isinstance(defaults.get('camera'), dict):
+        defaults['camera'] = {k: v for k, v in defaults['camera'].items() if k != 'pitch'}  # the view's pitch wins
+    view = view or project_view
+    if view and view != 'topdown':
+        if view not in specmod.VIEWS:
+            raise SpriteKilnError(f'view {view!r}: use one of {", ".join(specmod.VIEWS)}')
+        preset = specmod.VIEWS[view]
+        txt = _set_top_level(txt, 'view', view)
+        txt = _set_top_level(txt, 'directions', preset['directions'])
+        txt = _set_top_level(txt, 'camera', {'pitch': preset['pitch']})
+        txt = _set_top_level(txt, 'shadow', None)
+    for key, value in defaults.items():
         txt = _set_top_level(txt, key, value)
     os.makedirs(dst_dir, exist_ok=True)
     with open(dst, 'w', encoding='utf-8') as fh:
@@ -95,7 +109,8 @@ def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=N
     pose_env(sp, anim, frame)  # fails early on a bad anim/frame
     wanted = dirs.split(',') if isinstance(dirs, str) else dirs
     dl = [d for d in sp['directions'] if not wanted or d[0] in wanted]
-    if wanted == ['all'] or (not wanted and len(sp['directions']) < 8 and sp['kind'] == 'character'):
+    top = sp['view'] == 'topdown'  # top-down characters show all 8 by default (a side view shows its own)
+    if wanted == ['all'] or (not wanted and top and len(sp['directions']) < 8 and sp['kind'] == 'character'):
         dl = specmod.DIRECTIONS8
     if not dl:
         raise SpriteKilnError(f'dirs {dirs}: no such direction (have: {", ".join(d for d, _ in sp["directions"])})')

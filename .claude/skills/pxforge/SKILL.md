@@ -50,13 +50,19 @@ Never call something visual "good" without having looked at the PNG (or read `re
 sockets; see `docs/format.md`), `<name>_normal.png`, `<name>_emissive.png`, `preview/<anim>_8dir.gif`,
 `preview/contact_<anim>.png` and `qa.json`. Outputs are generated: never edit them by hand.
 
+## Top-down or side-scroller
+Specs are top-down 3/4 by default (`view: topdown`). For a platformer or side-scroller use `view: side`
+(camera at 0°, directions `e` and `w`, no ground shadow): `python -m pxforge new <name> --view side`, or
+`python -m pxforge init --view side` to make it the project's default. `pose` then shows the spec's directions.
+
 ## Keep a game consistent
-All assets of a game share the camera `pitch` (38 by default), the `light`, and the density
+All assets of a game share the `view`, the camera `pitch` (38 top-down, 0 side), the `light`, and the density
 `camera.scale` (world units per pixel); a bigger character gets a bigger `size` (frame), not a different
 scale. Shared palettes live in the project's palettes folder; `gothic` and `props` are built in.
 
 ## Projects
-`python -m pxforge init` writes `spritekiln.toml` (specs folder, engine, export folder, defaults for new specs).
+`python -m pxforge init` writes `spritekiln.toml` (specs folder, engine, export folder, defaults for new specs,
+including the view).
 Commands run anywhere inside the project find it. `python -m pxforge export <spec>` (or `render --export`) then
 puts the files where the engine expects them (Godot: SpriteFrames, CanvasTexture and a ready scene).
 
@@ -80,6 +86,14 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
   (zoom out) for the whole asset, raise `size`, or reduce that gesture.
 - **Consistency:** never change one asset's camera `pitch`, `light` or density (`camera.scale`); the
   whole game shares them. A bigger creature gets a bigger `size`.
+
+## Side view (`view: side`)
+- The silhouette is the **profile**: what reads is the outline seen from the side (nose, hat brim,
+  weapon length, cape, tail). Thickness along the line of sight (z) does not show; extend shapes along x
+  and y instead.
+- Only `e` and `w` are rendered, but the model is still 3D: both profiles must work, and the far arm and
+  leg sit behind the body (darker, partly hidden). Check `pose` in both directions.
+- No ground shadow by default (the ground is edge-on); the game usually draws its own.
 
 ## Procedure
 1. Start from a template (`python -m pxforge new <name>`) or the closest existing spec. Fill `brief:` first (see

@@ -261,6 +261,27 @@ Results (2026-10-21):
 - The Codex CLI is installed on the dev machine; a run with the real Codex is pending the maintainer's OK
   (it uses the maintainer's account).
 
+## Side-scroller (`view: side`), added 2026-10-21 at the maintainer's request
+Users choose top-down 3/4 (default) or side-scroller with the same engine and workflow. The evaluation
+showed the renderer needed no change: a side view is the same 3D model with the camera at 0°, profile
+directions `e`/`w` and no ground ellipse.
+
+Done now:
+- [x] `view: topdown | side` spec preset (pitch, directions, shadow; explicit values win), in the schema and
+      in the JSON (`view`); `new --view`, `init --view` (project default), MCP `new(view=...)`; `pose` and
+      `review` show the spec's own directions in a side view.
+- [x] Docs: views table in `spec.md`, side-view notes in workflow, modeling and animation.
+- [x] Tests: preset, explicit overrides, side project, JSON, golden of the fixture in profile.
+
+Next, in the phases below (marked **[side]**):
+- Phase 4: engines handle two-direction clips and offer mirroring (`flip_h`) as an option.
+- Phase 4: a `mirror` export option: render one profile and let engines flip it (half the atlas; the light
+  comes from the other side, so it is opt-in).
+- Phase 5: a side-view template (`--template side_humanoid`: idle, run, jump/rise/fall/land, crouch,
+  attack, hurt, death) and a side-scroller example asset made with the recipe; tutorial "a platformer
+  character".
+- v0.2: side-view tiles (platforms, slopes) and parallax backgrounds, with the tiles work in the ROADMAP.
+
 ## Phase 4: engines
 - [ ] **Godot 4:** clean up the addon (sockets, light and emissive, icon, docs); import without the CLI
       (plugin that reads the JSON); prepare for the Godot Asset Library; headless test with the local
@@ -270,6 +291,8 @@ Results (2026-10-21):
       component (direction from a vector, events, sockets); normal and emissive as secondary textures
       (`_NormalMap`, `_MaskTex`) for URP 2D lights; validate on Unity 6 LTS or mark "experimental".
 - [ ] **MonoGame:** DesktopGL sample project with `PxSprite.cs` and a light shader (`PxLit.fx`).
+- [ ] **[side]** Two-direction (e/w) clips in every runtime, optional `flip_h` mirroring, and a `mirror`
+      export option (one profile rendered, the other flipped by the engine).
 - [ ] **Generic:** "use it in any engine" guide (Phaser, LÖVE, Defold, GameMaker) based on the
       Aseprite-compatible JSON.
 
@@ -286,6 +309,9 @@ Results (2026-10-21):
 - [ ] Tutorials in `docs/`: first character in 10 minutes; from your splash art with an AI; animations
       and events; Godot; Unity; MonoGame/generic; use with your AI (MCP and AGENTS.md); spec reference
       (from `SPEC.md`).
+- [ ] **[side]** Side-view template (`side_humanoid`), a side-scroller example asset and the tutorial "a
+      platformer character".
+- [ ] Translate the comments of the humanoid template and the example specs to English.
 - [ ] `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue/PR templates, `CHANGELOG.md`; optional MkDocs
       Material site on GitHub Pages.
 - [ ] Release v0.1.0: PyPI via trusted publishing in Actions; tag + release notes; Godot Asset Library

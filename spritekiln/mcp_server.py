@@ -71,10 +71,17 @@ def build():
         return source(name)
 
     @tool
-    def new(name: str, template: str = 'humanoid', folder: str | None = None, ref: str | None = None) -> dict:
+    def new(
+        name: str,
+        template: str = 'humanoid',
+        folder: str | None = None,
+        ref: str | None = None,
+        view: str | None = None,
+    ) -> dict:
         """Create a spec from a template (default folder: the project's specs folder + /characters). `ref`: a
-        splash art copied next to the spec. Returns the spec path."""
-        return {'spec': api.new(name, template, folder, ref)}
+        splash art copied next to the spec. `view`: topdown (3/4, 8 directions) or side (side-scroller profile,
+        directions e and w); default from the project. Returns the spec path."""
+        return {'spec': api.new(name, template, folder, ref, view=view)}
 
     @tool
     def validate(spec: str) -> dict:

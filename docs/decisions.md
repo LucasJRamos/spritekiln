@@ -153,3 +153,12 @@ A project describes itself in `spritekiln.toml` (found by searching upwards): sp
 folder, Godot project, defaults for new specs. Environment variables (`SPRITEKILN_GODOT_PROJECT`, the old
 `PXFORGE_GODOT_PROJECT`) still win when set, so Hunt Tower's `px.cmd` keeps working until Phase 6. New
 projects export Godot assets to `assets/spritekiln/`; projects without a toml keep `assets/pxforge/`.
+
+## ADR-022: Side-scroller as a view preset (2026-10-21)
+A side-scroller sprite is the same 3D model seen from the side, so `view: side` is a preset rather than a
+second pipeline: camera pitch 0, directions `[e, w]` for characters, no ground ellipse. Explicit spec values
+win over the preset (a tilted side view is `camera: {pitch: 10}`). Everything else (rig, animation,
+sockets, timing, review, export, MCP) is shared; the JSON says which view produced it. A project picks its
+default with `init --view`; a game should keep one view. Mirroring one profile in the engine is left as an
+opt-in export option for Phase 4, because the fixed world light makes a flipped sprite lit from the wrong
+side.
