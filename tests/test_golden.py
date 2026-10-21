@@ -64,7 +64,10 @@ def test_render_minimal(tmp_path, update_golden):
     assert (out / 'preview' / 'contact_attack.png').exists()
 
 
-def test_comparison_catches_a_single_pixel(tmp_path):
+def test_comparison_catches_a_single_pixel(tmp_path, monkeypatch):
+    import conftest
+
+    monkeypatch.setattr(conftest, 'golden_is_native', lambda: True)  # exact mode on any platform
     img = np.asarray(Image.open(os.path.join(GOLDEN, 'minimal_pose_rest.png')).convert('RGBA')).copy()
     img[10, 10] = (255, 0, 255, 255)
     path = str(tmp_path / 'changed.png')

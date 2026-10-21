@@ -140,4 +140,4 @@ attack:
 `out/<nome>/`: `<nome>.png` (atlas: uma linha por animação×direção), `<nome>.json` (formato Aseprite +
 bloco `pxforge` com direções, yaw, pivô, durações e eventos), `<nome>_normal.png` (normal map em espaço de
 câmera, para luz dinâmica), `<nome>_emissive.png`, `preview/<anim>_8dir.gif`, `preview/contact_<anim>.png`
-(folha para revisão visual), `qa.json`. Cache em `.pxcache/` (apague para forçar ou use `--force`).
+(folha para revisão visual), `qa.json`. Cache em `.kilncache/` (use `--force` ou `spritekiln cache clear`).

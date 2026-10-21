@@ -14,7 +14,7 @@ Operado com **Claude Opus** (agents em `.claude/agents/` usam `model: opus`).
   antes de afirmar que algo está bom.
 - Itere com `pose` (barato). `render` completo só no fim (≈190 frames por personagem).
 - Specs ficam em `specs/characters/<nome>/<nome>.yaml`; saídas em `specs/characters/<nome>/out/` (geradas,
-  não editar à mão). Cache em `.pxcache/` (pode apagar).
+  não editar à mão). Cache em `.kilncache/` (pode apagar; `spritekiln cache info|prune|clear`).
 - Mantenha consistência entre assets do jogo: mesmo `camera.pitch` (38), mesma `light`, `camera.scale`
   proporcional ao tamanho de mundo, paletas em `specs/palettes/`.
 - Código em `pxforge/` é Python puro (numpy, pillow, pyyaml). Ao mudar o código, rode
