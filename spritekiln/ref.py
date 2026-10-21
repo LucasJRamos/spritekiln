@@ -8,7 +8,7 @@
 from collections import deque
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 from . import palette as pal
 from .errors import SpriteKilnError
@@ -44,7 +44,49 @@ def _largest_component(mask):
     return lab == best
 
 
-def _fill_holes(mask):
+def _grow_from_border(s, step):
+    """Pixels reachable from the image border through neighbour colour steps <= `step` (per channel)."""
+    H, W = s.shape[:2]
+    bg = np.zeros((H, W), bool)
+    q = deque()
+    for y, x in [(y, x) for y in range(H) for x in (0, W - 1)] + [(y, x) for x in range(W) for y in (0, H - 1)]:
+        if not bg[y, x]:
+            bg[y, x] = True
+            q.append((y, x))
+    while q:
+        y, x = q.popleft()
+        c = s[y, x]
+        for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+            if 0 <= yy < H and 0 <= xx < W and not bg[yy, xx] and np.abs(s[yy, xx] - c).max() <= step:
+                bg[yy, xx] = True
+                q.append((yy, xx))
+    return bg
+
+
+def _components(mask):
+    """4-connected components of a boolean mask -> (labels, count); label 0 = background."""
+    H, W = mask.shape
+    lab = np.zeros((H, W), np.int32)
+    cur = 0
+    for y0, x0 in zip(*np.nonzero(mask)):
+        if lab[y0, x0]:
+            continue
+        cur += 1
+        q = deque([(y0, x0)])
+        lab[y0, x0] = cur
+        while q:
+            y, x = q.popleft()
+            for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                if 0 <= yy < H and 0 <= xx < W and mask[yy, xx] and not lab[yy, xx]:
+                    lab[yy, xx] = cur
+                    q.append((yy, xx))
+    return lab, cur
+
+
+def _fill_holes(mask, colors=None, bg_spread=0.0, min_frac=0.002):
+    """Close the holes of a silhouette, except openings that look like background showing through (the gap
+    between the legs, under an arm): big enough and as flat as the background. Small or textured holes
+    (eye whites, highlights the same colour as the background) are filled."""
     H, W = mask.shape
     outside = np.zeros((H, W), bool)
     q = deque()
@@ -64,7 +106,24 @@ def _fill_holes(mask):
             if 0 <= yy < H and 0 <= xx < W and not mask[yy, xx] and not outside[yy, xx]:
                 outside[yy, xx] = True
                 q.append((yy, xx))
-    return ~outside
+    filled = ~outside
+    if colors is None:
+        return filled
+    lab, n = _components(filled & ~mask)
+    area = max(int(mask.sum()), 1)
+    flat = max(8.0, 1.5 * bg_spread)
+    for k in range(1, n + 1):
+        hole = lab == k
+        if hole.sum() >= min_frac * area and float(colors[hole].std(0).max()) <= flat:
+            filled[hole] = False  # keep the opening transparent
+    return filled
+
+
+def pitch_corrected(mask, pitch):
+    """A front view squashed like the game camera sees it: height x cos(pitch)."""
+    H, W = mask.shape
+    h = max(1, round(H * np.cos(np.radians(pitch))))
+    return np.asarray(Image.fromarray(mask.astype(np.uint8) * 255).resize((W, h), Image.NEAREST)) > 0
 
 
 def cutout(img, work=320, method='auto', tol=None):
@@ -84,15 +143,14 @@ def cutout(img, work=320, method='auto', tol=None):
         except Exception:  # noqa
             used = None
     if used is None:
-        # border-colour flood: works for flat / gradient backgrounds
-        sm = img.copy()
+        # magic wand from the border: the background is what the border reaches through small colour steps,
+        # which follows flat, gradient and vignetted backgrounds and stops at the character's edges
+        sm = img.convert('RGB')
         sm.thumbnail((work, work))
-        s = np.asarray(sm)[..., :3].astype(float)
+        s = np.asarray(sm.filter(ImageFilter.MedianFilter(3))).astype(float)
         border = np.concatenate([s[0], s[-1], s[:, 0], s[:, -1]])
-        bg = np.median(border, 0)
-        d = np.linalg.norm(s - bg, axis=-1)
-        t = tol if tol is not None else max(28.0, np.percentile(np.linalg.norm(border - bg, axis=-1), 95) * 1.6)
-        m = _fill_holes(_largest_component(d > t))
+        spread = float(np.linalg.norm(border - np.median(border, 0), axis=-1).std())
+        m = _fill_holes(_largest_component(~_grow_from_border(s, 9.0 if tol is None else tol)), s, spread)
         mask_full = np.asarray(Image.fromarray(m.astype(np.uint8) * 255).resize(img.size, Image.NEAREST)) > 0
         used = 'border'
     ys, xs = np.nonzero(mask_full)
@@ -149,7 +207,11 @@ BAND_NAMES = [
 ]
 
 
-def compare_masks(ref_mask, spr_mask):
+def compare_masks(ref_mask, spr_mask, pitch=None):
+    """Silhouette IoU and per-band hints. With `pitch`, the reference is first squashed like the game camera
+    sees a front view (a raw splash caps the IoU near 0.56 at 38 degrees)."""
+    if pitch:
+        ref_mask = pitch_corrected(ref_mask, pitch)
     a, b = _norm_grid(ref_mask), _norm_grid(spr_mask)
     iou = float((a & b).sum() / max((a | b).sum(), 1))
     mr, ms = metrics(ref_mask), metrics(spr_mask)
@@ -183,7 +245,7 @@ def compare_masks(ref_mask, spr_mask):
             )
         )
     hints = [h for _, h in sorted(hints, reverse=True)]
-    return dict(iou=round(iou, 3), ref=mr, render=ms, hints=hints), a, b
+    return dict(iou=round(iou, 3), pitch=pitch, ref=mr, render=ms, hints=hints), a, b
 
 
 def sheet(ref_img, sprite, turn, iou_grids, ref_colors, spec_mats, out_path, title=''):
