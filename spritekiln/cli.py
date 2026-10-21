@@ -24,97 +24,79 @@ def _spec(path, size=None, warn=True):
     return sp
 
 
-def _pose_env(sp, anim, frame, yaw=0.0):
-    from .anim import frames_of
-    from .rig import rest_env
-
-    if not anim:
-        return rest_env(sp, yaw)
-    frames = frames_of(sp, anim, yaw)
-    if not -len(frames) <= frame < len(frames):
-        raise SpriteKilnError(f'--frame {frame}: animation "{anim}" has {len(frames)} frames (0..{len(frames) - 1})')
-    return frames[frame][0]
-
-
 def cmd_validate(a):
-    from . import spec as S
-    from .anim import frames_of
+    from . import api
 
-    sp = _spec(a.spec, warn=False)
-    errors, warnings = S.check(sp)
-    for w in warnings:
+    _spec(a.spec, warn=False)
+    res = api.validate(a.spec)
+    for w in res['warnings']:
         print('warning:', w)
-    if errors:
+    if res['errors']:
         print('INVALID:')
-        for p in errors:
+        for p in res['errors']:
             print('  -', p)
         return 1
-    if warnings and a.strict:
-        print(f'INVALID: {len(warnings)} warning(s) with --strict')
+    if res['warnings'] and a.strict:
+        print(f'INVALID: {len(res["warnings"])} warning(s) with --strict')
         return 1
+    s = res['summary']
     print(
-        f'OK: {sp["name"]} - {len(sp["parts"])} parts, {len(sp["bones"])} bones, '
-        f'{len(sp["directions"])} directions, animations: '
-        + ', '.join(f'{k}({len(frames_of(sp, k))})' for k in sp['animations'])
+        f'OK: {s["name"]} - {s["parts"]} parts, {s["bones"]} bones, {len(s["directions"])} directions, '
+        'animations: ' + ', '.join(f'{k}({n})' for k, n in s['animations'].items())
     )
     return 0
 
 
 def cmd_pose(a):
     """Quick look: one pose in several directions, zoomed (cheap; use it while modelling)."""
-    import numpy as np
+    from . import api
 
-    from . import spec as S
-    from .export import BG, upscale
-    from .pipeline import frame_image
-
-    sp = _spec(a.spec)
-    _pose_env(sp, a.anim, a.frame)  # checks --anim/--frame before rendering
-    dirs = [d for d in sp['directions'] if not a.dirs or d[0] in a.dirs.split(',')]
-    if a.dirs == 'all' or (not a.dirs and len(sp['directions']) < 8 and sp['kind'] == 'character'):
-        dirs = S.DIRECTIONS8
-    if not dirs:
-        raise SpriteKilnError(f'--dirs {a.dirs}: no such direction (have: {", ".join(d for d, _ in sp["directions"])})')
-    look = _look(a)
+    _spec(a.spec)
     t = time.time()
-    shots = [frame_image(sp, _pose_env(sp, a.anim, a.frame, y), y, maps=look is not None) for _, y in dirs]
-    imgs = [look(img, em) if look else img for img, _, em in shots]
-    out = a.out or os.path.join(sp['_dir'], 'out', f'pose_{a.anim or "rest"}_{a.frame}.png')
-    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-    upscale(np.concatenate(imgs, 1), a.scale, None if look else BG).save(out)
-    print(f'{out}  ({", ".join(d for d, _ in dirs)}; {time.time() - t:.1f}s)')
+    out, dirs = api.pose(a.spec, a.anim, a.frame, a.dirs, a.scale, a.bg, a.tint, a.out)
+    print(f'{out}  ({", ".join(dirs)}; {time.time() - t:.1f}s)')
 
 
 def cmd_render(a):
-    from . import qa
-    from .export import export
-    from .pipeline import render_all
+    from . import api, qa
 
     _spec(a.spec, a.size)  # report spec warnings before the long part
     t = time.time()
-    sp, anims, dlist, out = render_all(
-        os.path.abspath(a.spec),
+    res = api.render(
+        a.spec,
         a.anims.split(',') if a.anims else None,
         a.dirs.split(',') if a.dirs else None,
         a.jobs,
         a.force,
-        progress=True,
         size=a.size,
+        out=a.out,
+        block='pxforge' if a.prog == 'pxforge' else 'spritekiln',
+        bg=a.bg,
+        tint=a.tint,
+        progress=True,
         log=_note,
     )
-    dst = a.out or os.path.join(sp['_dir'], 'out', sp['name'] + (f'_{a.size}' if a.size else ''))
-    export(sp, anims, dlist, out, dst, block='pxforge' if a.prog == 'pxforge' else 'spritekiln', look=_look(a))
-    rep = qa.check(sp, anims, dlist, out)
-    with open(os.path.join(dst, 'qa.json'), 'w', encoding='utf-8') as fh:
-        json.dump(rep, fh, indent=1, ensure_ascii=False)
-    print(f'{len(out)} frames in {time.time() - t:.0f}s -> {dst}')
-    print(qa.summary(rep))
-    print('review: ' + ', '.join(os.path.join(dst, 'preview', f'contact_{x}.png') for x in anims))
-    if a.godot is not None:
-        from .godot import _find_project, export_godot
+    print(f'{res["frames"]} frames in {time.time() - t:.0f}s -> {res["dir"]}')
+    print(qa.summary(res['qa']))
+    print('review: ' + ', '.join(res['contact_sheets'].values()))
+    if a.godot is not None or a.export:
+        w = api.export(a.spec, 'godot' if a.godot is not None else None, res['dir'], project=a.godot or None)
+        print(f'{w["engine"]}: {w.get("scene") or w["dir"]}')
 
-        w = export_godot(sp, _find_project(a.godot or None), render_dir=dst)
-        print(f'godot: {w["scene"]}')
+
+def cmd_export(a):
+    from . import api
+
+    _spec(a.spec)
+    w = api.export(a.spec, a.engine, a.render_dir, a.to, a.project, a.lit)
+    print(f'{w["engine"]}: {w["dir"]}')
+    if w['engine'] == 'godot':
+        print('  scene:', w['scene'])
+        if w.get('addon_installed'):
+            print('  addon installed (enable it in Project > Project Settings > Plugins if needed)')
+    else:
+        for f in w['files']:
+            print('  ', f)
 
 
 def _look(a):
@@ -277,36 +259,24 @@ def cmd_ref(a):
             )
         return
     # compare
-    from . import spec as S
-    from .pipeline import frame_image
+    from . import api
 
-    sp = _spec(a.spec)
-    cut, mask, used = R.cutout(R.load(a.image), tol=a.tol)
-    yaw = dict(S.DIRECTIONS8)[a.dir]
-    spr = frame_image(sp, _pose_env(sp, a.anim, a.frame, yaw), yaw, maps=False)[0]
-    pitch = None if a.no_pitch_correction else float(sp['camera']['pitch'])
-    raw = R.compare_masks(mask, spr[..., 3] == 255)[0]['iou']
-    res, ga, gb = R.compare_masks(mask, spr[..., 3] == 255, pitch)
-    res['iou_raw'] = raw
-    turn = [frame_image(sp, _pose_env(sp, a.anim, a.frame, y), y, maps=False)[0] for _, y in S.DIRECTIONS8]
-    out = a.out or os.path.join(sp['_dir'], 'out', f'compare_{a.dir}.png')
-    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-    R.sheet(
-        cut, spr, turn, (ga, gb), R.ref_palette(cut, mask), sp['materials'], out, f'{sp["name"]} ({a.anim or "rest"})'
+    _spec(a.spec)
+    res = api.ref_compare(a.spec, a.image, a.dir, a.anim, a.frame, not a.no_pitch_correction, a.tol, a.out)
+    corr = (
+        f'reference squashed by cos(camera pitch), raw {res["iou_raw"]:.3f}' if res['pitch'] else 'no pitch correction'
     )
-    with open(os.path.splitext(out)[0] + '.json', 'w', encoding='utf-8') as fh:
-        json.dump(res, fh, indent=1, ensure_ascii=False)
-    corr = f'reference squashed by cos({pitch:g} deg), raw {raw:.3f}' if pitch else 'no pitch correction'
     print(f'silhouette IoU ({a.dir}): {res["iou"]:.3f} ({corr})   (>0.80 great, 0.65-0.80 ok, <0.65 redo proportions)')
     for h in res['hints'][:8]:
         print('  -', h)
-    print('comparison sheet:', out)
+    print('comparison sheet:', res['sheet'])
 
 
 def cmd_godot(a):
+    from . import config
     from .godot import DEFAULT_DEST, _find_project, export_godot, install_addon
 
-    project = _find_project(a.project)
+    project = _find_project(a.project, start=a.spec)
     if a.install_addon:
         install_addon(project, True)
         print('addon installed ->', os.path.join(project, 'addons', 'pxforge'))
@@ -315,7 +285,9 @@ def cmd_godot(a):
     if not a.spec:
         raise SpriteKilnError('give a spec (or use --install-addon alone)')
     sp = _spec(a.spec)
-    w = export_godot(sp, project, a.dest or DEFAULT_DEST, lit=a.lit, update_addon=a.update_addon)
+    cfg = config.load(a.spec)
+    dest = a.dest or (cfg.get('export_dir') if cfg.get('engine') == 'godot' else None) or DEFAULT_DEST
+    w = export_godot(sp, project, dest, lit=a.lit, update_addon=a.update_addon)
     print(f'{sp["name"]} -> {w["res"]}/')
     print('  scene:', w['scene'])
     print('  SpriteFrames:', w['frames'] + ('  (+ _lit, _canvas)' if 'lit' in w else ''))
@@ -330,23 +302,9 @@ def cmd_godot(a):
 
 
 def cmd_new(a):
-    from . import resources
+    from . import api
 
-    tpl = resources.template(a.template)
-    if not tpl:
-        raise SpriteKilnError(f'template not found: {a.template} (available: {", ".join(resources.templates())})')
-    dst_dir = os.path.join(a.dir, a.name)
-    dst = os.path.join(dst_dir, f'{a.name}.yaml')
-    if os.path.exists(dst):
-        raise SpriteKilnError(f'already exists: {dst}')
-    os.makedirs(dst_dir, exist_ok=True)
-    with open(tpl, encoding='utf-8') as fh:
-        txt = fh.read().replace('name: TEMPLATE', f'name: {a.name}')
-    with open(dst, 'w', encoding='utf-8') as fh:
-        fh.write(txt)
-    if a.ref:
-        shutil.copy(a.ref, os.path.join(dst_dir, 'splash' + os.path.splitext(a.ref)[1]))
-    print('created', dst)
+    print('created', api.new(a.name, a.template, a.dir, a.ref))
 
 
 DIRS = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw']
@@ -394,6 +352,7 @@ def build_parser(prog='spritekiln'):
         metavar='PROJECT',
         help='after rendering, export to a Godot project (default: $SPRITEKILN_GODOT_PROJECT)',
     )
+    s.add_argument('--export', action='store_true', help="after rendering, export to the project's engine")
     _preview_args(s)
     s.set_defaults(f=cmd_render)
 
@@ -455,9 +414,18 @@ def build_parser(prog='spritekiln'):
     s = sub.add_parser('new', help='create a spec from a template')
     s.add_argument('name')
     s.add_argument('--template', default='humanoid')
-    s.add_argument('--dir', default=os.path.join('specs', 'characters'))
+    s.add_argument('--dir', help='parent folder (default: <specs of spritekiln.toml>/characters or specs/characters)')
     s.add_argument('--ref', help='splash art to copy next to the spec')
     s.set_defaults(f=cmd_new)
+
+    s = sub.add_parser('export', help='export a rendered spec to the engine of spritekiln.toml (or --engine)')
+    s.add_argument('spec')
+    s.add_argument('--engine', choices=['godot', 'unity', 'monogame', 'generic'])
+    s.add_argument('--to', help='destination folder (godot: inside the project; default from spritekiln.toml)')
+    s.add_argument('--project', help='Godot project folder')
+    s.add_argument('--render-dir', help='render folder (default: <spec dir>/out/<name>)')
+    s.add_argument('--lit', action='store_true', help='godot: the scene uses the normal-mapped SpriteFrames')
+    s.set_defaults(f=cmd_export)
     return p
 
 

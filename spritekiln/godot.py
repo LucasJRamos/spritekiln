@@ -36,10 +36,20 @@ def _res(dest_res, *parts):
     return dest_res.rstrip('/') + '/' + '/'.join(parts)
 
 
-def _find_project(explicit=None):
+def _find_project(explicit=None, start=None):
+    """Godot project folder: --project, then $SPRITEKILN_GODOT_PROJECT / $PXFORGE_GODOT_PROJECT, then the
+    `export.godot_project` of the spritekiln.toml around `start` (a spec path; default: cwd)."""
     p = explicit or os.environ.get('SPRITEKILN_GODOT_PROJECT') or os.environ.get('PXFORGE_GODOT_PROJECT')
     if not p:
-        raise ExportError('no Godot project: use --project <folder> or set SPRITEKILN_GODOT_PROJECT')
+        from . import config
+
+        cfg = config.load(start)
+        if cfg.get('engine') == 'godot':
+            p = cfg['godot_project']
+    if not p:
+        raise ExportError(
+            'no Godot project: use --project <folder>, set SPRITEKILN_GODOT_PROJECT, or run `spritekiln init`'
+        )
     p = os.path.abspath(p)
     if not os.path.exists(os.path.join(p, 'project.godot')):
         raise ExportError(f'not a Godot project (no project.godot): {p}')
