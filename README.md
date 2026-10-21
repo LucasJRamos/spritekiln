@@ -6,7 +6,7 @@ ser operado por agentes do Claude (Opus) — veja `CLAUDE.md` e `.claude/`.
 
 ## Instalar
 ```
-pip install -r requirements.txt        # numpy, pillow, pyyaml (opcional: rembg para splash arts)
+pip install -e .            # numpy, pillow, pyyaml; extras: .[splash] (rembg), .[dev] (pytest, ruff)
 ```
 
 ## Usar

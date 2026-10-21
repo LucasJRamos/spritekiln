@@ -1,9 +1,9 @@
-pxforge: 1
+spritekiln: 1
 name: TEMPLATE
 kind: character
 size: 64
 directions: 8
-palette: ../palettes/gothic.yaml
+palette: gothic                 # built-in palette (or a path, or a list)
 camera: {pitch: 38, scale: 0.040, center: [0, 0.95, 0]}
 shadow: {rx: 10, ry: 3.5, alpha: 120}
 

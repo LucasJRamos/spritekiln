@@ -4,6 +4,8 @@ import os
 import re
 import yaml
 
+from . import resources
+
 DIRECTIONS8 = [('s', 0), ('se', 45), ('e', 90), ('ne', 135), ('n', 180), ('nw', -135), ('w', -90), ('sw', -45)]
 DIRECTIONS4 = [('s', 0), ('e', 90), ('n', 180), ('w', -90)]
 
@@ -71,9 +73,7 @@ def load_palette(ref, base_dir):
         return ref
     path = ref if os.path.isabs(ref) else os.path.join(base_dir, ref)
     if not os.path.exists(path):
-        alt = os.path.join(os.path.dirname(__file__), '..', 'specs', 'palettes', os.path.basename(ref))
-        if os.path.exists(alt):
-            path = alt
+        path = resources.builtin_palette(ref) or path      # `palette: gothic` or a moved shared palette
     with open(path, encoding='utf-8') as fh:
         data = yload(fh)
     return data.get('ramps', data)

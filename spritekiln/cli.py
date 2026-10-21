@@ -160,18 +160,16 @@ def cmd_godot(a):
 
 
 def cmd_new(a):
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    tpl = os.path.join(root, 'specs', 'templates', f'{a.template}.yaml')
-    if not os.path.exists(tpl):
-        sys.exit(f'template não encontrado: {tpl}')
+    from . import resources
+    tpl = resources.template(a.template)
+    if not tpl:
+        sys.exit(f'template não encontrado: {a.template} (disponíveis: {", ".join(resources.templates())})')
     dst_dir = os.path.join(a.dir, a.name)
     os.makedirs(dst_dir, exist_ok=True)
     dst = os.path.join(dst_dir, f'{a.name}.yaml')
     if os.path.exists(dst):
         sys.exit(f'já existe: {dst}')
     txt = open(tpl, encoding='utf-8').read().replace('name: TEMPLATE', f'name: {a.name}')
-    rel = os.path.relpath(os.path.join(root, 'specs', 'palettes'), dst_dir).replace('\\', '/')
-    txt = txt.replace('palette: ../palettes/', f'palette: {rel}/')
     open(dst, 'w', encoding='utf-8').write(txt)
     if a.ref:
         shutil.copy(a.ref, os.path.join(dst_dir, 'splash' + os.path.splitext(a.ref)[1]))

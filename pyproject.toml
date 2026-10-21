@@ -1,24 +1,74 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
 [project]
 name = "spritekiln"
-version = "0.1.0"
-description = "SDF 3D -> pixel art animada em 8 direções"
+dynamic = ["version"]
+description = "Animated 8-direction pixel-art sprites from procedural 3D models described in YAML, built to be driven by coding AIs"
+readme = "README.md"
 requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE", "LICENSES/*"]
+authors = [{ name = "Lucas Ramos" }]
+keywords = ["pixel-art", "sprites", "spritesheet", "gamedev", "sdf", "procedural", "top-down", "godot", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Games/Entertainment",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Graphics :: 3D Rendering",
+]
 dependencies = ["numpy>=1.24", "pillow>=10.0", "pyyaml>=6.0"]
 
 [project.optional-dependencies]
-splash = ["rembg[cpu]"]
-dev = ["pytest>=8"]
+splash = ["rembg[cpu]"]          # better background removal for splash arts (`ref prep`)
+mcp = ["mcp>=1.2"]               # `spritekiln mcp` server (Phase 3 of docs/LAUNCH.md)
+dev = ["pytest>=8", "ruff>=0.6", "jsonschema>=4.18"]
+
+[project.urls]
+Homepage = "https://github.com/LucasJRamos/spritekiln"
+Issues = "https://github.com/LucasJRamos/spritekiln/issues"
 
 [project.scripts]
 spritekiln = "spritekiln.cli:main"
 pxforge = "pxforge.cli:main"
 
-[build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
+[tool.hatch.version]
+path = "spritekiln/__init__.py"
 
-[tool.setuptools]
+[tool.hatch.build.targets.wheel]
 packages = ["spritekiln", "pxforge"]
+
+# Built-in resources live where the repository uses them; the wheel carries copies in spritekiln/data/.
+[tool.hatch.build.targets.wheel.force-include]
+"specs/palettes/gothic.yaml" = "spritekiln/data/palettes/gothic.yaml"
+"specs/palettes/props.yaml" = "spritekiln/data/palettes/props.yaml"
+"specs/templates/humanoid.yaml" = "spritekiln/data/templates/humanoid.yaml"
+"integrations/godot/addons/pxforge" = "spritekiln/data/godot/addons/pxforge"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "spritekiln/",
+    "pxforge/",
+    "tests/",
+    "specs/palettes/gothic.yaml",
+    "specs/palettes/props.yaml",
+    "specs/templates/",
+    "specs/characters/gargula/gargula.yaml",
+    "integrations/",
+    "LICENSE",
+    "LICENSES/",
+    "README.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

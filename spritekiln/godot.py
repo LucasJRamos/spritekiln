@@ -14,8 +14,9 @@ import json
 import os
 import shutil
 
-ADDON_SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                         'integrations', 'godot', 'addons', 'pxforge')
+from . import resources
+
+ADDON_SRC = resources.data_dir('godot_addon')
 DEFAULT_DEST = 'assets/pxforge'
 
 
