@@ -49,3 +49,10 @@ specs/          palettes/ · templates/humanoid.yaml · characters/gargula · ch
 docs/ROADMAP.md tiles, props, VFX, iluminação
 legacy/         primeira versão (scripts da gárgula 4 direções), só referência
 ```
+
+## License
+Code, docs and integrations: [MIT](LICENSE). Example assets (gargoyle, cacador, props, the humanoid
+template, the gothic/props palettes): [CC0 1.0](LICENSES/CC0-1.0.txt). Showcase assets (Templar and
+Huntress from Hunt Tower: specs, splash arts, palettes, renders): © 2026 Lucas Ramos / PlayRPG, all
+rights reserved, included for demonstration only ([terms](LICENSES/LicenseRef-Showcase.txt)).
+[`REUSE.toml`](REUSE.toml) maps every path to its license.
