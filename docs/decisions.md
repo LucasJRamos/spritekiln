@@ -27,8 +27,8 @@ matters at launch, move the scope note to the README and keep `LICENSE` as plain
 Amended 2026-10-21: the `mine` prop moves to the showcase. It belongs to the Huntress's kit and uses her
 palette, so it could not be reused as CC0 anyway.
 
-The cacador's `splash_teste.jpg` looks like an upscaled render of the cacador spec itself, so it follows
-the example license (CC0). Confirm before launch.
+The cacador's `splash_teste.jpg` is the toolkit's own output (confirmed by the maintainer on 2026-10-21),
+so it follows the example license (CC0).
 
 ## ADR-004: Python 3.10+ (2026-10-21)
 `requires-python = ">=3.10"`; CI covers 3.10 to 3.13. Python 3.10 reaches end of life in October 2026;
@@ -41,8 +41,8 @@ Unity 6000.3.6f1 and 6000.4.0f1 are installed on the dev machine. The UPM packag
 ## ADR-006: What stays out of the repository (2026-10-21)
 - `legacy/` (first prototype, imported by nothing) and `research/` (raw Hunt Tower session material with
   game captures and scratchpad paths) are local-only, via `.git/info/exclude`. Phase 2 ports the research
-  scripts into `review`; Phase 5 copies chosen images into `showcase/`. Deleting `legacy/` is the
-  maintainer's call.
+  scripts into `review`; Phase 5 copies chosen images into `showcase/`. `legacy/` was deleted from
+  disk on 2026-10-21 at the maintainer's request.
 - `out/`, `.pxcache/` and `ref prep` output folders (`specs/**/*_ref/`) are ignored.
 - Showcase files stay at their current paths (`specs/characters/{templar,huntress}`) until Phase 5/6,
   because Hunt Tower's workflow refers to them.

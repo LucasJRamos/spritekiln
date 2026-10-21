@@ -50,10 +50,11 @@ demonstration only** (ADR-003) · Unity validation on **6000.3** (ADR-005) · **
 Also answered on 2026-10-21: private repository `LucasJRamos/spritekiln` created and pushed (public at
 launch); the `mine` prop moved to the showcase license; the old `.pxcache/` folders (1.37 GB) deleted.
 
+Answered later on 2026-10-21: `legacy/` deleted from disk; the cacador's `splash_teste.jpg` is the
+toolkit's own output (CC0).
+
 ## Open questions (maintainer)
-- Delete `legacy/` from disk, or keep it locally (it is already out of git)?
-- Where does the cacador's `splash_teste.jpg` come from? It ships as CC0 only if it is a render of the
-  cacador itself or the maintainer's own image; otherwise it must be removed.
+- None.
 
 ## Audit (2026-10-21)
 State: ~2,270 lines of Python (`pxforge/`), no git, no tests, no CI, no license. Code untouched since
