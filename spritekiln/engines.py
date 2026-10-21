@@ -8,7 +8,7 @@ from . import config
 from .errors import ExportError
 
 
-def export_asset(spec, cfg=None, engine=None, render_dir=None, dest=None, project=None, lit=False):
+def export_asset(spec, cfg=None, engine=None, render_dir=None, dest=None, project=None, lit=False, legacy=False):
     """Export `spec`'s render (default: <spec dir>/out/<name>) for `engine` (default: spritekiln.toml's, else
     generic). Returns a dict with what was written."""
     cfg = config.load(spec['_path']) if cfg is None else cfg
@@ -21,10 +21,11 @@ def export_asset(spec, cfg=None, engine=None, render_dir=None, dest=None, projec
     if not os.path.exists(jpath):
         raise ExportError(f'render not found: {jpath}  (run `spritekiln render` first)')
     if engine == 'godot':
-        from .godot import DEFAULT_DEST, _find_project, export_godot
+        from .godot import _find_project, export_godot
 
         proj = _find_project(project, start=spec['_path'])
-        written = export_godot(spec, proj, dest or cfg.get('export_dir') or DEFAULT_DEST, lit=lit, render_dir=src)
+        addon = 'pxforge' if legacy else 'spritekiln'
+        written = export_godot(spec, proj, dest or cfg.get('export_dir'), lit=lit, render_dir=src, addon=addon)
         return dict(engine=engine, dir=os.path.join(proj, *written['res'][6:].split('/')), **written)
     base = dest or cfg.get('export_dir') or config.EXPORT_DIRS[engine]
     if not os.path.isabs(base):

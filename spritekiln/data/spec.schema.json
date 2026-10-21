@@ -22,6 +22,11 @@
         {"type": "array", "items": {"$ref": "#/$defs/direction"}, "minItems": 1, "uniqueItems": true}
       ]
     },
+    "mirror": {
+      "type": "boolean",
+      "default": false,
+      "description": "Do not render left-facing directions (w, sw, nw): engines flip their right-facing twins (half the atlas). The fixed world light then comes from the other side on flipped frames."
+    },
     "palette": {
       "description": "Palette file(s) relative to the spec, built-in palette names (gothic, props) or inline ramps.",
       "anyOf": [

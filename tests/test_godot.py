@@ -46,25 +46,33 @@ def test_legacy_command_writes_the_old_block_key(rendered):
     assert new['spritekiln']['camera']['ground_k'] == 0.6157
 
 
-@pytest.mark.parametrize('variant', ['new', 'legacy'])
-def test_export_matches_goldens(tmp_path, rendered, update_golden, variant):
+@pytest.mark.parametrize(
+    'variant, addon, golden_dir',
+    [
+        ('new', 'spritekiln', 'godot'),  # KilnSprite2D, assets/spritekiln
+        ('legacy', 'pxforge', 'godot_legacy'),  # what Hunt Tower gets from `pxforge`: must not change until Phase 6
+    ],
+)
+def test_export_matches_goldens(tmp_path, rendered, update_golden, variant, addon, golden_dir):
     tmp, spec_path = rendered
     project = _project(tmp_path / 'game')
-    w = export_godot(S.load(spec_path), project, render_dir=str(tmp / variant / 'minimal'))
-    out = os.path.join(project, 'assets', 'pxforge', 'minimal')
-    assert w['res'] == 'res://assets/pxforge/minimal' and w['addon_installed']
-    assert os.path.exists(os.path.join(project, 'addons', 'pxforge', 'px_sprite_2d.gd'))
+    w = export_godot(S.load(spec_path), project, render_dir=str(tmp / variant / 'minimal'), addon=addon)
+    dest = 'assets/spritekiln' if addon == 'spritekiln' else 'assets/pxforge'
+    out = os.path.join(project, *dest.split('/'), 'minimal')
+    assert w['res'] == f'res://{dest}/minimal' and w['addon_installed']
+    script = 'kiln_sprite_2d.gd' if addon == 'spritekiln' else 'px_sprite_2d.gd'
+    assert os.path.exists(os.path.join(project, 'addons', addon, script))
     for name in GODOT_FILES:
         with open(os.path.join(out, name), encoding='utf-8') as fh:
             text = fh.read()
-        golden = os.path.join(GOLDEN, 'godot', name)
-        if update_golden and variant == 'new':
+        golden = os.path.join(GOLDEN, golden_dir, name)
+        if update_golden and addon == 'spritekiln':
             os.makedirs(os.path.dirname(golden), exist_ok=True)
             with open(golden, 'w', encoding='utf-8', newline='\n') as fh:
                 fh.write(text)
             continue
         with open(golden, encoding='utf-8') as fh:
-            assert text == fh.read(), f'{name} differs from tests/golden/godot/{name}'
+            assert text == fh.read(), f'{name} differs from tests/golden/{golden_dir}/{name}'
 
 
 def test_block_and_errors(tmp_path):

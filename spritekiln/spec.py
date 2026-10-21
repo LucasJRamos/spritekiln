@@ -178,6 +178,12 @@ def load(path, size=None):
         s['directions'] = [(x, lut[x]) for x in d]
     else:
         raise SpecError('directions must be 1, 4, 8 or a list like [s, e, n, w]')
+    s['mirrors'] = {}
+    if s.get('mirror'):  # left-facing directions become flipped copies of their right-facing twins
+        names = {y: n for n, y in s['directions']}
+        s['mirrors'] = {n: names[-y] for n, y in s['directions'] if y < 0 and -y in names}
+        s['mirrored_yaw'] = {n: y for n, y in s['directions'] if n in s['mirrors']}
+        s['directions'] = [(n, y) for n, y in s['directions'] if n not in s['mirrors']]
 
     ramps = {}
     for p in (s.get('palette') or []) if isinstance(s.get('palette'), list) else [s.get('palette')]:

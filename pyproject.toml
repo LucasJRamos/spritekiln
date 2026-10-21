@@ -54,6 +54,7 @@ packages = ["spritekiln", "pxforge"]
 "specs/palettes/props.yaml" = "spritekiln/data/palettes/props.yaml"
 "specs/templates/humanoid.yaml" = "spritekiln/data/templates/humanoid.yaml"
 "integrations/godot/addons/pxforge" = "spritekiln/data/godot/addons/pxforge"
+"integrations/godot/addons/spritekiln" = "spritekiln/data/godot/addons/spritekiln"
 "docs/agent" = "spritekiln/data/agent"
 
 [tool.hatch.build.targets.sdist]

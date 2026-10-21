@@ -163,11 +163,13 @@ def render(
     )
 
 
-def export(path, engine=None, render_dir=None, dest=None, project=None, lit=False):
-    """Export a rendered spec to the engine of spritekiln.toml (or `engine`)."""
+def export(path, engine=None, render_dir=None, dest=None, project=None, lit=False, legacy=False):
+    """Export a rendered spec to the engine of spritekiln.toml (or `engine`). `legacy`: Godot scenes use the
+    old PxSprite2D addon (projects driven by the `pxforge` command)."""
     from .engines import export_asset
 
-    return export_asset(specmod.load(path), engine=engine, render_dir=render_dir, dest=dest, project=project, lit=lit)
+    sp = specmod.load(path)
+    return export_asset(sp, engine=engine, render_dir=render_dir, dest=dest, project=project, lit=lit, legacy=legacy)
 
 
 def ref_compare(path, image, direction='s', anim=None, frame=0, pitch_correction=True, tol=None, out=None):

@@ -18,7 +18,12 @@ import shutil
 from . import resources
 from .errors import ExportError
 
-ADDON_SRC = resources.data_dir('godot_addon')
+# addon name -> (node script, default destination inside the project, source folder)
+ADDONS = {
+    'spritekiln': ('kiln_sprite_2d.gd', 'assets/spritekiln', resources.data_dir('godot_kiln_addon')),
+    'pxforge': ('px_sprite_2d.gd', 'assets/pxforge', resources.data_dir('godot_addon')),  # Hunt Tower until Phase 6
+}
+ADDON_SRC = ADDONS['pxforge'][2]
 DEFAULT_DEST = 'assets/pxforge'
 
 
@@ -56,16 +61,17 @@ def _find_project(explicit=None, start=None):
     return p
 
 
-def install_addon(project, update=False):
-    dst = os.path.join(project, 'addons', 'pxforge')
+def install_addon(project, update=False, addon='spritekiln'):
+    src = ADDONS[addon][2]
+    dst = os.path.join(project, 'addons', addon)
     if os.path.exists(dst) and not update:
         return False
-    if not os.path.exists(ADDON_SRC):
-        raise ExportError(f'Godot addon not found in {ADDON_SRC}')
+    if not os.path.exists(src):
+        raise ExportError(f'Godot addon not found in {src}')
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     if os.path.exists(dst):
         shutil.rmtree(dst)
-    shutil.copytree(ADDON_SRC, dst, ignore=shutil.ignore_patterns('*.uid', '.godot'))
+    shutil.copytree(src, dst, ignore=shutil.ignore_patterns('*.uid', '.godot'))
     return True
 
 
@@ -111,9 +117,10 @@ def _canvas_texture_tres(diffuse_res, normal_res):
     )
 
 
-def _scene_tscn(name, frames_res, json_res, emissive_res, pivot, first_anim):
+def _scene_tscn(name, frames_res, json_res, emissive_res, pivot, first_anim, addon='pxforge', start=None):
+    script = f'res://addons/{addon}/{ADDONS[addon][0]}'
     ext = [
-        '[ext_resource type="Script" path="res://addons/pxforge/px_sprite_2d.gd" id="1_script"]',
+        f'[ext_resource type="Script" path="{script}" id="1_script"]',
         f'[ext_resource type="SpriteFrames" path={_q(frames_res)} id="2_frames"]',
         f'[ext_resource type="JSON" path={_q(json_res)} id="3_sheet"]',
     ]
@@ -131,6 +138,8 @@ def _scene_tscn(name, frames_res, json_res, emissive_res, pivot, first_anim):
     ]
     if emissive_res:
         body.append('emissive_frames = ExtResource("4_emissive")')
+    if start:  # KilnSprite2D: the clip to start with (a side view has no `s` direction)
+        body += [f'anim = &"{start[0]}"', f'facing = &"{start[1]}"']
     return f'[gd_scene load_steps={len(ext) + 1} format=3]\n\n' + '\n'.join(ext) + '\n\n' + '\n'.join(body) + '\n'
 
 
@@ -149,8 +158,10 @@ def _has_pixels(png):
         return os.path.exists(png)
 
 
-def export_godot(spec, project, dest=DEFAULT_DEST, lit=False, update_addon=False, render_dir=None):
-    """spec: loaded spec dict (needs name/_dir). Returns dict with written paths."""
+def export_godot(spec, project, dest=None, lit=False, update_addon=False, render_dir=None, addon='spritekiln'):
+    """spec: loaded spec dict (needs name/_dir). `addon`: 'spritekiln' (KilnSprite2D) or 'pxforge' (the legacy
+    PxSprite2D Hunt Tower uses). Returns dict with written paths."""
+    dest = dest or ADDONS[addon][1]
     name = spec['name']
     src = render_dir or os.path.join(spec['_dir'], 'out', name)
     jpath = os.path.join(src, f'{name}.json')
@@ -211,10 +222,19 @@ def export_godot(spec, project, dest=DEFAULT_DEST, lit=False, update_addon=False
     frames_res = lit_frames_res if (lit and lit_frames_res) else _res(res, f'{name}.tres')
     _write(
         scene_path,
-        _scene_tscn(name, frames_res, _res(res, f'{name}.json'), emissive_res, px['pivot'], f'{first}_{first_dir}'),
+        _scene_tscn(
+            name,
+            frames_res,
+            _res(res, f'{name}.json'),
+            emissive_res,
+            px['pivot'],
+            f'{first}_{first_dir}',
+            addon,
+            None if addon == 'pxforge' else (first, first_dir),
+        ),
     )
     written['scene'] = scene_path
 
-    written['addon_installed'] = install_addon(project, update_addon)
+    written['addon_installed'] = install_addon(project, update_addon, addon)
     written['res'] = res
     return written

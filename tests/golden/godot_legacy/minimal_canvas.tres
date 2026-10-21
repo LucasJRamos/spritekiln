@@ -1,0 +1,8 @@
+[gd_resource type="CanvasTexture" load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/pxforge/minimal/minimal.png" id="1"]
+[ext_resource type="Texture2D" path="res://assets/pxforge/minimal/minimal_normal.png" id="2"]
+
+[resource]
+diffuse_texture = ExtResource("1")
+normal_texture = ExtResource("2")

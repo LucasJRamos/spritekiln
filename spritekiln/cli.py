@@ -80,7 +80,8 @@ def cmd_render(a):
     print(qa.summary(res['qa']))
     print('review: ' + ', '.join(res['contact_sheets'].values()))
     if a.godot is not None or a.export:
-        w = api.export(a.spec, 'godot' if a.godot is not None else None, res['dir'], project=a.godot or None)
+        engine = 'godot' if a.godot is not None else None
+        w = api.export(a.spec, engine, res['dir'], project=a.godot or None, legacy=a.prog == 'pxforge')
         print(f'{w["engine"]}: {w.get("scene") or w["dir"]}')
 
 
@@ -88,7 +89,7 @@ def cmd_export(a):
     from . import api
 
     _spec(a.spec)
-    w = api.export(a.spec, a.engine, a.render_dir, a.to, a.project, a.lit)
+    w = api.export(a.spec, a.engine, a.render_dir, a.to, a.project, a.lit, legacy=a.prog == 'pxforge')
     print(f'{w["engine"]}: {w["dir"]}')
     if w['engine'] == 'godot':
         print('  scene:', w['scene'])
@@ -292,20 +293,21 @@ def cmd_ref(a):
 
 def cmd_godot(a):
     from . import config
-    from .godot import DEFAULT_DEST, _find_project, export_godot, install_addon
+    from .godot import ADDONS, _find_project, export_godot, install_addon
 
+    addon = 'pxforge' if a.prog == 'pxforge' else 'spritekiln'  # the old command keeps Hunt Tower's PxSprite2D
     project = _find_project(a.project, start=a.spec)
     if a.install_addon:
-        install_addon(project, True)
-        print('addon installed ->', os.path.join(project, 'addons', 'pxforge'))
+        install_addon(project, True, addon)
+        print('addon installed ->', os.path.join(project, 'addons', addon))
         if not a.spec:
             return
     if not a.spec:
         raise SpriteKilnError('give a spec (or use --install-addon alone)')
     sp = _spec(a.spec)
     cfg = config.load(a.spec)
-    dest = a.dest or (cfg.get('export_dir') if cfg.get('engine') == 'godot' else None) or DEFAULT_DEST
-    w = export_godot(sp, project, dest, lit=a.lit, update_addon=a.update_addon)
+    dest = a.dest or (cfg.get('export_dir') if cfg.get('engine') == 'godot' else None) or ADDONS[addon][1]
+    w = export_godot(sp, project, dest, lit=a.lit, update_addon=a.update_addon, addon=addon)
     print(f'{sp["name"]} -> {w["res"]}/')
     print('  scene:', w['scene'])
     print('  SpriteFrames:', w['frames'] + ('  (+ _lit, _canvas)' if 'lit' in w else ''))
@@ -314,7 +316,7 @@ def cmd_godot(a):
     if w['addon_installed']:
         print(
             '  addon installed in',
-            os.path.join(project, 'addons', 'pxforge'),
+            os.path.join(project, 'addons', addon),
             '(enable it in Project > Project Settings > Plugins if needed)',
         )
 
@@ -377,9 +379,9 @@ def build_parser(prog='spritekiln'):
     s = sub.add_parser('godot', help='export a rendered spec to a Godot 4 project (SpriteFrames + scene)')
     s.add_argument('spec', nargs='?')
     s.add_argument('--project', help='folder with project.godot (default: $SPRITEKILN_GODOT_PROJECT)')
-    s.add_argument('--dest', help='folder inside the project (default: assets/pxforge)')
+    s.add_argument('--dest', help='folder inside the project (default: assets/spritekiln)')
     s.add_argument('--lit', action='store_true', help='the scene uses the SpriteFrames with the normal map (Light2D)')
-    s.add_argument('--install-addon', action='store_true', help='install/update addons/pxforge in the project')
+    s.add_argument('--install-addon', action='store_true', help='install/update addons/spritekiln in the project')
     s.add_argument('--update-addon', action='store_true', help='overwrite the addon in the project when exporting')
     s.set_defaults(f=cmd_godot)
 

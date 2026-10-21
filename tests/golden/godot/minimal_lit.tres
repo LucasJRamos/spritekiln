@@ -1,6 +1,6 @@
 [gd_resource type="SpriteFrames" load_steps=34 format=3]
 
-[ext_resource type="CanvasTexture" path="res://assets/pxforge/minimal/minimal_canvas.tres" id="1_atlas"]
+[ext_resource type="CanvasTexture" path="res://assets/spritekiln/minimal/minimal_canvas.tres" id="1_atlas"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_0"]
 atlas = ExtResource("1_atlas")

@@ -114,4 +114,4 @@ def test_phase3_criterion_codex_project_through_mcp(tmp_path):
     assert rendered['qa']['ok'] and rendered['frames'] == 12
     assert exported['engine'] == 'godot' and exported['res'] == 'res://assets/spritekiln/hero'
     assert (game / 'assets' / 'spritekiln' / 'hero' / 'hero.tscn').exists()
-    assert (game / 'addons' / 'pxforge' / 'px_sprite_2d.gd').exists()
+    assert (game / 'addons' / 'spritekiln' / 'kiln_sprite_2d.gd').exists()

@@ -119,7 +119,7 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln', look=N
             'frame_size': S,
             'pivot': {'x': round(px, 2), 'y': round(py, 2)},
             'directions': [d for d, _ in dlist],
-            'direction_yaw': {d: y for d, y in dlist},
+            'direction_yaw': {d: y for d, y in dlist} | spec.get('mirrored_yaw', {}),
             'view': spec.get('view', 'topdown'),
             'camera': camera_info(spec, cam),
             'normal_map': f'{name}_normal.png',
@@ -129,6 +129,8 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln', look=N
     }
     if spec.get('sockets'):
         meta[block]['sockets'] = list(spec['sockets'])
+    if spec.get('mirrors'):
+        meta[block]['mirrors'] = dict(spec['mirrors'])  # direction -> rendered direction to flip horizontally
     idx = 0
     for r, (a, d) in enumerate(rows):
         n = len([k for k in out if k[0] == a and k[1] == d])

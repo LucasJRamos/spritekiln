@@ -1,0 +1,16 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://addons/pxforge/px_sprite_2d.gd" id="1_script"]
+[ext_resource type="SpriteFrames" path="res://assets/pxforge/minimal/minimal.tres" id="2_frames"]
+[ext_resource type="JSON" path="res://assets/pxforge/minimal/minimal.json" id="3_sheet"]
+[ext_resource type="SpriteFrames" path="res://assets/pxforge/minimal/minimal_emissive.tres" id="4_emissive"]
+
+[node name="minimal" type="AnimatedSprite2D"]
+texture_filter = 1
+sprite_frames = ExtResource("2_frames")
+animation = &"idle_s"
+centered = false
+offset = Vector2(-16, -24)
+script = ExtResource("1_script")
+sheet = ExtResource("3_sheet")
+emissive_frames = ExtResource("4_emissive")
