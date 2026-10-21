@@ -115,3 +115,58 @@ def test_addon_in_godot(tmp_path):
     assert west == pytest.approx(-east) and same_y
     assert r['face_left'] == 'w'
     assert r['side'][0] == 'e' and r['side'][1] == 'idle_e' and r['side'][2] == ['e', 'w']
+
+
+EXAMPLE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'examples', 'godot')
+DRIVE = r"""
+extends SceneTree
+
+var t := 0
+var log := []
+
+
+func _initialize() -> void:
+	change_scene_to_file("res://main.tscn")
+
+
+func _process(_d: float) -> bool:
+	t += 1
+	if t == 2:
+		var sprite = current_scene.get_node("Player/Gargula")
+		sprite.anim_event.connect(func(a, e): log.append("%s:%s" % [a, e]))
+		sprite.anim_finished.connect(func(a): log.append("finished:%s" % a))
+	if t == 5:
+		Input.action_press(&"ui_right")
+	if t == 60:
+		Input.action_release(&"ui_right")
+		Input.action_press(&"ui_accept")
+	if t == 62:
+		Input.action_release(&"ui_accept")
+	if t == 130:
+		var p = current_scene.get_node("Player")
+		var s = p.get_node("Gargula")
+		log.append("x>0:%s facing:%s anim:%s" % [p.position.x > 0, s.facing, s.anim])
+		print("PXRESULT " + JSON.stringify(log))
+		return true
+	return false
+"""
+
+
+def test_example_project_runs(tmp_path):
+    game = tmp_path / 'example'
+    shutil.copytree(EXAMPLE, game, ignore=shutil.ignore_patterns('.godot', '*.import', '*.uid'))
+    (game / 'drive.gd').write_text(DRIVE.lstrip(), encoding='utf-8')
+    subprocess.run([GODOT, '--headless', '--path', str(game), '--import'], capture_output=True, timeout=300)
+    out = subprocess.run(
+        [GODOT, '--headless', '--path', str(game), '--script', 'res://drive.gd', '--fixed-fps', '60'],
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    line = next((ln for ln in out.stdout.splitlines() if ln.startswith('PXRESULT ')), None)
+    assert line, out.stdout[-2000:] + out.stderr[-2000:]
+    assert 'SCRIPT ERROR' not in out.stdout + out.stderr
+    log = json.loads(line[len('PXRESULT ') :])
+    # walk steps, then the attack's windup, hit and end (845 ms = 51 ticks), back to idle facing east
+    assert log[:2] == ['walk:step_l', 'walk:step_r']
+    assert log[-4:] == ['attack:windup', 'attack:hit', 'finished:attack', 'x>0:true facing:e anim:idle']

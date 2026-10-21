@@ -1,0 +1,27 @@
+; SpriteKiln example: a gargoyle that walks and attacks in 8 directions.
+
+config_version=5
+
+[application]
+
+config/name="SpriteKiln example"
+config/description="A SpriteKiln sprite (KilnSprite2D) with directions, events, a socket, a normal map and emissive eyes."
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.2")
+
+[display]
+
+window/size/viewport_width=320
+window/size/viewport_height=180
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="viewport"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/spritekiln/plugin.cfg")
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+2d/snap/snap_2d_transforms_to_pixel=true

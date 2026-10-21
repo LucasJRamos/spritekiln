@@ -296,11 +296,12 @@ func _socket_data(socket: StringName):
 
 
 func _fire_events(f: int) -> void:
-	var A: Dictionary = _anims.get(anim, {})
+	var current := anim  # a copy: Godot hands the member itself to every listener, and one may change it
+	var A: Dictionary = _anims.get(current, {})
 	var per: Dictionary = A.get("events", {}).get(_mirrors.get(facing, facing), {})
 	if per.has(f):
 		for e in per[f]:
-			anim_event.emit(anim, e)
+			anim_event.emit(current, e)
 
 
 func _on_frame_changed() -> void:
@@ -311,7 +312,8 @@ func _on_frame_changed() -> void:
 
 
 func _on_animation_finished() -> void:
-	anim_finished.emit(anim)
+	var current := anim  # a copy (see _fire_events)
+	anim_finished.emit(current)
 
 
 func _setup_emissive() -> void:

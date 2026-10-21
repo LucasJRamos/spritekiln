@@ -12,6 +12,7 @@ kind: character          # character | prop
 view: topdown            # topdown (3/4, 8 directions) | side (side-scroller profile, e and w)
 size: 64                 # frame size in px (32/48/64/96/128); `render --size` rescales without editing
 directions: 8            # 1 | 4 | 8 | [s, e, n, w]
+mirror: false            # true: render only the right-facing half; engines flip it for the left (optional)
 palette: gothic          # built-in name, file path(s) relative to the spec, or a list
 camera: {pitch: 38, scale: 0.050, center: [0, 1.0, 0]}   # scale = world units per pixel
 shadow: {rx: 13.5, ry: 4.5, alpha: 120}                  # ground ellipse in px; `shadow: null` turns it off
@@ -38,6 +39,13 @@ review: {...}            # art-direction targets, QA warnings (optional)
 
 Everything else (modeling, animation, sockets, timing, review, export) works the same way. A small tilt
 (`camera: {pitch: 10}`) gives a side view that shows a little of the top. Keep one view per game.
+
+## Mirrored directions
+`mirror: true` renders only the directions that face right or straight up/down (`s, se, e, ne, n`, or `e`
+in a side view) and exports the left-facing ones (`sw, w, nw`) as flipped copies of their twins: about
+40% less atlas and render time. The engine runtimes flip the sprite and the sockets. Use it only for
+symmetric designs: a sword in the right hand switches hands in the mirrored directions, and the light
+comes from the other side.
 
 ## Units and axes
 - The world is in "game metres": a human is 1.6–1.9 tall. The ground is `y = 0`.

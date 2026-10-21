@@ -1,0 +1,84 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://player.gd" id="1_player"]
+[ext_resource type="PackedScene" path="res://assets/spritekiln/gargula/gargula.tscn" id="2_gargula"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_feet"]
+radius = 6.0
+
+[sub_resource type="Gradient" id="Gradient_light"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
+size = Vector2(320, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_side"]
+size = Vector2(16, 180)
+
+[node name="Main" type="Node2D"]
+y_sort_enabled = true
+
+[node name="Floor" type="ColorRect" parent="."]
+offset_left = -160.0
+offset_top = -90.0
+offset_right = 160.0
+offset_bottom = 90.0
+z_index = -1
+color = Color(0.32, 0.3, 0.36, 1)
+
+[node name="Camera" type="Camera2D" parent="."]
+
+[node name="Dark" type="CanvasModulate" parent="."]
+color = Color(0.42, 0.4, 0.52, 1)
+
+[node name="Walls" type="StaticBody2D" parent="."]
+
+[node name="Top" type="CollisionShape2D" parent="Walls"]
+position = Vector2(0, -68)
+shape = SubResource("RectangleShape2D_wall")
+
+[node name="Bottom" type="CollisionShape2D" parent="Walls"]
+position = Vector2(0, 88)
+shape = SubResource("RectangleShape2D_wall")
+
+[node name="Left" type="CollisionShape2D" parent="Walls"]
+position = Vector2(-158, 0)
+shape = SubResource("RectangleShape2D_side")
+
+[node name="Right" type="CollisionShape2D" parent="Walls"]
+position = Vector2(158, 0)
+shape = SubResource("RectangleShape2D_side")
+
+[node name="Statue" parent="." instance=ExtResource("2_gargula")]
+position = Vector2(-80, -20)
+facing = &"se"
+
+[node name="Statue2" parent="." instance=ExtResource("2_gargula")]
+position = Vector2(85, 45)
+facing = &"w"
+
+[node name="Player" type="CharacterBody2D" parent="."]
+motion_mode = 1
+script = ExtResource("1_player")
+
+[node name="Gargula" parent="Player" instance=ExtResource("2_gargula")]
+
+[node name="Feet" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_feet")
+
+[node name="Light" type="PointLight2D" parent="Player"]
+position = Vector2(-24, -40)
+color = Color(1, 0.86, 0.68, 1)
+energy = 0.9
+texture = SubResource("GradientTexture2D_light")
+texture_scale = 0.7
+height = 40.0

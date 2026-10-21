@@ -202,6 +202,11 @@ parts:
       - arc: {c: "[0, smear_y, smear_z]", r: smear_r, a0: smear_a0, a1: smear_a1, width: smear_w, fade: smear_fade, dip: 0.12}
 
 # ---------------------------------------------------------------- animations
+# attachment points exported per frame; claws_L gets an automatic claws_R twin
+sockets:
+  claws_L: {bone: wrist_hand_L, offset: [0, -0.06, 0.24]}
+  strike: {bone: root, offset: [0, 0.7, 0.95]}   # where the attack lands: spawn impact effects here
+
 animations:
   idle:
     frames: 8

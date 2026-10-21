@@ -37,7 +37,8 @@ The `spritekiln` block carries what Aseprite's format cannot express:
 | `frame_size` | int | Cell size in px. |
 | `pivot` | `{x, y}` | Ground point under the model origin, in px from the top-left of a cell. Place the sprite so that this point sits on the entity's position; it is the right point for y-sorting. |
 | `directions` | `[string]` | Exported directions, e.g. `["s", "se", "e", "ne", "n", "nw", "w", "sw"]`. |
-| `direction_yaw` | `{dir: degrees}` | Model rotation per direction: `s` 0, `se` 45, `e` 90, `ne` 135, `n` 180, `nw` −135, `w` −90, `sw` −45. |
+| `direction_yaw` | `{dir: degrees}` | Model rotation per direction: `s` 0, `se` 45, `e` 90, `ne` 135, `n` 180, `nw` −135, `w` −90, `sw` −45. Includes mirrored directions. |
+| `mirrors` | `{dir: dir}` | Only with `mirror: true` in the spec: directions that are not in the atlas and play their twin flipped horizontally (e.g. `{"w": "e", "sw": "se", "nw": "ne"}`). Flip around the pivot and negate socket `x`. |
 | `view` | string | `topdown` (3/4, the default) or `side` (side-scroller profile). |
 | `camera` | object | How world units map to pixels (below). |
 | `normal_map`, `emissive_map` | string | File names of the other atlases. |
@@ -56,7 +57,8 @@ Per animation and direction:
 For direction yaw *y*, the facing vector on screen is `(sin y, cos y)` with x to the right and y down:
 `s` faces the viewer (down), `e` faces right, `n` faces away (up). To pick a direction from a velocity
 `v` in screen space, take `atan2(v.x, v.y)` and choose the exported direction with the nearest yaw.
-`PxSprite2D.face()` and `PxAnimator.FaceTowards()` do exactly this.
+Mirrored directions (`mirrors`) take part in this choice like the others. `KilnSprite2D.face()` (Godot),
+`KilnAnimator.Face()` (Unity) and `PxAnimator.FaceTowards()` (MonoGame) do exactly this.
 
 ### Camera
 The model is rendered with an orthographic top-down 3/4 camera:
@@ -85,8 +87,8 @@ Durations are the source of truth; there is no fps in the file.
   fire when the clip starts; in a looping clip they fire again at the start of every loop.
 - A clip with `loop: false` ends at *Tₙ* = *d₀ + … + dₙ₋₁*; its last frame stays visible.
 - Engines should advance clips with accumulated time, not frame counts. At 60 fps, the event on frame
-  *i* belongs to tick ⌊*Tᵢ* · 60 / 1000⌋ counted from the tick that started the clip. `PxSprite2D`
-  emits frame-0 events inside `play_anim()`, in the same tick.
+  *i* belongs to tick ⌊*Tᵢ* · 60 / 1000⌋ counted from the tick that started the clip. The runtimes
+  emit frame-0 events inside the call that starts the clip (`play_anim()`, `Play()`), in the same tick.
 - Common event names: `step_l`, `step_r`, `windup`, `hit`, `release`. They are free-form strings set in
   the spec.
 
@@ -103,9 +105,10 @@ with an automatic `_R` twin) and the exporter writes its position for every fram
 - `null` means the socket is hidden in that frame (its `when` expression is false, e.g. the pistol
   muzzle while the rifle is drawn).
 
-Runtimes: `PxSprite2D.get_socket(name)` / `get_socket_depth(name)` / `has_socket(name)` in Godot (local
-coordinates of the node, whose origin is the pivot), `PxAnimator.TryGetSocket(name, out offset, out
-depth)` in MonoGame. Positions are exact to well under a pixel: on the Huntress, every muzzle socket is
+Runtimes: `KilnSprite2D.get_socket(name)` / `get_socket_depth(name)` / `has_socket(name)` in Godot (local
+coordinates of the node, whose origin is the pivot), `KilnAnimator.TryGetSocket(name, out local, out depth)`
+in Unity (local units) and `PxAnimator.TryGetSocket(name, out offset, out depth)` in MonoGame. In a mirrored
+direction the runtimes negate `x`. Positions are exact to well under a pixel: on the Huntress, every muzzle socket is
 within 0.3 px of the centre of the muzzle-flash pixels in all 8 directions.
 
 ### Normal and emissive maps

@@ -1,0 +1,4 @@
+# Created by Godot when the project is opened (the example supports 4.2 and newer, so none is versioned)
+.godot/
+*.import
+*.uid

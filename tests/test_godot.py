@@ -81,3 +81,23 @@ def test_block_and_errors(tmp_path):
     assert block({'meta': {}}) is None
     with pytest.raises(ExportError, match='render not found'):
         export_godot(S.load(MINIMAL), _project(tmp_path / 'g'), render_dir=str(tmp_path / 'nothing'))
+
+
+def test_cli_exports_a_render_made_with_out(tmp_path, rendered, capsys):
+    tmp, spec_path = rendered  # rendered with -o, so <spec dir>/out/minimal does not exist
+    project = _project(tmp_path / 'game')
+    with pytest.raises(SystemExit):
+        main(['godot', spec_path, '--project', project])
+    assert 'render not found' in capsys.readouterr().err
+    main(['godot', spec_path, '--project', project, '--render-dir', str(tmp / 'new' / 'minimal')])
+    assert 'res://assets/spritekiln/minimal/' in capsys.readouterr().out
+    assert os.path.exists(os.path.join(project, 'assets', 'spritekiln', 'minimal', 'minimal.tscn'))
+
+
+def test_example_ships_the_current_addon():
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    src = os.path.join(root, 'integrations', 'godot', 'addons', 'spritekiln')
+    copy = os.path.join(root, 'examples', 'godot', 'addons', 'spritekiln')
+    for name in os.listdir(src):
+        with open(os.path.join(src, name), 'rb') as a, open(os.path.join(copy, name), 'rb') as b:
+            assert a.read() == b.read(), f'examples/godot/addons/spritekiln/{name} is stale (export --update-addon)'

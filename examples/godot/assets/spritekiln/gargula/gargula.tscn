@@ -1,0 +1,18 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://addons/spritekiln/kiln_sprite_2d.gd" id="1_script"]
+[ext_resource type="SpriteFrames" path="res://assets/spritekiln/gargula/gargula_lit.tres" id="2_frames"]
+[ext_resource type="JSON" path="res://assets/spritekiln/gargula/gargula.json" id="3_sheet"]
+[ext_resource type="SpriteFrames" path="res://assets/spritekiln/gargula/gargula_emissive.tres" id="4_emissive"]
+
+[node name="gargula" type="AnimatedSprite2D"]
+texture_filter = 1
+sprite_frames = ExtResource("2_frames")
+animation = &"idle_s"
+centered = false
+offset = Vector2(-32, -48)
+script = ExtResource("1_script")
+sheet = ExtResource("3_sheet")
+emissive_frames = ExtResource("4_emissive")
+anim = &"idle"
+facing = &"s"

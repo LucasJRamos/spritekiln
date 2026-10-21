@@ -307,7 +307,7 @@ def cmd_godot(a):
     sp = _spec(a.spec)
     cfg = config.load(a.spec)
     dest = a.dest or (cfg.get('export_dir') if cfg.get('engine') == 'godot' else None) or ADDONS[addon][1]
-    w = export_godot(sp, project, dest, lit=a.lit, update_addon=a.update_addon, addon=addon)
+    w = export_godot(sp, project, dest, lit=a.lit, update_addon=a.update_addon, render_dir=a.render_dir, addon=addon)
     print(f'{sp["name"]} -> {w["res"]}/')
     print('  scene:', w['scene'])
     print('  SpriteFrames:', w['frames'] + ('  (+ _lit, _canvas)' if 'lit' in w else ''))
@@ -380,6 +380,7 @@ def build_parser(prog='spritekiln'):
     s.add_argument('spec', nargs='?')
     s.add_argument('--project', help='folder with project.godot (default: $SPRITEKILN_GODOT_PROJECT)')
     s.add_argument('--dest', help='folder inside the project (default: assets/spritekiln)')
+    s.add_argument('--render-dir', help='render folder (default: <spec dir>/out/<name>; for renders made with -o)')
     s.add_argument('--lit', action='store_true', help='the scene uses the SpriteFrames with the normal map (Light2D)')
     s.add_argument('--install-addon', action='store_true', help='install/update addons/spritekiln in the project')
     s.add_argument('--update-addon', action='store_true', help='overwrite the addon in the project when exporting')
