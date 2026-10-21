@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from .anim import is_loop
+from .anim import is_loop, timing_problems
 
 
 def _opaque(img):
@@ -76,6 +76,7 @@ def check(spec, anims, dlist, out):
         ]
         if min(areas) > 0:
             rep['info'][f'{a}_area_ratio_min_max'] = round(min(areas) / max(areas), 2)
+    rep['errors'] += timing_problems(spec, anims)
     rep['ok'] = not rep['errors']
     return rep
 

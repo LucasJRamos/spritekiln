@@ -76,6 +76,19 @@
     "bones": {"type": "object", "additionalProperties": {"$ref": "#/$defs/bone"}},
     "ik": {"type": "object", "additionalProperties": {"$ref": "#/$defs/ik"}},
     "parts": {"type": "object", "additionalProperties": {"$ref": "#/$defs/part"}},
+    "timing": {
+      "type": "object",
+      "description": "Targets checked by validate and QA: when events fire and how long clips last. Example: {shoot_r: {release: 2f, total: 7f}}.",
+      "properties": {
+        "fps": {"type": "number", "exclusiveMinimum": 0, "default": 60},
+        "tolerance": {"type": "number", "minimum": 0, "default": 1, "description": "Allowed error in frames."}
+      },
+      "additionalProperties": {
+        "type": "object",
+        "description": "Animation -> {event or total: target}.",
+        "additionalProperties": {"$ref": "#/$defs/duration"}
+      }
+    },
     "sockets": {
       "type": "object",
       "description": "Attachment points exported per frame and direction (muzzles, hands, feet, hit points). Names ending in _L get an automatic _R twin.",
@@ -92,6 +105,10 @@
       "additionalProperties": {"type": "array", "items": {"$ref": "#/$defs/color"}, "minItems": 1}
     },
     "expr": {"type": ["number", "string"], "description": "A number or an expression string."},
+    "duration": {
+      "description": "Frames (2 or \"2f\") or milliseconds (\"33ms\").",
+      "anyOf": [{"type": "number", "minimum": 0}, {"type": "string", "pattern": "^ *[0-9]*[.]?[0-9]+ *(f|ms)? *$"}]
+    },
     "value": {
       "anyOf": [
         {"$ref": "#/$defs/expr"},

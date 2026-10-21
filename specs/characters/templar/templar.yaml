@@ -323,6 +323,11 @@ parts:
     prims:
       - arc: {c: "[1.25, 0, 0.15]", r: vsm_r, a0: vsm_a0, a1: vsm_a1, width: vsm_w, fade: vsm_fade, dip: -0.18}
 
+timing:                    # alvos de tempo que o jogo testa (validate e QA reprovam acima de +-1 quadro a 60 fps)
+  attack_light_a: {hit: 150ms, total: 483ms}
+  attack_light_b: {hit: 150ms, total: 483ms}
+  attack_heavy: {hit: 500ms, total: 1000ms}
+
 animations:
   # Tempos-alvo (vel. de ataque x1) em D:\GameProjects\tower-hunt\docs\design\personagens.md (Animações exigidas).
   # O martelo é um bone próprio na mão direita: ham_pitch/ham_yaw giram o cabo (0 = para baixo).

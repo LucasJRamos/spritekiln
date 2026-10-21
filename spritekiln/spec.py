@@ -224,6 +224,10 @@ def check(spec):
     warnings = list(spec.get('_warnings', [])) + [schema.describe_unknown(*u) for u in unknown]
     if not errors:
         errors = _problems(spec)
+    if not errors:
+        from .anim import timing_problems
+
+        errors = timing_problems(spec)
     try:
         marks = schema.marks(spec['_path'], _Loader)
     except (OSError, yaml.YAMLError):

@@ -12,6 +12,8 @@ animations:
       - {ms: 170, set: {...}, event: windup, tween: 1, ease: out}
 """
 
+import re
+
 import numpy as np
 
 from .expr import ExprError, evaluate
@@ -106,4 +108,58 @@ def frames_of(spec, name, yaw=0.0):
         )
         ev = events.get(i)
         out.append((env, int(d), [ev] if ev else []))
+    return out
+
+
+_DURATION = re.compile(r'^\s*([0-9]*\.?[0-9]+)\s*(f|ms)?\s*$')
+
+
+def to_frames(value, fps):
+    """A timing target in frames: 2 or '2f' (frames at `fps`), or '33ms'."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    m = _DURATION.match(str(value))
+    if not m:
+        raise SpecError(f'timing: cannot read {value!r} (use 2, "2f" or "33ms")')
+    n = float(m.group(1))
+    return n * fps / 1000 if m.group(2) == 'ms' else n
+
+
+def timing_problems(spec, anims=None):
+    """Check the `timing:` targets: when each event fires (docs/format.md, Timing) and each clip's total,
+    in frames at `timing.fps` (60), within `timing.tolerance` frames (1)."""
+    T = spec.get('timing') or {}
+    fps = float(T.get('fps', 60))
+    tol = float(T.get('tolerance', 1))
+    found = {}
+    for a, targets in T.items():
+        if a in ('fps', 'tolerance') or (anims is not None and a not in anims):
+            continue
+        if a not in spec['animations']:
+            found.setdefault(f'timing.{a}: unknown animation', [])
+            continue
+        for d, yaw in spec['directions']:
+            frames = frames_of(spec, a, yaw)
+            starts = np.concatenate([[0], np.cumsum([ms for _, ms, _ in frames])])
+            for ev, target in (targets or {}).items():
+                want = to_frames(target, fps)
+                if ev == 'total':
+                    got_ms = int(starts[-1])
+                else:
+                    hits = [i for i, (_, _, evs) in enumerate(frames) if ev in evs]
+                    if not hits:
+                        found.setdefault(f'timing.{a}.{ev}: the animation has no "{ev}" event', []).append(d)
+                        continue
+                    got_ms = int(starts[hits[0]])
+                got = got_ms * fps / 1000
+                if abs(got - want) > tol + 1e-9:
+                    msg = (
+                        f'timing.{a}.{ev}: at {got:.1f} f ({got_ms} ms) but the target is {want:g} f '
+                        f'(+-{tol:g} f at {fps:g} fps)'
+                    )
+                    found.setdefault(msg, []).append(d)
+    out = []
+    for msg, dirs in found.items():
+        every = len(dirs) == len(spec['directions'])
+        out.append(msg if not dirs or every else f'{msg} in {", ".join(dirs)}')
     return out

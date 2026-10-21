@@ -496,6 +496,14 @@ parts:
     prims:
       - arc: {c: "[0, smear_y, smear_z]", r: smear_r, a0: smear_a0, a1: smear_a1, width: smear_w, fade: smear_fade, dip: 0.10}
 
+timing:                    # alvos de tempo que o jogo testa (validate e QA reprovam acima de +-1 quadro a 60 fps)
+  shoot_r: {release: 2f, total: 7f}
+  shoot_l: {release: 2f, total: 7f}
+  shoot_heavy: {release: 0f, total: 200ms}
+  place_mine: {release: 100ms, total: 167ms}
+  dash: {total: 160ms}
+  hurt: {total: 150ms}
+
 sockets:                   # pontos de encaixe exportados por quadro e direção (spritekiln 0.1, Fase 2)
   muzzle_L: {bone: pistol_L, offset: [0, 0.042, 0.50], when: "gun < 0.5 and mine_L < 0.5"}   # boca = centro do clarão
   muzzle_rifle: {bone: rifle, offset: [0, 0.012, 1.04], when: "gun >= 0.5"}                   # boca do rifle (centro do clarão)

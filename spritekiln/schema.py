@@ -164,7 +164,7 @@ def format_path(path):
 
 
 _PATH = re.compile(
-    r'\b((?:bones|ik|parts|materials|channels|animations|camera|light|shadow|directions|palette)'
+    r'\b((?:bones|ik|parts|materials|channels|animations|camera|light|shadow|directions|palette|sockets|timing|review)'
     r'(?:\.[A-Za-z0-9_-]+|\[\d+\])*)(?=:| \()'
 )  # a path that a message talks about
 
