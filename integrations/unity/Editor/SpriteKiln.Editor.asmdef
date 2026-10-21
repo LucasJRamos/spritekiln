@@ -1,0 +1,7 @@
+{
+  "name": "SpriteKiln.Editor",
+  "rootNamespace": "SpriteKiln.Editor",
+  "references": ["SpriteKiln.Runtime"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

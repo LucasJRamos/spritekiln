@@ -1,0 +1,6 @@
+{
+  "name": "SpriteKiln.Runtime",
+  "rootNamespace": "SpriteKiln",
+  "references": [],
+  "autoReferenced": true
+}

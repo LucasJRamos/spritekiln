@@ -39,6 +39,8 @@ def export_asset(spec, cfg=None, engine=None, render_dir=None, dest=None, projec
     copied = []
     for f in filter(None, files):
         if os.path.exists(os.path.join(src, f)):
-            shutil.copy2(os.path.join(src, f), os.path.join(target, f))
-            copied.append(os.path.join(target, f))
+            # Unity imports .json as text: its importer (integrations/unity) reads the same JSON as .kiln
+            out = f'{name}.kiln' if engine == 'unity' and f == f'{name}.json' else f
+            shutil.copy2(os.path.join(src, f), os.path.join(target, out))
+            copied.append(os.path.join(target, out))
     return dict(engine=engine, dir=target, files=copied)

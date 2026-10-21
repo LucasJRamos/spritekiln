@@ -1,0 +1,32 @@
+{
+  "name": "com.lucasjramos.spritekiln",
+  "version": "0.1.0",
+  "displayName": "SpriteKiln",
+  "description": "Imports SpriteKiln renders (.kiln): animated 8-direction or side-view pixel-art sprites with exact frame timing, gameplay events, sockets, a normal map for 2D lights and an emissive layer. KilnAnimator plays them; AnimationClips are generated for the Animator.",
+  "unity": "2022.3",
+  "documentationUrl": "https://github.com/LucasJRamos/spritekiln/blob/main/docs/engines/unity.md",
+  "license": "MIT",
+  "keywords": [
+    "pixel art",
+    "sprites",
+    "2d",
+    "animation",
+    "spritesheet",
+    "top-down"
+  ],
+  "author": {
+    "name": "Lucas Ramos",
+    "url": "https://github.com/LucasJRamos/spritekiln"
+  },
+  "dependencies": {
+    "com.unity.modules.animation": "1.0.0",
+    "com.unity.modules.imageconversion": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Gargoyle demo",
+      "description": "A gargoyle that walks and attacks in 8 directions: KilnAnimator, events and the strike socket. Add GargoyleDemo to an empty GameObject, drop gargula.kiln on Sheet, press Play.",
+      "path": "Samples~/Gargoyle"
+    }
+  ]
+}
