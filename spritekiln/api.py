@@ -21,7 +21,7 @@ def new(name, template='humanoid', folder=None, ref=None, start=None):
     tpl = resources.template(template)
     if not tpl:
         raise SpriteKilnError(f'template not found: {template} (available: {", ".join(resources.templates())})')
-    cfg = config.load(start)
+    cfg = config.load(start or folder)  # the project around the target folder (or the current one)
     folder = folder or (os.path.join(cfg['specs'], 'characters') if cfg else os.path.join('specs', 'characters'))
     dst_dir = os.path.join(folder, name)
     dst = os.path.join(dst_dir, f'{name}.yaml')

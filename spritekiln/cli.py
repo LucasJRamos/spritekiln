@@ -194,6 +194,24 @@ def cmd_review(a):
     print('sheet:', rep['files']['sheet'], *rep['files']['clips'].values())
 
 
+def cmd_init(a):
+    from .scaffold import init
+
+    res = init(a.dir, a.engine, a.ai.split(','), a.specs, a.export_dir, a.godot_project, not a.no_mcp, a.force)
+    print(f'SpriteKiln project in {res["root"]} (engine: {res["engine"]}; AI: {", ".join(res["ais"])})')
+    for p in res['written']:
+        print('  ', os.path.relpath(p, res['root']))
+    for n in res['notes']:
+        print('note:', n)
+    print('next: spritekiln new <name>   (then validate, pose, render, export)')
+
+
+def cmd_mcp(a):
+    from .mcp_server import main
+
+    main()
+
+
 def cmd_palette(a):
     import numpy as np
 
@@ -379,6 +397,22 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--jobs', type=int)
     s.add_argument('-o', '--out', help='folder (default: <spec dir>/out/review/<name>)')
     s.set_defaults(f=cmd_review)
+
+    s = sub.add_parser('init', help='set up a game project: spritekiln.toml, specs folder, AI instructions, MCP')
+    s.add_argument('dir', nargs='?', default='.')
+    s.add_argument('--engine', default='generic', choices=['godot', 'unity', 'monogame', 'generic'])
+    s.add_argument(
+        '--ai', default='generic', help='claude, codex, cursor, copilot, gemini, generic or all (comma-separated)'
+    )
+    s.add_argument('--specs', default='art/specs', help='specs folder, relative to the project (default art/specs)')
+    s.add_argument('--export-dir', help='where exports go (default depends on the engine)')
+    s.add_argument('--godot-project', help='folder with project.godot, relative to the project (default .)')
+    s.add_argument('--no-mcp', action='store_true', help="do not register `spritekiln mcp` in the AI client's config")
+    s.add_argument('--force', action='store_true', help='rewrite an existing spritekiln.toml')
+    s.set_defaults(f=cmd_init)
+
+    s = sub.add_parser('mcp', help='serve SpriteKiln as MCP tools over stdio (needs the mcp extra)')
+    s.set_defaults(f=cmd_mcp)
 
     s = sub.add_parser('cache', help='show, prune or clear render caches')
     s.add_argument('action', choices=['info', 'prune', 'clear'])
