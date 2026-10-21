@@ -60,11 +60,14 @@ def test_props_default_to_one_direction(tmp_path):
     assert s['directions'] == [('s', 0)]
 
 
-@pytest.mark.parametrize('value, expected', [
-    (4, S.DIRECTIONS4),
-    (1, [('s', 0)]),
-    ('[s, ne]', [('s', 0), ('ne', 135)]),
-])
+@pytest.mark.parametrize(
+    'value, expected',
+    [
+        (4, S.DIRECTIONS4),
+        (1, [('s', 0)]),
+        ('[s, ne]', [('s', 0), ('ne', 135)]),
+    ],
+)
 def test_directions(tmp_path, value, expected):
     s = S.load(write(tmp_path, BASE + f'directions: {value}\n'))
     assert s['directions'] == expected
@@ -121,7 +124,7 @@ def test_unknown_ramp(tmp_path):
 
 def test_palette_files_and_fallback(tmp_path):
     text = BASE.replace('  body: {}', '  body: {}\n  stone: {}') + 'palette: ../../palettes/gothic.yaml\n'
-    s = S.load(write(tmp_path, text))        # path does not exist next to tmp: falls back to specs/palettes
+    s = S.load(write(tmp_path, text))  # path does not exist next to tmp: falls back to specs/palettes
     assert 'stone' in s['ramps'] and s['materials']['stone']['colors']
 
 
@@ -148,12 +151,15 @@ def test_not_a_mapping(tmp_path):
         S.load(write(tmp_path, '- 1\n- 2\n'))
 
 
-@pytest.mark.parametrize('patch, message', [
-    (('parent: root', 'parent: nowhere'), 'unknown frame "nowhere"'),
-    (('torso: {material: body', 'torso: {material: cloth'), 'unknown material "cloth"'),
-    (('lengths: [0.2, 0.2], ', ''), 'ik.arm_L: missing required key "lengths"'),
-    (('prims: [{sphere: {c: [0, 0, 0], r: 0.2}}]', 'prims: []'), 'parts.torso: no prims'),
-])
+@pytest.mark.parametrize(
+    'patch, message',
+    [
+        (('parent: root', 'parent: nowhere'), 'unknown frame "nowhere"'),
+        (('torso: {material: body', 'torso: {material: cloth'), 'unknown material "cloth"'),
+        (('lengths: [0.2, 0.2], ', ''), 'ik.arm_L: missing required key "lengths"'),
+        (('prims: [{sphere: {c: [0, 0, 0], r: 0.2}}]', 'prims: []'), 'parts.torso: no prims'),
+    ],
+)
 def test_validate_reports_problems(tmp_path, patch, message):
     s = S.load(write(tmp_path, BASE.replace(*patch)))
     probs = S.validate(s)
@@ -174,6 +180,7 @@ def test_validate_reports_expression_errors_with_location(tmp_path):
 
 def test_rest_pose_builds_mirrored_ik(tmp_path):
     from spritekiln.rig import build, rest_env
+
     s = S.load(write(tmp_path, BASE))
     groups, frames = build(s, rest_env(s))
     assert {g.name for g in groups} == {'torso', 'arm_L', 'arm_R'}

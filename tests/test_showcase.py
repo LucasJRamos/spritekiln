@@ -12,6 +12,7 @@ Rebuild the hashes from rendered folders (only when the baseline changes on purp
 
     python tests/test_showcase.py specs/characters/templar/out/templar specs/characters/huntress/out/huntress
 """
+
 import hashlib
 import json
 import os
@@ -24,8 +25,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 HASHES = os.path.join(HERE, 'golden', 'showcase.json')
-SHOWCASE = {'templar': 'specs/characters/templar/templar.yaml',
-            'huntress': 'specs/characters/huntress/huntress.yaml'}
+SHOWCASE = {'templar': 'specs/characters/templar/templar.yaml', 'huntress': 'specs/characters/huntress/huntress.yaml'}
 
 
 def _sha(data):
@@ -38,21 +38,28 @@ def hashes_of(out_dir, name=None):
     with open(os.path.join(out_dir, f'{name}.json'), encoding='utf-8') as fh:
         meta = json.load(fh)
     px = meta.get('spritekiln') or meta['pxforge']
-    atlases = [np.asarray(Image.open(os.path.join(out_dir, f)).convert('RGBA'))
-               for f in (meta['meta']['image'], px['normal_map'], px['emissive_map'])]
+    atlases = [
+        np.asarray(Image.open(os.path.join(out_dir, f)).convert('RGBA'))
+        for f in (meta['meta']['image'], px['normal_map'], px['emissive_map'])
+    ]
     frames = {}
     for key, fr in meta['frames'].items():
         r = fr['frame']
-        frames[key] = [_sha(a[r['y']:r['y'] + r['h'], r['x']:r['x'] + r['w']].tobytes()) for a in atlases]
+        frames[key] = [_sha(a[r['y'] : r['y'] + r['h'], r['x'] : r['x'] + r['w']].tobytes()) for a in atlases]
     anims = {}
-    for a, A in px['animations'].items():   # atlas rows depend on which animations were rendered
+    for a, A in px['animations'].items():  # atlas rows depend on which animations were rendered
         dirs = {d: {k: v for k, v in D.items() if k != 'row'} for d, D in A['directions'].items()}
         anims[a] = _sha(json.dumps(dict(A, directions=dirs), sort_keys=True).encode())
     # the fields pxforge 0.1 wrote; later additions (format, generator, camera) do not change the frames
-    head = {k: px[k] for k in ('name', 'frame_size', 'pivot', 'directions', 'direction_yaw', 'normal_map',
-                               'emissive_map')}
-    return dict(frame_size=px['frame_size'], header=_sha(json.dumps(head, sort_keys=True).encode()),
-                animations=anims, frames=frames)
+    head = {
+        k: px[k] for k in ('name', 'frame_size', 'pivot', 'directions', 'direction_yaw', 'normal_map', 'emissive_map')
+    }
+    return dict(
+        frame_size=px['frame_size'],
+        header=_sha(json.dumps(head, sort_keys=True).encode()),
+        animations=anims,
+        frames=frames,
+    )
 
 
 def _expected(name):
@@ -63,9 +70,10 @@ def _expected(name):
 @pytest.mark.slow
 @pytest.mark.parametrize('name', list(SHOWCASE))
 def test_showcase_reproduces(tmp_path, name):
-    from conftest import stage_spec
     from spritekiln.export import export
     from spritekiln.pipeline import render_all
+
+    from conftest import stage_spec
 
     anims = os.environ.get('SHOWCASE_ANIMS')
     jobs = int(os.environ.get('SHOWCASE_JOBS', '2'))

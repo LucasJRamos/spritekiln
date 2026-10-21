@@ -38,23 +38,26 @@ def test_phase_variables_come_from_env():
     assert evaluate('t * n + f', env) == pytest.approx(4.0)
 
 
-@pytest.mark.parametrize('src, expected', [
-    ('pulse(0, 0, 70)', 1.0),
-    ('pulse(70, 0, 70)', 0.0),
-    ('pulse(35, 0, 70)', 0.5),
-    ('clamp(5, 0, 1)', 1.0),
-    ('pos(-2)', 0.0),
-    ('neg(-2)', -2.0),
-    ('smoothstep(0, 1, 0.5)', 0.5),
-    ('lerp(2, 4, 0.25)', 2.5),
-    ('mix(2, 4, 0.5)', 3.0),
-    ('min(3, 1) + max(3, 1)', 4.0),
-    ('abs(-2) + sqrt(4)', 4.0),
-    ('floor(1.7) + sign(-3)', 0.0),
-    ('radians(180)', np.pi),
-    ('tau / pi', 2.0),
-    ('exp(0)', 1.0),
-])
+@pytest.mark.parametrize(
+    'src, expected',
+    [
+        ('pulse(0, 0, 70)', 1.0),
+        ('pulse(70, 0, 70)', 0.0),
+        ('pulse(35, 0, 70)', 0.5),
+        ('clamp(5, 0, 1)', 1.0),
+        ('pos(-2)', 0.0),
+        ('neg(-2)', -2.0),
+        ('smoothstep(0, 1, 0.5)', 0.5),
+        ('lerp(2, 4, 0.25)', 2.5),
+        ('mix(2, 4, 0.5)', 3.0),
+        ('min(3, 1) + max(3, 1)', 4.0),
+        ('abs(-2) + sqrt(4)', 4.0),
+        ('floor(1.7) + sign(-3)', 0.0),
+        ('radians(180)', np.pi),
+        ('tau / pi', 2.0),
+        ('exp(0)', 1.0),
+    ],
+)
 def test_functions(src, expected):
     assert float(evaluate(src, {})) == pytest.approx(expected)
 
@@ -82,13 +85,16 @@ def test_conditionals_comparisons_and_subscripts():
     np.testing.assert_allclose(evaluate('[4, 5, 6][1:]', {}), [5, 6])
 
 
-@pytest.mark.parametrize('src', [
-    'a.__class__',
-    '(lambda: 1)()',
-    '[x for x in [1, 2]]',
-    'f(1)(2)',
-    '{1: 2}',
-])
+@pytest.mark.parametrize(
+    'src',
+    [
+        'a.__class__',
+        '(lambda: 1)()',
+        '[x for x in [1, 2]]',
+        'f(1)(2)',
+        '{1: 2}',
+    ],
+)
 def test_disallowed_syntax(src):
     with pytest.raises(ExprError):
         compile_expr(src)

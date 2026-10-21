@@ -3,6 +3,7 @@
 An installed wheel carries them in `spritekiln/data/` (see `force-include` in pyproject.toml). In a
 source checkout or an editable install they are read from their place in the repository.
 """
+
 import os
 
 _PKG = os.path.dirname(os.path.abspath(__file__))

@@ -1,14 +1,15 @@
 """Godot exporter: generated resources against goldens, and both JSON block keys."""
+
 import json
 import os
 
 import pytest
 
 import pxforge
+from spritekiln import spec as S
 from spritekiln.cli import main
 from spritekiln.errors import ExportError
-from spritekiln.godot import export_godot, block
-from spritekiln import spec as S
+from spritekiln.godot import block, export_godot
 
 from conftest import FIXTURES, GOLDEN, stage_spec
 

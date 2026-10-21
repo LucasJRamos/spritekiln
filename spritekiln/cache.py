@@ -4,6 +4,7 @@ The key hashes everything that changes the rendered buffers, including the sourc
 so an engine change never reuses stale buffers. Files are plain numpy archives read with
 `allow_pickle=False`: opening a project with a planted cache cannot run code.
 """
+
 import hashlib
 import json
 import os
@@ -13,8 +14,8 @@ import zipfile
 import numpy as np
 
 DIRNAME = '.kilncache'
-LEGACY_DIRNAME = '.pxcache'           # pickle cache of pxforge <= 0.1; never read, `cache clear --legacy` removes it
-DEFAULT_MAX_MB = 1024                 # per spec, enforced after each render (least recently used go first)
+LEGACY_DIRNAME = '.pxcache'  # pickle cache of pxforge <= 0.1; never read, `cache clear --legacy` removes it
+DEFAULT_MAX_MB = 1024  # per spec, enforced after each render (least recently used go first)
 FORMAT = 4
 
 _ENGINE_MODULES = ('expr.py', 'rig.py', 'sdf.py', 'render.py')
@@ -34,11 +35,19 @@ ENGINE = _engine_hash()
 
 def key(spec, env, yaw):
     """Hash of everything that changes geometry/lighting (not the palette, applied after the cache)."""
-    payload = dict(bones=spec['bones'], ik=spec['ik'], parts=spec['parts'], camera=spec['camera'],
-                   light=spec['light'], size=spec['size'],
-                   mats={k: (v['emissive'], v['two_sided']) for k, v in spec['materials'].items()},
-                   env={k: np.asarray(v).round(6).tolist() for k, v in env.items()}, yaw=yaw,
-                   engine=ENGINE, v=FORMAT)
+    payload = dict(
+        bones=spec['bones'],
+        ik=spec['ik'],
+        parts=spec['parts'],
+        camera=spec['camera'],
+        light=spec['light'],
+        size=spec['size'],
+        mats={k: (v['emissive'], v['two_sided']) for k, v in spec['materials'].items()},
+        env={k: np.asarray(v).round(6).tolist() for k, v in env.items()},
+        yaw=yaw,
+        engine=ENGINE,
+        v=FORMAT,
+    )
     return hashlib.sha1(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()[:20]
 
 
@@ -58,7 +67,7 @@ def load(path):
     except (FileNotFoundError, OSError, KeyError, ValueError, zipfile.BadZipFile):
         return None
     try:
-        os.utime(path)                        # mark as recently used for pruning
+        os.utime(path)  # mark as recently used for pruning
     except OSError:
         pass
     return buf
@@ -70,10 +79,11 @@ def save(path, buf):
     with open(tmp, 'wb') as fh:
         g, v, d, n = buf
         np.savez_compressed(fh, g=g, v=v, d=d, n=n)
-    os.replace(tmp, path)                     # a killed render never leaves a half-written entry
+    os.replace(tmp, path)  # a killed render never leaves a half-written entry
 
 
 # ---------------------------------------------------------------- maintenance
+
 
 def find_dirs(root, legacy=False):
     """Cache folders under `root` (a folder, or a spec file meaning its folder)."""
@@ -103,18 +113,18 @@ def _files(folder):
 
 
 def size_mb(folder):
-    return sum(s for _, s, _ in _files(folder)) / 2 ** 20
+    return sum(s for _, s, _ in _files(folder)) / 2**20
 
 
 def prune(folder, max_mb=None, older_than_days=None):
     """Delete least recently used entries until `folder` fits `max_mb`, and entries unused for
     `older_than_days`. Returns (files removed, MB freed)."""
-    files = sorted(_files(folder), key=lambda f: f[2])          # oldest first
+    files = sorted(_files(folder), key=lambda f: f[2])  # oldest first
     total = sum(s for _, s, _ in files)
     cutoff = time.time() - older_than_days * 86400 if older_than_days is not None else None
     removed, freed = 0, 0
     for p, s, m in files:
-        too_big = max_mb is not None and total - freed > max_mb * 2 ** 20
+        too_big = max_mb is not None and total - freed > max_mb * 2**20
         too_old = cutoff is not None and m < cutoff
         if not (too_big or too_old):
             continue
@@ -124,4 +134,4 @@ def prune(folder, max_mb=None, older_than_days=None):
             continue
         removed += 1
         freed += s
-    return removed, freed / 2 ** 20
+    return removed, freed / 2**20

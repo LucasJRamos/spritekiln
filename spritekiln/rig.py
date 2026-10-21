@@ -5,11 +5,11 @@ evaluated with the *_R channels and every local vector is mirrored (x -> -x), Eu
 rotations become (rx, -ry, -rz). *_R channels therefore use the same (outward positive)
 values as *_L for a symmetric pose.
 """
+
 import numpy as np
 
-from .expr import evaluate, ExprError
-from .sdf import (sphere, ellipsoid, round_cone, triangle, box, cylinder, torus, Group,
-                  rot_x, rot_y, rot_z)
+from .expr import ExprError, evaluate
+from .sdf import Group, box, cylinder, ellipsoid, rot_x, rot_y, rot_z, round_cone, sphere, torus, triangle
 
 MIRROR = np.array([-1.0, 1.0, 1.0])
 
@@ -66,7 +66,7 @@ class Ctx:
         try:
             out = evaluate(v, self.env)
         except ExprError as e:
-            raise ExprError(f'{where}: {e}')
+            raise ExprError(f'{where}: {e}') from None
         if vec:
             out = np.broadcast_to(np.asarray(out, float), (3,)).copy()
             if mirror:
@@ -76,7 +76,8 @@ class Ctx:
     def rot(self, v, where, mirror=False):
         r = np.broadcast_to(np.asarray(self.val(v, where), float), (3,)).copy()
         if mirror:
-            r[1] = -r[1]; r[2] = -r[2]
+            r[1] = -r[1]
+            r[2] = -r[2]
         return euler(r)
 
     def frame(self, name, where):
@@ -140,7 +141,7 @@ class Ctx:
         v /= max(np.linalg.norm(v), 1e-9)
         joint = A + u * x + v * h
         end = A + u * d
-        if 'up' in ik:      # reference for the end frame's y axis (in pole_space)
+        if 'up' in ik:  # reference for the end frame's y axis (in pole_space)
             up = psp.dir(self.val(ik['up'], w + '.up', m, vec=True))
         else:
             up = a.R @ np.array([0, 1.0, 0])
@@ -172,10 +173,10 @@ def _prims(ctx, part_name, part, space, m, prim_list, where_base):
             raise ExprError(f'{where_base}[{i}]: each prim is a one-key mapping like {{sphere: {{...}}}}')
         kind, a = next(iter(pr.items()))
         w = f'{where_base}[{i}].{kind}'
-        P = lambda key, d=None: ctx.point(a.get(key, d), space, f'{w}.{key}', m)  # noqa
-        V = lambda key, d=None, vec=False: ctx.val(a.get(key, d), f'{w}.{key}', m and vec, vec=vec)  # noqa
+        P = lambda key, d=None, a=a, w=w: ctx.point(a.get(key, d), space, f'{w}.{key}', m)  # noqa: E731
+        V = lambda key, d=None, vec=False, a=a, w=w: ctx.val(a.get(key, d), f'{w}.{key}', m and vec, vec=vec)  # noqa: E731
 
-        def rotm():
+        def rotm(a=a, w=w):
             if 'align' in a:
                 p0 = ctx.point(a['align'][0], space, w + '.align', m)
                 p1 = ctx.point(a['align'][1], space, w + '.align', m)
@@ -222,17 +223,21 @@ def _prims(ctx, part_name, part, space, m, prim_list, where_base):
                 mid = (e0 + e1) / 2
                 L = np.linalg.norm(e1 - e0)
                 r = float(a.get('scallop_depth', 0.34)) * L
-                o = mid - hub; o /= max(np.linalg.norm(o), 1e-9)
+                o = mid - hub
+                o /= max(np.linalg.norm(o), 1e-9)
                 cuts.append(sphere(mid + o * r * 0.62, r))
             out.append(('cuts', cuts))
         else:
-            raise ExprError(f'{w}: unknown prim type "{kind}" '
-                            '(sphere, ellipsoid, cone, chain, box, cylinder, torus, tri, membrane, arc)')
+            raise ExprError(
+                f'{w}: unknown prim type "{kind}" '
+                '(sphere, ellipsoid, cone, chain, box, cylinder, torus, tri, membrane, arc)'
+            )
     return out
 
 
 def _arc_groups(ctx, name, part, space, m, a, mats, w):
-    a0 = float(ctx.val(a['a0'], w + '.a0')); a1 = float(ctx.val(a['a1'], w + '.a1'))
+    a0 = float(ctx.val(a['a0'], w + '.a0'))
+    a1 = float(ctx.val(a['a1'], w + '.a1'))
     r = float(ctx.val(a['r'], w + '.r'))
     width = float(ctx.val(a.get('width', 0.08), w + '.width'))
     fade = float(ctx.val(a.get('fade', 1.0), w + '.fade'))
@@ -240,8 +245,10 @@ def _arc_groups(ctx, name, part, space, m, a, mats, w):
     c = ctx.point(a.get('c', [0, 0, 0]), space, w + '.c', m)
     n = int(a.get('segments', 9))
     ang = np.linspace(a0, a1, n)
-    pts = [c + space.R @ np.array([np.sin(t) * r, -dip * np.sin((t - a0) / (a1 - a0 + 1e-9) * np.pi), np.cos(t) * r])
-           for t in ang]
+    pts = [
+        c + space.R @ np.array([np.sin(t) * r, -dip * np.sin((t - a0) / (a1 - a0 + 1e-9) * np.pi), np.cos(t) * r])
+        for t in ang
+    ]
     buckets = {mm: [] for mm in mats}
     for i in range(n - 1):
         f = (i + 0.5) / (n - 1)
@@ -270,18 +277,35 @@ def build(spec, env):
             for mat, prs in _arc_groups(ctx, name, part, space, m, plist[0]['arc'], ml, w + '.prims[0].arc').items():
                 if prs:
                     M = mats[mat]
-                    groups.append(Group(f'{name}:{mat}', mat, prs, k=float(part.get('blend', 0.02)),
-                                        line=False, emissive=M['emissive'], two_sided=M['two_sided']))
+                    groups.append(
+                        Group(
+                            f'{name}:{mat}',
+                            mat,
+                            prs,
+                            k=float(part.get('blend', 0.02)),
+                            line=False,
+                            emissive=M['emissive'],
+                            two_sided=M['two_sided'],
+                        )
+                    )
             continue
         prims = _prims(ctx, name, part, space, m, plist, w + '.prims')
         cuts = [c for p in prims if isinstance(p, tuple) for c in p[1]]
         prims = [p for p in prims if not isinstance(p, tuple)]
-        for i, c in enumerate(part.get('cut') or []):
-            cuts += _prims(ctx, name, part, space, m, [c], w + '.cut')
+        cuts += _prims(ctx, name, part, space, m, part.get('cut') or [], w + '.cut')
         mat = part['material']
         M = mats[mat]
-        groups.append(Group(name, mat, prims, k=float(part.get('blend', 0.0)), cut=cuts,
-                            ck=float(part.get('cut_blend', 0.01)),
-                            line=part.get('line', M['line']), emissive=M['emissive'],
-                            two_sided=M['two_sided']))
+        groups.append(
+            Group(
+                name,
+                mat,
+                prims,
+                k=float(part.get('blend', 0.0)),
+                cut=cuts,
+                ck=float(part.get('cut_blend', 0.01)),
+                line=part.get('line', M['line']),
+                emissive=M['emissive'],
+                two_sided=M['two_sided'],
+            )
+        )
     return groups, ctx.frames

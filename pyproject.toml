@@ -77,3 +77,22 @@ addopts = "-m 'not slow'"
 markers = [
     "slow: long renders (showcase reproduction); run with `pytest -m slow`",
 ]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["legacy", "research"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "BLE"]
+ignore = [
+    "E741",    # short math names (l, I) are clearer in geometry code
+    "B905",    # zip() without strict=: lengths are equal by construction
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["spritekiln", "pxforge"]
+known-local-folder = ["conftest"]

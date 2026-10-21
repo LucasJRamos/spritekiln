@@ -1,7 +1,9 @@
 """Load, mirror and sanity-check SpriteKiln YAML specs."""
+
 import copy
 import os
 import re
+
 import yaml
 
 from . import resources, schema
@@ -11,10 +13,21 @@ DIRECTIONS8 = [('s', 0), ('se', 45), ('e', 90), ('ne', 135), ('n', 180), ('nw', 
 DIRECTIONS4 = [('s', 0), ('e', 90), ('n', 180), ('w', -90)]
 
 DEFAULT_CAMERA = dict(pitch=38.0, scale=0.048, center=[0.0, 1.0, 0.0], supersample=3, coverage=4)
-DEFAULT_LIGHT = dict(dir=[-0.55, 1.0, 0.45], rim=[0.8, 0.35, -0.9], rim_strength=0.45,
-                     ambient=0.12, shadows=True, ao=True)
-DEFAULT_MATERIAL = dict(ramp=None, emissive=False, line=True, outline=True, two_sided=False,
-                        band=None, bands=None, line_band=1, glow=None, gamma=1.05)
+DEFAULT_LIGHT = dict(
+    dir=[-0.55, 1.0, 0.45], rim=[0.8, 0.35, -0.9], rim_strength=0.45, ambient=0.12, shadows=True, ao=True
+)
+DEFAULT_MATERIAL = dict(
+    ramp=None,
+    emissive=False,
+    line=True,
+    outline=True,
+    two_sided=False,
+    band=None,
+    bands=None,
+    line_band=1,
+    glow=None,
+    gamma=1.05,
+)
 
 _SIDE = re.compile(r'_L(?![A-Za-z0-9])')
 
@@ -27,10 +40,12 @@ class _Loader(yaml.SafeLoader):
     """YAML 1.2-ish booleans: only true/false (so keys like `off`, `on`, `y`, `n` stay strings)."""
 
 
-_Loader.yaml_implicit_resolvers = {k: [r for r in v if r[0] != 'tag:yaml.org,2002:bool']
-                                   for k, v in yaml.SafeLoader.yaml_implicit_resolvers.items()}
-_Loader.add_implicit_resolver('tag:yaml.org,2002:bool', re.compile(r'^(?:true|True|TRUE|false|False|FALSE)$'),
-                              list('tTfF'))
+_Loader.yaml_implicit_resolvers = {
+    k: [r for r in v if r[0] != 'tag:yaml.org,2002:bool'] for k, v in yaml.SafeLoader.yaml_implicit_resolvers.items()
+}
+_Loader.add_implicit_resolver(
+    'tag:yaml.org,2002:bool', re.compile(r'^(?:true|True|TRUE|false|False|FALSE)$'), list('tTfF')
+)
 
 
 def yload(fh):
@@ -74,7 +89,7 @@ def load_palette(ref, base_dir):
         return ref
     path = ref if os.path.isabs(ref) else os.path.join(base_dir, ref)
     if not os.path.exists(path):
-        path = resources.builtin_palette(ref) or path      # `palette: gothic` or a moved shared palette
+        path = resources.builtin_palette(ref) or path  # `palette: gothic` or a moved shared palette
     if not os.path.exists(path):
         raise SpecError(f'palette: file not found: {ref} (relative to {base_dir}, and not a built-in palette)')
     data = _read_yaml(path)
@@ -112,18 +127,25 @@ def load(path, size=None):
     s.setdefault('name', os.path.splitext(os.path.basename(path))[0])
     s.setdefault('kind', 'character')
     s.setdefault('size', 64)
-    cam = dict(DEFAULT_CAMERA); cam.update(s.get('camera') or {}); s['camera'] = cam
+    cam = dict(DEFAULT_CAMERA)
+    cam.update(s.get('camera') or {})
+    s['camera'] = cam
     if size:
         new = int(size)
         cam['scale'] = cam['scale'] * s['size'] / new
         if new >= 128:
-            cam['supersample'] = 2; cam['coverage'] = 2
+            cam['supersample'] = 2
+            cam['coverage'] = 2
         sh = dict(s.get('shadow') or {})
         if sh:
-            k = new / s['size']; sh['rx'] = sh.get('rx', 13.5) * k; sh['ry'] = sh.get('ry', 4.5) * k
+            k = new / s['size']
+            sh['rx'] = sh.get('rx', 13.5) * k
+            sh['ry'] = sh.get('ry', 4.5) * k
             s['shadow'] = sh
         s['size'] = new
-    li = dict(DEFAULT_LIGHT); li.update(s.get('light') or {}); s['light'] = li
+    li = dict(DEFAULT_LIGHT)
+    li.update(s.get('light') or {})
+    s['light'] = li
 
     d = s.get('directions', 8 if s['kind'] == 'character' else 1)
     if d == 8:
@@ -150,7 +172,8 @@ def load(path, size=None):
 
     mats = {}
     for name, m in (s.get('materials') or {}).items():
-        mm = dict(DEFAULT_MATERIAL); mm.update(m or {})
+        mm = dict(DEFAULT_MATERIAL)
+        mm.update(m or {})
         if mm['ramp'] is None:
             mm['ramp'] = name
         if isinstance(mm['ramp'], str):
@@ -167,7 +190,7 @@ def load(path, size=None):
 
     s['channels'] = mirror_section(s.get('channels'))
     for k in list(s['channels']):
-        if isinstance(s['channels'][k], dict):     # mirrored twin of a vector default
+        if isinstance(s['channels'][k], dict):  # mirrored twin of a vector default
             s['channels'][k] = s['channels'][k].get('value')
     s['bones'] = mirror_section(s.get('bones'))
     s['ik'] = mirror_section(s.get('ik'))
@@ -187,7 +210,7 @@ def check(spec):
     """(errors, warnings): errors stop the spec from rendering; warnings flag likely mistakes such as unknown
     keys, which are otherwise ignored. Messages start with file:line:column when the place is known."""
     raw = spec.get('_raw')
-    if raw is None:                                  # a spec dict built by hand
+    if raw is None:  # a spec dict built by hand
         return _problems(spec), []
     unknown, missing = schema.scan(raw)
     errors = [schema.describe_missing(p, k) for p, k in missing]
@@ -207,17 +230,18 @@ def _located(message, spec, marks):
     try:
         rel = os.path.relpath(path)
         path = rel if not rel.startswith('..') else path
-    except ValueError:                               # another drive on Windows
+    except ValueError:  # another drive on Windows
         pass
     return f'{path}:{pos[0]}:{pos[1]}: {message}'
 
 
 def _problems(spec):
-    from .rig import build, rest_env
     from .anim import frames_of
+    from .rig import build, rest_env
+
     problems = []
     frames_known = set(spec['bones']) | {'root'}
-    for ik_name, ik in spec['ik'].items():
+    for ik in spec['ik'].values():
         frames_known |= {ik.get('joint'), ik.get('end')}
     for name, b in spec['bones'].items():
         par = b.get('parent', 'root')
@@ -245,7 +269,7 @@ def _problems(spec):
             msg = str(e)
             problems.append(msg if msg.startswith(f'animations.{an}') else f'animations.{an}: {msg}')
             continue
-        for i, (env, ms, ev) in enumerate(fr):
+        for i, (env, _ms, _ev) in enumerate(fr):
             try:
                 build(spec, env)
             except Exception as e:  # noqa: BLE001

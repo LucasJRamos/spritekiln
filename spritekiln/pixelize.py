@@ -3,12 +3,13 @@
 Materials come from the spec: each has a colour ramp (index 0 = outline/darkest) and flags
 (emissive, line, outline, glow, band/bands).
 """
+
 import numpy as np
 
 
 def hx(s):
     s = s.lstrip('#')
-    return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+    return tuple(int(s[i : i + 2], 16) for i in (0, 2, 4))
 
 
 def band_of(M, v):
@@ -29,8 +30,10 @@ N4 = ((0, 1), (0, -1), (1, 0), (-1, 0))
 def shift(a, dy, dx, fill):
     out = np.full_like(a, fill)
     H, W = a.shape
-    ys = slice(max(dy, 0), H + min(dy, 0)); yd = slice(max(-dy, 0), H + min(-dy, 0))
-    xs = slice(max(dx, 0), W + min(dx, 0)); xd = slice(max(-dx, 0), W + min(-dx, 0))
+    ys = slice(max(dy, 0), H + min(dy, 0))
+    yd = slice(max(-dy, 0), H + min(-dy, 0))
+    xs = slice(max(dx, 0), W + min(dx, 0))
+    xd = slice(max(-dx, 0), W + min(-dx, 0))
     out[ys, xs] = a[yd, xd]
     return out
 
@@ -75,7 +78,7 @@ def compose(gid, val, depth, groups, materials, shadow=None):
         cand = (gid >= 0) & (ng >= 0) & (ng != gid) & (nd < depth - 0.06)
         cand &= line_ok[np.where(gid >= 0, gid, -1)] & line_ok[np.where(ng >= 0, ng, -1)]
         if abs(dy) + abs(dx) == 2:
-            cand &= (nd < depth - 0.25)  # diagonals only for big depth jumps
+            cand &= nd < depth - 0.25  # diagonals only for big depth jumps
         line |= cand
     # never line emissive pixels
     line &= ~np.isin(mat, list(EMISSIVE))
@@ -90,7 +93,8 @@ def compose(gid, val, depth, groups, materials, shadow=None):
             col = r[min(materials[names[m]]['line_band'], len(r) - 1)]
         else:
             col = r[b]
-        img[y, x, :3] = col; img[y, x, 3] = 255
+        img[y, x, :3] = col
+        img[y, x, 3] = 255
 
     # --- 4. outer outline (selout: tinted by neighbour material) ---
     solid = gid >= 0
@@ -107,16 +111,21 @@ def compose(gid, val, depth, groups, materials, shadow=None):
     for _ in range(1):
         o = out.copy()
         for y, x in zip(*np.nonzero(o)):
-            up = y > 0 and o[y - 1, x]; dn = y < H - 1 and o[y + 1, x]
-            lf = x > 0 and o[y, x - 1]; rt = x < W - 1 and o[y, x + 1]
-            for (a, ay, ax), (b, by, bx) in (((up, -1, 0), (lf, 0, -1)), ((up, -1, 0), (rt, 0, 1)),
-                                             ((dn, 1, 0), (lf, 0, -1)), ((dn, 1, 0), (rt, 0, 1))):
+            up = y > 0 and o[y - 1, x]
+            dn = y < H - 1 and o[y + 1, x]
+            lf = x > 0 and o[y, x - 1]
+            rt = x < W - 1 and o[y, x + 1]
+            for (a, ay, ax), (b, by, bx) in (
+                ((up, -1, 0), (lf, 0, -1)),
+                ((up, -1, 0), (rt, 0, 1)),
+                ((dn, 1, 0), (lf, 0, -1)),
+                ((dn, 1, 0), (rt, 0, 1)),
+            ):
                 if a and b:
                     # the diagonal between neighbours must be solid sprite (we're an outer corner of a stair)
                     yy, xx = y + ay + by, x + ax + bx
                     if 0 <= yy < H and 0 <= xx < W and solid[yy, xx]:
                         # only remove if removing keeps sprite 4-sealed: the pixel's other two sides empty
-                        oy, ox = y - ay - by, x - ax - bx
                         if not (0 <= y - ay < H and solid[y - ay, x]) and not (0 <= x - bx < W and solid[y, x - bx]):
                             o[y, x] = False
                             break
@@ -125,7 +134,8 @@ def compose(gid, val, depth, groups, materials, shadow=None):
         m = owner[y, x]
         if m < 0:
             continue
-        img[y, x, :3] = RAMPS[m][0]; img[y, x, 3] = 255
+        img[y, x, :3] = RAMPS[m][0]
+        img[y, x, 3] = 255
 
     # --- 5. glow: emissive materials tint neighbouring pixels of other materials ---
     for n in names:

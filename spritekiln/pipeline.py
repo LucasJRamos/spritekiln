@@ -1,4 +1,5 @@
 """Frame rendering with an on-disk cache and a memory-aware process pool (Windows-safe)."""
+
 import os
 import sys
 import time
@@ -7,9 +8,8 @@ from concurrent.futures.process import BrokenProcessPool
 
 import numpy as np
 
-from . import cache
+from . import cache, system
 from . import spec as specmod
-from . import system
 from .anim import frames_of
 from .errors import RenderError
 from .pixelize import aux_maps, compose, hx
@@ -54,18 +54,19 @@ def shadow_for(spec, env, yaw, cam):
     if not sh:
         return None
     from .sdf import rot_y
+
     r = np.asarray(env.get('root', [0, 0, 0]), float)
     off = np.asarray(sh.get('offset', [0, 0, 0]), float)
     w = rot_y(np.radians(yaw)) @ (r + off)
     w[1] = 0.0
     cx, cy = cam.project(w)
     rgba = tuple(hx(sh.get('color', '#0b0712'))) + (int(sh.get('alpha', 120)),)
-    lift = float(np.clip(1 - r[1] * 0.8, 0.4, 1.0))       # shrink when airborne
+    lift = float(np.clip(1 - r[1] * 0.8, 0.4, 1.0))  # shrink when airborne
     return (cx, cy + 0.5, sh.get('rx', 13.5) * lift, sh.get('ry', 4.5) * lift, rgba)
 
 
 def frame_image(spec, env, yaw, force=False, maps=True):
-    env = dict(env, yaw=float(yaw))          # expressions may cheat per direction with `yaw`
+    env = dict(env, yaw=float(yaw))  # expressions may cheat per direction with `yaw`
     (G, V, D, N), groups, frames, cam = render_buffers(spec, env, yaw, force)
     img = compose(G, V, D, groups, spec['materials'], shadow_for(spec, env, yaw, cam))
     if not maps:
@@ -88,10 +89,11 @@ def _job(args):
 
 # ---------------------------------------------------------------- memory-aware pool
 
+
 def worker_mb(spec):
     """Conservative peak memory of one render worker, calibrated on Templar/Huntress/gargoyle (1.5x margin)."""
     rays = (spec['size'] * int(spec['camera'].get('supersample', 3))) ** 2
-    groups = len(spec['parts']) + 8                       # smear arcs add a few groups
+    groups = len(spec['parts']) + 8  # smear arcs add a few groups
     return 1.5 * (40 + rays * (groups + 30) * 8 / system.MB)
 
 
@@ -103,7 +105,7 @@ def main_mb(spec, n_frames):
 def auto_jobs(spec, n_tasks, n_frames):
     """Worker count that fits the available RAM, keeping a reserve for the rest of the machine."""
     avail, total = system.memory_mb()
-    cpus = max(1, system.cpu_count() // 2)                # beyond the physical cores renders get no faster
+    cpus = max(1, system.cpu_count() // 2)  # beyond the physical cores renders get no faster
     if avail is None:
         return min(2, cpus, max(n_tasks, 1)), 'available memory unknown'
     reserve = max(1024, 0.10 * total)
@@ -151,7 +153,7 @@ def _run_pool(tasks, jobs, out, on_done):
             while futures:
                 finished, _ = wait(futures, return_when=FIRST_COMPLETED)
                 for fu in finished:
-                    t = futures.pop(fu)
+                    futures.pop(fu)
                     r = fu.result()
                     out[r[0]] = r[1:]
                     on_done()
@@ -161,8 +163,17 @@ def _run_pool(tasks, jobs, out, on_done):
     return []
 
 
-def render_all(path, anims=None, dirs=None, jobs=None, force=False, progress=None, size=None,
-               cache_max_mb=cache.DEFAULT_MAX_MB, log=None):
+def render_all(
+    path,
+    anims=None,
+    dirs=None,
+    jobs=None,
+    force=False,
+    progress=None,
+    size=None,
+    cache_max_mb=cache.DEFAULT_MAX_MB,
+    log=None,
+):
     """Render every (animation, direction, frame). `progress`: True for the stderr bar, or a Progress-like
     object; `log`: callable for one-line notes (job count, resume, degraded pool)."""
     spec = get_spec(path, size)
@@ -190,7 +201,7 @@ def render_all(path, anims=None, dirs=None, jobs=None, force=False, progress=Non
     bar = Progress(len(tasks), cached) if progress is True else progress
     on_done = bar.step if bar else (lambda: None)
 
-    system.limit_blas_threads()                       # before the pool spawns its workers
+    system.limit_blas_threads()  # before the pool spawns its workers
     out = {}
     remaining = tasks
     try:
@@ -205,14 +216,20 @@ def render_all(path, anims=None, dirs=None, jobs=None, force=False, progress=Non
                 remaining = _run_pool(remaining, jobs, out, on_done)
                 if remaining:
                     jobs = max(1, jobs // 2)
-                    log(f'a render worker died (probably out of memory); {len(out)} frames done and cached, '
-                        f'continuing with {jobs} job(s)')
+                    log(
+                        f'a render worker died (probably out of memory); {len(out)} frames done and cached, '
+                        f'continuing with {jobs} job(s)'
+                    )
     except MemoryError:
-        raise RenderError(f'out of memory after {len(out)} of {len(tasks)} frames (finished frames are cached: '
-                          f'free some memory and run the same command to resume)') from None
+        raise RenderError(
+            f'out of memory after {len(out)} of {len(tasks)} frames (finished frames are cached: '
+            f'free some memory and run the same command to resume)'
+        ) from None
     except KeyboardInterrupt:
-        log(f'interrupted after {len(out)} of {len(tasks)} frames; finished frames are cached, '
-            f'run the same command to resume')
+        log(
+            f'interrupted after {len(out)} of {len(tasks)} frames; finished frames are cached, '
+            f'run the same command to resume'
+        )
         raise
     if cache_max_mb:
         cache.prune(cache.spec_dir(spec), max_mb=cache_max_mb)

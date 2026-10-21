@@ -1,4 +1,5 @@
 """Render cache, memory-aware job count, resume and the process pool."""
+
 import io
 import os
 import time
@@ -44,6 +45,7 @@ def test_cache_never_unpickles(tmp_path):
 def test_cache_key_follows_engine_and_pose(tmp_path, monkeypatch):
     from spritekiln import spec as S
     from spritekiln.rig import rest_env
+
     sp = S.load(stage_spec(tmp_path, MINIMAL))
     env = rest_env(sp)
     k = cache.key(sp, env, 0)
@@ -58,7 +60,7 @@ def test_prune_lru_and_age(tmp_path):
     now = time.time()
     for i in range(5):
         p = tmp_path / f'{i}.npz'
-        p.write_bytes(b'x' * 2 ** 20)                    # 1 MB each, i = 0 is the oldest
+        p.write_bytes(b'x' * 2**20)  # 1 MB each, i = 0 is the oldest
         os.utime(p, (now - (5 - i) * 86400, now - (5 - i) * 86400))
     n, mb = cache.prune(str(tmp_path), max_mb=3)
     assert (n, round(mb)) == (2, 2)
@@ -70,14 +72,14 @@ def test_prune_lru_and_age(tmp_path):
 def test_auto_jobs_fits_available_memory(monkeypatch):
     sp = {'size': 96, 'camera': {'supersample': 3}, 'parts': {str(i): {} for i in range(40)}}
     monkeypatch.setattr(system, 'cpu_count', lambda: 16)
-    monkeypatch.setattr(system, 'memory_mb', lambda: (1500, 16000))      # the dev machine on a busy day
+    monkeypatch.setattr(system, 'memory_mb', lambda: (1500, 16000))  # the dev machine on a busy day
     assert pipeline.auto_jobs(sp, 500, 500)[0] == 1
     monkeypatch.setattr(system, 'memory_mb', lambda: (3000, 16000))
     jobs, why = pipeline.auto_jobs(sp, 500, 500)
     assert 2 <= jobs <= 10 and 'GB available' in why
     monkeypatch.setattr(system, 'memory_mb', lambda: (64000, 128000))
-    assert pipeline.auto_jobs(sp, 500, 500)[0] == 8                      # capped by CPUs / 2
-    assert pipeline.auto_jobs(sp, 3, 500)[0] == 3                        # and by the work left
+    assert pipeline.auto_jobs(sp, 500, 500)[0] == 8  # capped by CPUs / 2
+    assert pipeline.auto_jobs(sp, 3, 500)[0] == 3  # and by the work left
     monkeypatch.setattr(system, 'memory_mb', lambda: (None, None))
     assert pipeline.auto_jobs(sp, 500, 500)[0] == 2
 
@@ -95,7 +97,7 @@ def test_resume_from_cache_and_pool_matches_in_process(tmp_path):
     _, _, _, pooled = pipeline.render_all(path, ['idle'], ['s', 'e'], jobs=2, log=notes.append)
     assert 'resuming: 8 of 8 frames already in the cache' in notes
     _, _, _, fresh_pool = pipeline.render_all(path, ['idle'], ['s', 'e'], jobs=2, force=True)
-    for k, (img, nm, em, ms, ev) in first.items():
+    for k, (img, nm, _em, ms, ev) in first.items():
         for other in (pooled, fresh_pool):
             np.testing.assert_array_equal(img, other[k][0])
             np.testing.assert_array_equal(nm, other[k][1])
@@ -108,7 +110,7 @@ def test_dead_worker_degrades_to_fewer_jobs(tmp_path, monkeypatch):
 
     def flaky_pool(tasks, jobs, out, on_done):
         calls.append(jobs)
-        if len(calls) == 1:                                   # first pool "dies" after one frame
+        if len(calls) == 1:  # first pool "dies" after one frame
             r = pipeline._job(tasks[0])
             out[r[0]] = r[1:]
             on_done()
@@ -128,11 +130,12 @@ def test_dead_worker_degrades_to_fewer_jobs(tmp_path, monkeypatch):
 
 def test_unknown_animation_or_direction(tmp_path):
     from spritekiln.spec import SpecError
+
     path = stage_spec(tmp_path, MINIMAL)
     with pytest.raises(SpecError, match='unknown animation'):
         pipeline.render_all(path, ['dance'], jobs=1)
     with pytest.raises(SpecError, match='no direction matches'):
-        pipeline.render_all(path, ['idle'], ['ne'], jobs=1)       # the fixture has 4 directions
+        pipeline.render_all(path, ['idle'], ['ne'], jobs=1)  # the fixture has 4 directions
 
 
 def test_progress_without_terminal():

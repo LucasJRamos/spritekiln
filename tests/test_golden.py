@@ -3,6 +3,7 @@
 Every test renders a staged copy of the spec, so the render cache starts empty. Refresh the goldens
 after an intentional visual change with `pytest --update-golden` and say why in the commit message.
 """
+
 import json
 import os
 
@@ -18,11 +19,15 @@ GARGOYLE = os.path.join(REPO, 'specs', 'characters', 'gargula', 'gargula.yaml')
 MINIMAL = os.path.join(FIXTURES, 'minimal', 'minimal.yaml')
 
 
-@pytest.mark.parametrize('spec, args, golden', [
-    (GARGOYLE, [], 'gargula_pose_rest.png'),
-    (MINIMAL, [], 'minimal_pose_rest.png'),
-    (MINIMAL, ['--anim', 'attack', '--frame', '1'], 'minimal_pose_attack_1.png'),
-], ids=['gargoyle-rest', 'minimal-rest', 'minimal-attack-hit'])
+@pytest.mark.parametrize(
+    'spec, args, golden',
+    [
+        (GARGOYLE, [], 'gargula_pose_rest.png'),
+        (MINIMAL, [], 'minimal_pose_rest.png'),
+        (MINIMAL, ['--anim', 'attack', '--frame', '1'], 'minimal_pose_attack_1.png'),
+    ],
+    ids=['gargoyle-rest', 'minimal-rest', 'minimal-attack-hit'],
+)
 def test_pose_all_directions(tmp_path, update_golden, spec, args, golden):
     out = str(tmp_path / golden)
     main(['pose', stage_spec(tmp_path, spec), '--dirs', 'all', '--scale', '1', '-o', out, *args])
@@ -52,7 +57,7 @@ def test_render_minimal(tmp_path, update_golden):
             continue
         with open(path, encoding='utf-8') as fh:
             expected = json.load(fh)
-        if name == 'qa.json' and not golden_is_native():     # colour counts may move with float noise
+        if name == 'qa.json' and not golden_is_native():  # colour counts may move with float noise
             actual, expected = [{k: d[k] for k in ('ok', 'errors')} for d in (actual, expected)]
         assert _versionless(actual) == _versionless(expected), f'{name} differs from tests/golden/render_{name}'
     assert (out / 'preview' / 'idle_4dir.gif').exists()

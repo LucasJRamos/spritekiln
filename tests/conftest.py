@@ -1,4 +1,5 @@
 """Shared helpers: staging specs in a clean folder and comparing images with goldens."""
+
 import json
 import os
 import platform
@@ -18,8 +19,11 @@ TOLERANCE = 0.005
 
 
 def pytest_addoption(parser):
-    parser.addoption('--update-golden', action='store_true',
-                     help='rewrite tests/golden/ from the current output instead of comparing')
+    parser.addoption(
+        '--update-golden',
+        action='store_true',
+        help='rewrite tests/golden/ from the current output instead of comparing',
+    )
 
 
 @pytest.fixture

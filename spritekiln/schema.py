@@ -4,6 +4,7 @@
 directly, the tests validate every spec against it with `jsonschema`, and this module walks the subset
 needed to spot unknown keys (typos are otherwise silently ignored) without a runtime dependency.
 """
+
 import difflib
 import functools
 import json
@@ -22,6 +23,7 @@ def schema():
 
 
 # ---------------------------------------------------------------- unknown keys
+
 
 def _resolve(sch):
     while isinstance(sch, dict) and '$ref' in sch:
@@ -48,7 +50,7 @@ def _types(sch):
     if t is None:
         if 'properties' in sch or 'required' in sch:
             return {'object'}
-        return None                                   # unconstrained
+        return None  # unconstrained
     t = {t} if isinstance(t, str) else set(t)
     return t | ({'number'} if 'integer' in t else set())
 
@@ -153,6 +155,7 @@ def describe_missing(path, key):
 
 # ---------------------------------------------------------------- positions
 
+
 def format_path(path):
     out = ''
     for p in path:
@@ -160,8 +163,10 @@ def format_path(path):
     return out
 
 
-_PATH = re.compile(r'\b((?:bones|ik|parts|materials|channels|animations|camera|light|shadow|directions|palette)'
-                   r'(?:\.[A-Za-z0-9_-]+|\[\d+\])*)(?=:| \()')   # a path that a message talks about
+_PATH = re.compile(
+    r'\b((?:bones|ik|parts|materials|channels|animations|camera|light|shadow|directions|palette)'
+    r'(?:\.[A-Za-z0-9_-]+|\[\d+\])*)(?=:| \()'
+)  # a path that a message talks about
 
 
 def parse_path(text):
@@ -196,11 +201,11 @@ def marks(path, loader):
 def locate(message, spec_marks):
     """(line, column) of the deepest spec path mentioned in a problem message, or None."""
     paths = _PATH.findall(message)
-    for text in reversed(paths):                     # the last path is the most specific culprit
+    for text in reversed(paths):  # the last path is the most specific culprit
         path = parse_path(text)
         while path:
             for candidate in (path, tuple(re.sub(r'_R$', '_L', p) if isinstance(p, str) else p for p in path)):
-                if candidate in spec_marks:          # an automatic _R twin points at its _L source
+                if candidate in spec_marks:  # an automatic _R twin points at its _L source
                     return spec_marks[candidate]
             path = path[:-1]
     return None

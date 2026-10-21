@@ -5,7 +5,9 @@ are numpy vectors (so [1,0,0] + [0,1,0] adds, it does not concatenate).
 Available: channel names, p (phase 0..2pi), t (0..1), f (frame index), n (frame count),
 sx (+1 on _L side, -1 on _R side), and the functions below.
 """
+
 import ast
+
 import numpy as np
 
 from .errors import SpriteKilnError
@@ -38,19 +40,70 @@ def _pulse(x, center, width):
 
 
 FUNCS = dict(
-    sin=np.sin, cos=np.cos, tan=np.tan, abs=abs, min=min, max=max, sqrt=np.sqrt,
-    clamp=lambda x, a, b: float(np.clip(x, a, b)), lerp=_lerp, mix=_lerp, unit=_unit,
-    smoothstep=_smoothstep, pulse=_pulse, pos=lambda x: max(0.0, x), neg=lambda x: min(0.0, x),
-    roty=rot_y, rotx=rot_x, rotz=rot_z, v=lambda *a: _arr(a), radians=np.radians,
-    pi=np.pi, tau=2 * np.pi, floor=np.floor, sign=np.sign, exp=np.exp,
+    sin=np.sin,
+    cos=np.cos,
+    tan=np.tan,
+    abs=abs,
+    min=min,
+    max=max,
+    sqrt=np.sqrt,
+    clamp=lambda x, a, b: float(np.clip(x, a, b)),
+    lerp=_lerp,
+    mix=_lerp,
+    unit=_unit,
+    smoothstep=_smoothstep,
+    pulse=_pulse,
+    pos=lambda x: max(0.0, x),
+    neg=lambda x: min(0.0, x),
+    roty=rot_y,
+    rotx=rot_x,
+    rotz=rot_z,
+    v=lambda *a: _arr(a),
+    radians=np.radians,
+    pi=np.pi,
+    tau=2 * np.pi,
+    floor=np.floor,
+    sign=np.sign,
+    exp=np.exp,
     noise=lambda x, seed=0: float(np.sin(x * 12.9898 + seed * 78.233) * 43758.5453 % 1.0),
 )
 
-_ALLOWED = (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name, ast.Load,
-            ast.Call, ast.List, ast.Tuple, ast.Compare, ast.IfExp, ast.BoolOp, ast.Subscript,
-            ast.Index if hasattr(ast, 'Index') else ast.Constant, ast.Slice,
-            ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.Mod, ast.USub, ast.UAdd, ast.MatMult,
-            ast.Lt, ast.Gt, ast.LtE, ast.GtE, ast.Eq, ast.NotEq, ast.And, ast.Or, ast.Not, ast.FloorDiv)
+_ALLOWED = (
+    ast.Expression,
+    ast.BinOp,
+    ast.UnaryOp,
+    ast.Constant,
+    ast.Name,
+    ast.Load,
+    ast.Call,
+    ast.List,
+    ast.Tuple,
+    ast.Compare,
+    ast.IfExp,
+    ast.BoolOp,
+    ast.Subscript,
+    ast.Index if hasattr(ast, 'Index') else ast.Constant,
+    ast.Slice,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.Pow,
+    ast.Mod,
+    ast.USub,
+    ast.UAdd,
+    ast.MatMult,
+    ast.Lt,
+    ast.Gt,
+    ast.LtE,
+    ast.GtE,
+    ast.Eq,
+    ast.NotEq,
+    ast.And,
+    ast.Or,
+    ast.Not,
+    ast.FloorDiv,
+)
 
 
 class ExprError(SpriteKilnError, ValueError):
@@ -72,7 +125,7 @@ def compile_expr(src):
     try:
         tree = ast.parse(src.strip(), mode='eval')
     except SyntaxError as e:
-        raise ExprError(f'syntax error in expression {src!r}: {e.msg}')
+        raise ExprError(f'syntax error in expression {src!r}: {e.msg}') from None
     for node in ast.walk(tree):
         if not isinstance(node, _ALLOWED):
             raise ExprError(f'not allowed in expression {src!r}: {type(node).__name__}')
@@ -88,11 +141,13 @@ def evaluate(value, env):
     """Evaluate a spec value: number, list (possibly containing expressions) or expression string."""
     if isinstance(value, str):
         code = compile_expr(value)
-        scope = dict(FUNCS); scope['_arr'] = _arr; scope.update(env)
+        scope = dict(FUNCS)
+        scope['_arr'] = _arr
+        scope.update(env)
         try:
             out = eval(code, {'__builtins__': {}}, scope)
         except NameError as e:
-            raise ExprError(f'{e} in expression {value!r} (unknown channel or function)')
+            raise ExprError(f'{e} in expression {value!r} (unknown channel or function)') from None
         return out
     if isinstance(value, (list, tuple)):
         vals = [evaluate(v, env) for v in value]

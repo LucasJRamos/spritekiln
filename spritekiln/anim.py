@@ -11,6 +11,7 @@ animations:
       - {ms: 90,  set: {bob: -0.03}}
       - {ms: 170, set: {...}, event: windup, tween: 1, ease: out}
 """
+
 import numpy as np
 
 from .expr import ExprError, evaluate
@@ -31,6 +32,7 @@ def is_loop(A):
 
 def _base(spec):
     from .rig import rest_env
+
     return rest_env(spec)
 
 
@@ -94,7 +96,13 @@ def frames_of(spec, name):
             if ch not in base:
                 raise SpecError(f'{where}: unknown channel "{ch}" (declare it under top-level channels:)')
             env[ch] = _eval(v, env, where)
-        d = ms[i] if isinstance(ms, list) else int(_eval(ms, env, f'animations.{name}.ms')) if isinstance(ms, str)             else int(ms)
+        d = (
+            ms[i]
+            if isinstance(ms, list)
+            else int(_eval(ms, env, f'animations.{name}.ms'))
+            if isinstance(ms, str)
+            else int(ms)
+        )
         ev = events.get(i)
         out.append((env, int(d), [ev] if ev else []))
     return out

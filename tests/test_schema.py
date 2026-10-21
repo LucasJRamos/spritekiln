@@ -1,4 +1,5 @@
 """JSON Schema: every spec conforms; typos and missing keys are reported with file:line:column."""
+
 import glob
 import json
 import os
@@ -13,8 +14,11 @@ from spritekiln.cli import main
 
 from conftest import FIXTURES, REPO
 
-SPECS = sorted(f for f in glob.glob(os.path.join(REPO, 'specs', '**', '*.yaml'), recursive=True)
-               if 'palettes' not in f and '_ref' not in f) + [os.path.join(FIXTURES, 'minimal', 'minimal.yaml')]
+SPECS = sorted(
+    f
+    for f in glob.glob(os.path.join(REPO, 'specs', '**', '*.yaml'), recursive=True)
+    if 'palettes' not in f and '_ref' not in f
+) + [os.path.join(FIXTURES, 'minimal', 'minimal.yaml')]
 
 
 def test_schema_is_valid_draft_2020_12():
@@ -24,7 +28,7 @@ def test_schema_is_valid_draft_2020_12():
 @pytest.mark.parametrize('path', SPECS, ids=lambda p: os.path.basename(p))
 def test_every_spec_conforms(path):
     with open(path, encoding='utf-8') as fh:
-        doc = json.loads(json.dumps(S.yload(fh), default=str))        # YAML int keys -> JSON strings
+        doc = json.loads(json.dumps(S.yload(fh), default=str))  # YAML int keys -> JSON strings
     errors = list(jsonschema.Draft202012Validator(schema.schema()).iter_errors(doc))
     assert not errors, [f'{"/".join(map(str, e.absolute_path))}: {e.message[:120]}' for e in errors]
     assert S.check(S.load(path)) == ([], [])
@@ -85,7 +89,7 @@ def test_mirrored_twins_point_at_the_left_side(tmp_path):
     text = text.replace('radius', 'r').replace('      - blob: {c: [0, 0, 0]}\n', '')
     text = text.replace('bones:\n', 'bones:\n  shoulder_L: {parent: nowhere}\n')
     errors, _ = S.check(S.load(_write(tmp_path, text)))
-    assert len(errors) == 2                                     # shoulder_L and its automatic shoulder_R twin
+    assert len(errors) == 2  # shoulder_L and its automatic shoulder_R twin
     assert errors[0].endswith(':11:16: bones.shoulder_L.parent: unknown frame "nowhere"')
     assert errors[1].endswith(':11:16: bones.shoulder_R.parent: unknown frame "nowhere"')
 

@@ -1,15 +1,17 @@
 """Memory and CPU facts used to size the render pool. Pure stdlib (psutil is used when installed)."""
+
 import os
 import subprocess
 import sys
 
-MB = 2 ** 20
+MB = 2**20
 
 
 def memory_mb():
     """(available, total) physical memory in MB, or (None, None) when unknown."""
     try:
         import psutil
+
         vm = psutil.virtual_memory()
         return vm.available / MB, vm.total / MB
     except ImportError:
@@ -30,11 +32,17 @@ def _windows():
     import ctypes
 
     class MEMORYSTATUSEX(ctypes.Structure):
-        _fields_ = [('dwLength', ctypes.c_ulong), ('dwMemoryLoad', ctypes.c_ulong),
-                    ('ullTotalPhys', ctypes.c_ulonglong), ('ullAvailPhys', ctypes.c_ulonglong),
-                    ('ullTotalPageFile', ctypes.c_ulonglong), ('ullAvailPageFile', ctypes.c_ulonglong),
-                    ('ullTotalVirtual', ctypes.c_ulonglong), ('ullAvailVirtual', ctypes.c_ulonglong),
-                    ('ullAvailExtendedVirtual', ctypes.c_ulonglong)]
+        _fields_ = [
+            ('dwLength', ctypes.c_ulong),
+            ('dwMemoryLoad', ctypes.c_ulong),
+            ('ullTotalPhys', ctypes.c_ulonglong),
+            ('ullAvailPhys', ctypes.c_ulonglong),
+            ('ullTotalPageFile', ctypes.c_ulonglong),
+            ('ullAvailPageFile', ctypes.c_ulonglong),
+            ('ullTotalVirtual', ctypes.c_ulonglong),
+            ('ullAvailVirtual', ctypes.c_ulonglong),
+            ('ullAvailExtendedVirtual', ctypes.c_ulonglong),
+        ]
 
     st = MEMORYSTATUSEX()
     st.dwLength = ctypes.sizeof(st)

@@ -3,7 +3,9 @@
 Orthographic top-down 3/4 camera. The light is fixed in world space, the model is
 rotated (yaw) for each of the 8 directions, so shading stays consistent.
 """
+
 import numpy as np
+
 from .sdf import norm, normalize
 
 
@@ -21,7 +23,8 @@ class Camera:
 
     @classmethod
     def from_spec(cls, spec):
-        c = dict(spec['camera']); c['size'] = spec['size']
+        c = dict(spec['camera'])
+        c['size'] = spec['size']
         return cls(**c)
 
     def project(self, P):
@@ -30,29 +33,36 @@ class Camera:
 
 
 class Light:
-    def __init__(self, dir=(-0.55, 1.0, 0.45), rim=(0.8, 0.35, -0.9), rim_strength=0.45, ambient=0.12,
-                 shadows=True, ao=True, **_):
-        self.L = normalize(dir); self.RIM = normalize(rim)
-        self.rim_strength = rim_strength; self.ambient = ambient
-        self.shadows = shadows; self.ao = ao
+    def __init__(
+        self, dir=(-0.55, 1.0, 0.45), rim=(0.8, 0.35, -0.9), rim_strength=0.45, ambient=0.12, shadows=True, ao=True, **_
+    ):
+        self.L = normalize(dir)
+        self.RIM = normalize(rim)
+        self.rim_strength = rim_strength
+        self.ambient = ambient
+        self.shadows = shadows
+        self.ao = ao
 
 
 class Scene:
     def __init__(self, groups, yaw=0.0, offset=(0, 0, 0)):
         self.groups = groups
         c, s = np.cos(-yaw), np.sin(-yaw)
-        self.Rwl = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])   # world -> local (about Y)
+        self.Rwl = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])  # world -> local (about Y)
         self.Rlw = self.Rwl.T
         self.off = np.asarray(offset, float)
         self.solid_idx = [i for i, g in enumerate(groups) if not g.emissive]
         # whole-scene bounding sphere (world space)
         if groups:
-            cs = np.array([g.bc for g in groups]); rs = np.array([g.br for g in groups])
-            lo = (cs - rs[:, None]).min(0); hi = (cs + rs[:, None]).max(0)
+            cs = np.array([g.bc for g in groups])
+            rs = np.array([g.br for g in groups])
+            lo = (cs - rs[:, None]).min(0)
+            hi = (cs + rs[:, None]).max(0)
             self.bc = self.Rlw @ ((lo + hi) / 2) + self.off
             self.br = np.linalg.norm(hi - lo) / 2
         else:
-            self.bc = np.zeros(3); self.br = 0.0
+            self.bc = np.zeros(3)
+            self.br = 0.0
 
     def to_local(self, p):
         return (p - self.off) @ self.Rwl.T
@@ -106,7 +116,8 @@ def soft_shadow(scene, P, L, steps=28):
 
 def render(scene, cam, light):
     """Supersampled buffers: gid, val (0..1 light), depth, normal (world)."""
-    S = cam.size; N = S * cam.ss
+    S = cam.size
+    N = S * cam.ss
     o = (np.arange(N) + 0.5) / cam.ss
     px, py = np.meshgrid(o, o)
     u = (px - S / 2) * cam.scale
@@ -116,7 +127,7 @@ def render(scene, cam, light):
     # ray / bounding sphere -> skip empty space and rays that miss everything
     oc = ro - scene.bc
     b = oc @ cam.D
-    c = (oc * oc).sum(-1) - scene.br ** 2
+    c = (oc * oc).sum(-1) - scene.br**2
     disc = b * b - c
     miss = disc < 0
     sq = np.sqrt(np.maximum(disc, 0))
@@ -134,14 +145,16 @@ def render(scene, cam, light):
         e = 0.002
         n = np.zeros_like(P)
         for i in range(3):
-            dv = np.zeros(3); dv[i] = e
+            dv = np.zeros(3)
+            dv[i] = e
             n[:, i] = scene.dist(P + dv) - scene.dist(P - dv)
         n /= np.maximum(norm(n)[:, None], 1e-9)
         two = np.array([gr.two_sided for gr in scene.groups])[g]
         flip = two & ((n @ cam.D) > 0)
         n[flip] *= -1
         if light.ao:
-            ao = np.zeros(len(P)); w = 1.0
+            ao = np.zeros(len(P))
+            w = 1.0
             for h in (0.04, 0.09, 0.16, 0.26):
                 ao += w * np.clip(h - scene.dist_solid(P + n * h), 0, None)
                 w *= 0.6
@@ -169,7 +182,9 @@ def to_pixels(gid, val, depth, nrm, nG, cam):
         return a.reshape(S, k, S, k, *sh).swapaxes(1, 2).reshape(S, S, k * k, *sh)
 
     g, vv, dd, nn = blk(gid), blk(val), blk(depth), blk(nrm)
-    out_g = np.full((S, S), -1); out_v = np.zeros((S, S)); out_d = np.full((S, S), np.inf)
+    out_g = np.full((S, S), -1)
+    out_v = np.zeros((S, S))
+    out_d = np.full((S, S), np.inf)
     out_n = np.zeros((S, S, 3))
     hits = (g >= 0).sum(-1)
     if nG == 0:

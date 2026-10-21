@@ -1,4 +1,5 @@
 """SpriteKiln command line. Run `spritekiln -h` (or `python -m spritekiln -h`)."""
+
 import argparse
 import json
 import os
@@ -12,6 +13,7 @@ from .errors import SpriteKilnError
 
 def _spec(path, size=None, warn=True):
     from . import spec as S
+
     sp = S.load(path, size=size)
     if warn:
         _, warnings = S.check(sp) if sp.get('_raw') else ([], [])
@@ -25,6 +27,7 @@ def _spec(path, size=None, warn=True):
 def _pose_env(sp, anim, frame):
     from .anim import frames_of
     from .rig import rest_env
+
     if not anim:
         return rest_env(sp)
     frames = frames_of(sp, anim)
@@ -36,6 +39,7 @@ def _pose_env(sp, anim, frame):
 def cmd_validate(a):
     from . import spec as S
     from .anim import frames_of
+
     sp = _spec(a.spec, warn=False)
     errors, warnings = S.check(sp)
     for w in warnings:
@@ -48,18 +52,22 @@ def cmd_validate(a):
     if warnings and a.strict:
         print(f'INVALID: {len(warnings)} warning(s) with --strict')
         return 1
-    print(f'OK: {sp["name"]} - {len(sp["parts"])} parts, {len(sp["bones"])} bones, '
-          f'{len(sp["directions"])} directions, animations: '
-          + ', '.join(f'{k}({len(frames_of(sp, k))})' for k in sp['animations']))
+    print(
+        f'OK: {sp["name"]} - {len(sp["parts"])} parts, {len(sp["bones"])} bones, '
+        f'{len(sp["directions"])} directions, animations: '
+        + ', '.join(f'{k}({len(frames_of(sp, k))})' for k in sp['animations'])
+    )
     return 0
 
 
 def cmd_pose(a):
     """Quick look: one pose in several directions, zoomed (cheap; use it while modelling)."""
+    import numpy as np
+
     from . import spec as S
     from .export import upscale
     from .pipeline import frame_image
-    import numpy as np
+
     sp = _spec(a.spec)
     env = _pose_env(sp, a.anim, a.frame)
     dirs = [d for d in sp['directions'] if not a.dirs or d[0] in a.dirs.split(',')]
@@ -79,11 +87,19 @@ def cmd_render(a):
     from . import qa
     from .export import export
     from .pipeline import render_all
-    _spec(a.spec, a.size)                             # report spec warnings before the long part
+
+    _spec(a.spec, a.size)  # report spec warnings before the long part
     t = time.time()
-    sp, anims, dlist, out = render_all(os.path.abspath(a.spec), a.anims.split(',') if a.anims else None,
-                                       a.dirs.split(',') if a.dirs else None, a.jobs, a.force, progress=True,
-                                       size=a.size, log=_note)
+    sp, anims, dlist, out = render_all(
+        os.path.abspath(a.spec),
+        a.anims.split(',') if a.anims else None,
+        a.dirs.split(',') if a.dirs else None,
+        a.jobs,
+        a.force,
+        progress=True,
+        size=a.size,
+        log=_note,
+    )
     dst = a.out or os.path.join(sp['_dir'], 'out', sp['name'] + (f'_{a.size}' if a.size else ''))
     export(sp, anims, dlist, out, dst, block='pxforge' if a.prog == 'pxforge' else 'spritekiln')
     rep = qa.check(sp, anims, dlist, out)
@@ -94,6 +110,7 @@ def cmd_render(a):
     print('review: ' + ', '.join(os.path.join(dst, 'preview', f'contact_{x}.png') for x in anims))
     if a.godot is not None:
         from .godot import _find_project, export_godot
+
         w = export_godot(sp, _find_project(a.godot or None), render_dir=dst)
         print(f'godot: {w["scene"]}')
 
@@ -104,6 +121,7 @@ def _note(msg):
 
 def cmd_cache(a):
     from . import cache
+
     roots = a.paths or ['.']
     dirs = sorted({d for r in roots for d in cache.find_dirs(r, legacy=True)})
     kiln = [d for d in dirs if os.path.basename(d) == cache.DIRNAME]
@@ -137,11 +155,13 @@ def cmd_palette(a):
     import numpy as np
 
     from . import palette as P
+
     if a.action == 'ramp':
         r = P.ramp(a.input, a.steps, a.hue_shift)
         print('[' + ', '.join(f'"{c}"' for c in r) + ']')
         return
     from .ref import cutout, load
+
     cut, mask, used = cutout(load(a.input))
     y = P.palette_yaml(P.families(P.extract(np.asarray(cut), mask, a.k)), a.steps)
     if a.out:
@@ -156,6 +176,7 @@ def cmd_ref(a):
 
     from . import palette as P
     from . import ref as R
+
     if a.action == 'prep':
         cut, mask, used = R.cutout(R.load(a.image), tol=a.tol)
         dst = a.out or os.path.splitext(a.image)[0] + '_ref'
@@ -165,21 +186,32 @@ def cmd_ref(a):
         fams = P.families(P.extract(np.asarray(cut), mask, a.k))
         with open(os.path.join(dst, 'palette.yaml'), 'w', encoding='utf-8') as fh:
             fh.write(P.palette_yaml(fams))
-        info = dict(method=used, size=cut.size, metrics=m,
-                    families=[dict(base=f['base'], share=round(f['share'], 3), neutral=f['neutral'],
-                                   hue=round(f['hue'])) for f in fams])
+        info = dict(
+            method=used,
+            size=cut.size,
+            metrics=m,
+            families=[
+                dict(base=f['base'], share=round(f['share'], 3), neutral=f['neutral'], hue=round(f['hue']))
+                for f in fams
+            ],
+        )
         with open(os.path.join(dst, 'ref.json'), 'w', encoding='utf-8') as fh:
             json.dump(info, fh, indent=1)
         print(f'cutout ({used}) -> {dst}/cutout.png  | palette -> {dst}/palette.yaml')
-        print(f'height/width aspect {m["aspect"]:.2f}; width profile per band (top->bottom): '
-              + ' '.join(f'{v:.2f}' for v in m['width_profile']))
+        print(
+            f'height/width aspect {m["aspect"]:.2f}; width profile per band (top->bottom): '
+            + ' '.join(f'{v:.2f}' for v in m['width_profile'])
+        )
         if used == 'border':
-            print('note: background removed by border colour; check cutout.png (if it cut wrong, use --tol, '
-                  'a PNG with transparency, or install the [splash] extra for rembg)')
+            print(
+                'note: background removed by border colour; check cutout.png (if it cut wrong, use --tol, '
+                'a PNG with transparency, or install the [splash] extra for rembg)'
+            )
         return
     # compare
     from . import spec as S
     from .pipeline import frame_image
+
     sp = _spec(a.spec)
     cut, mask, used = R.cutout(R.load(a.image), tol=a.tol)
     env = _pose_env(sp, a.anim, a.frame)
@@ -188,8 +220,9 @@ def cmd_ref(a):
     turn = [frame_image(sp, env, y, maps=False)[0] for _, y in S.DIRECTIONS8]
     out = a.out or os.path.join(sp['_dir'], 'out', f'compare_{a.dir}.png')
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-    R.sheet(cut, spr, turn, (ga, gb), R.ref_palette(cut, mask), sp['materials'], out,
-            f'{sp["name"]} ({a.anim or "rest"})')
+    R.sheet(
+        cut, spr, turn, (ga, gb), R.ref_palette(cut, mask), sp['materials'], out, f'{sp["name"]} ({a.anim or "rest"})'
+    )
     with open(os.path.splitext(out)[0] + '.json', 'w', encoding='utf-8') as fh:
         json.dump(res, fh, indent=1, ensure_ascii=False)
     print(f'silhouette IoU ({a.dir}): {res["iou"]:.3f}   (>0.80 great, 0.65-0.80 ok, <0.65 redo the proportions)')
@@ -200,6 +233,7 @@ def cmd_ref(a):
 
 def cmd_godot(a):
     from .godot import DEFAULT_DEST, _find_project, export_godot, install_addon
+
     project = _find_project(a.project)
     if a.install_addon:
         install_addon(project, True)
@@ -216,12 +250,16 @@ def cmd_godot(a):
     if 'emissive' in w:
         print('  emissive:', w['emissive'])
     if w['addon_installed']:
-        print('  addon installed in', os.path.join(project, 'addons', 'pxforge'),
-              '(enable it in Project > Project Settings > Plugins if needed)')
+        print(
+            '  addon installed in',
+            os.path.join(project, 'addons', 'pxforge'),
+            '(enable it in Project > Project Settings > Plugins if needed)',
+        )
 
 
 def cmd_new(a):
     from . import resources
+
     tpl = resources.template(a.template)
     if not tpl:
         raise SpriteKilnError(f'template not found: {a.template} (available: {", ".join(resources.templates())})')
@@ -243,7 +281,9 @@ DIRS = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw']
 
 
 def build_parser(prog='spritekiln'):
-    p = argparse.ArgumentParser(prog=prog, description='Procedural SDF models in YAML -> animated 8-direction pixel art')
+    p = argparse.ArgumentParser(
+        prog=prog, description='Procedural SDF models in YAML -> animated 8-direction pixel art'
+    )
     p.add_argument('--version', action='version', version=f'spritekiln {__version__}')
     sub = p.add_subparsers(dest='cmd', required=True)
 
@@ -269,8 +309,13 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--jobs', type=int, help='worker processes')
     s.add_argument('--force', action='store_true', help='ignore the render cache')
     s.add_argument('--size', type=int, help='32/48/64/128: rescale the camera, keeping the framing')
-    s.add_argument('--godot', nargs='?', const='', metavar='PROJECT',
-                   help='after rendering, export to a Godot project (default: $SPRITEKILN_GODOT_PROJECT)')
+    s.add_argument(
+        '--godot',
+        nargs='?',
+        const='',
+        metavar='PROJECT',
+        help='after rendering, export to a Godot project (default: $SPRITEKILN_GODOT_PROJECT)',
+    )
     s.set_defaults(f=cmd_render)
 
     s = sub.add_parser('godot', help='export a rendered spec to a Godot 4 project (SpriteFrames + scene)')
@@ -321,7 +366,7 @@ def build_parser(prog='spritekiln'):
 
 
 def main(argv=None, prog='spritekiln'):
-    system.limit_blas_threads()                       # before numpy loads: ~500 MB less committed memory
+    system.limit_blas_threads()  # before numpy loads: ~500 MB less committed memory
     for st in (sys.stdout, sys.stderr):
         try:
             st.reconfigure(encoding='utf-8', errors='replace')

@@ -33,7 +33,7 @@ def test_ramp_shape(base, steps):
 
 
 def test_shadows_shift_toward_violet_and_lights_toward_yellow():
-    r = P.ramp('#2e8b57', 6)                       # green: blue-violet is "up" the hue wheel, yellow "down"
+    r = P.ramp('#2e8b57', 6)  # green: blue-violet is "up" the hue wheel, yellow "down"
     hue = lambda c: colorsys.rgb_to_hls(*[v / 255 for v in hx(c)])[0]  # noqa: E731
     base = hue('#2e8b57')
     assert hue(r[1]) > base
@@ -54,8 +54,8 @@ def test_oklab_reference_points():
 def two_colour_image():
     img = np.zeros((40, 40, 4), np.uint8)
     img[..., 3] = 255
-    img[:30] = (200, 40, 40, 255)          # 75 % red
-    img[30:] = (40, 60, 200, 255)          # 25 % blue
+    img[:30] = (200, 40, 40, 255)  # 75 % red
+    img[30:] = (40, 60, 200, 255)  # 25 % blue
     return img
 
 
@@ -82,11 +82,13 @@ def test_extract_with_fewer_colours_than_k():
 
 
 def test_families_group_by_hue_and_neutrals():
-    cols = [dict(hex='#c82828', share=0.4, L=0.5, chroma=0.2, hue=30.0),
-            dict(hex='#e04040', share=0.2, L=0.6, chroma=0.2, hue=40.0),
-            dict(hex='#283cc8', share=0.2, L=0.4, chroma=0.2, hue=265.0),
-            dict(hex='#777777', share=0.1, L=0.5, chroma=0.0, hue=0.0),
-            dict(hex='#999999', share=0.1, L=0.7, chroma=0.01, hue=90.0)]
+    cols = [
+        dict(hex='#c82828', share=0.4, L=0.5, chroma=0.2, hue=30.0),
+        dict(hex='#e04040', share=0.2, L=0.6, chroma=0.2, hue=40.0),
+        dict(hex='#283cc8', share=0.2, L=0.4, chroma=0.2, hue=265.0),
+        dict(hex='#777777', share=0.1, L=0.5, chroma=0.0, hue=0.0),
+        dict(hex='#999999', share=0.1, L=0.7, chroma=0.01, hue=90.0),
+    ]
     fams = P.families(cols)
     assert [len(f['members']) for f in fams] == [2, 1, 2]
     assert fams[0]['share'] == pytest.approx(0.6) and fams[0]['base'] == '#c82828'
@@ -97,5 +99,5 @@ def test_palette_yaml_is_valid_yaml():
     fams = P.families(P.extract(two_colour_image(), k=2))
     data = yaml.safe_load(P.palette_yaml(fams))
     assert list(data['ramps']) == ['fam1', 'fam2']
-    assert len(data['ramps']['fam1']) == 6          # > 8 % of the image: full ramp
+    assert len(data['ramps']['fam1']) == 6  # > 8 % of the image: full ramp
     assert all(HEX.match(c) for r in data['ramps'].values() for c in r)
