@@ -73,20 +73,20 @@ packages = ["spritekiln", "pxforge"]
 "docs/agent" = "spritekiln/data/agent"
 
 [tool.hatch.build.targets.sdist]
-include = [
-    "spritekiln/",
-    "pxforge/",
-    "tests/",
-    "specs/palettes/gothic.yaml",
-    "specs/palettes/props.yaml",
-    "specs/templates/",
-    "specs/characters/gargula/gargula.yaml",
-    "integrations/",
-    "docs/agent/",
-    "docs/format.md",
-    "LICENSE",
-    "LICENSES/",
-    "README.md",
+include = [  # anchored at the root (a bare "spritekiln/" would also match .claude/skills/spritekiln/)
+    "/spritekiln/",
+    "/pxforge/",
+    "/tests/",
+    "/specs/palettes/gothic.yaml",
+    "/specs/palettes/props.yaml",
+    "/specs/templates/",
+    "/specs/characters/gargula/gargula.yaml",
+    "/integrations/",
+    "/docs/agent/",
+    "/docs/format.md",
+    "/LICENSE",
+    "/LICENSES/",
+    "/README.md",
 ]
 
 [tool.pytest.ini_options]

@@ -9,7 +9,7 @@ values as *_L for a symmetric pose.
 import numpy as np
 
 from .expr import ExprError, evaluate
-from .sdf import Group, box, cylinder, ellipsoid, rot_x, rot_y, rot_z, round_cone, sphere, torus, triangle
+from .sdf import Group, box, cross3, cylinder, ellipsoid, rot_x, rot_y, rot_z, round_cone, sphere, torus, triangle
 
 MIRROR = np.array([-1.0, 1.0, 1.0])
 
@@ -40,11 +40,11 @@ def euler(r):
 
 def basis_z(z, up):
     z = z / max(np.linalg.norm(z), 1e-9)
-    x = np.cross(up, z)
+    x = cross3(up, z)
     if np.linalg.norm(x) < 1e-6:
-        x = np.cross([1.0, 0, 0], z)
+        x = cross3([1.0, 0, 0], z)
     x /= np.linalg.norm(x)
-    y = np.cross(z, x)
+    y = cross3(z, x)
     return np.stack([x, y, z], 1)
 
 
@@ -71,7 +71,8 @@ class Ctx:
         except ExprError as e:
             raise ExprError(f'{where}: {e}') from None
         if vec:
-            out = np.broadcast_to(np.asarray(out, float), (3,)).copy()
+            out = np.asarray(out, float)
+            out = out.copy() if out.shape == (3,) else np.broadcast_to(out, (3,)).copy()
             if mirror:
                 out = out * MIRROR
         return out
@@ -248,8 +249,11 @@ def _arc_groups(ctx, name, part, space, m, a, mats, w):
     c = ctx.point(a.get('c', [0, 0, 0]), space, w + '.c', m)
     n = int(a.get('segments', 9))
     ang = np.linspace(a0, a1, n)
+    side = MIRROR if m else 1.0  # the _R twin of an _L arc sweeps the other way
     pts = [
-        c + space.R @ np.array([np.sin(t) * r, -dip * np.sin((t - a0) / (a1 - a0 + 1e-9) * np.pi), np.cos(t) * r])
+        c
+        + space.R
+        @ (side * np.array([np.sin(t) * r, -dip * np.sin((t - a0) / (a1 - a0 + 1e-9) * np.pi), np.cos(t) * r]))
         for t in ang
     ]
     buckets = {mm: [] for mm in mats}

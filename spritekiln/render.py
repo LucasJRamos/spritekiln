@@ -10,10 +10,11 @@ from .sdf import norm, normalize
 
 
 class Camera:
-    def __init__(self, size=64, pitch=38.0, scale=0.048, center=(0, 1.0, 0), supersample=3, coverage=4, **_):
+    def __init__(self, size=64, pitch=38.0, scale=0.048, center=(0, 1.0, 0), supersample=3, coverage=None, **_):
         self.size = int(size)
-        self.ss = int(supersample)
-        self.cover = int(coverage)
+        self.ss = max(1, int(supersample))
+        # samples per pixel that must hit for it to fill: about 44% (4 of 9 at the default 3x3)
+        self.cover = min(self.ss**2, int(coverage) if coverage else int(np.ceil(0.44 * self.ss**2)))
         self.pitch = np.radians(pitch)
         self.scale = float(scale)
         self.center = np.asarray(center, float)
@@ -65,7 +66,7 @@ class Scene:
             self.br = 0.0
 
     def to_local(self, p):
-        return (p - self.off) @ self.Rwl.T
+        return (p - self.off if self.off.any() else p) @ self.Rwl.T
 
     def dist_all(self, p):
         q = self.to_local(p)
@@ -94,7 +95,7 @@ def march(scene, ro, rd, t0, tmax, steps=110, eps=0.0015):
     for _ in range(steps):
         if active.size == 0:
             break
-        p = ro[active] + rd[active] * t[active, None]
+        p = ro[active] + rd[0] * t[active, None]  # orthographic: every ray has the same direction
         d = scene.dist(p)
         t[active] += d * 0.85
         h = d < eps
@@ -107,10 +108,16 @@ def march(scene, ro, rd, t0, tmax, steps=110, eps=0.0015):
 def soft_shadow(scene, P, L, steps=28):
     t = np.full(len(P), 0.04)
     res = np.ones(len(P))
+    idx = np.arange(len(P))
     for _ in range(steps):
-        d = scene.dist_solid(P + L * t[:, None])
-        res = np.minimum(res, 10 * d / t)
-        t += np.clip(d, 0.02, 0.2)
+        if idx.size == 0:
+            break
+        ti = t[idx]
+        d = scene.dist_solid(P[idx] + L * ti[:, None])
+        r = np.minimum(res[idx], 10 * d / ti)
+        res[idx] = r
+        t[idx] = ti + np.clip(d, 0.02, 0.2)
+        idx = idx[r > 0]
     return np.clip(res, 0, 1)
 
 
@@ -133,6 +140,15 @@ def render(scene, cam, light):
     sq = np.sqrt(np.maximum(disc, 0))
     t0 = np.maximum(-b - sq, 0)
     tmax = np.where(miss, -1.0, -b + sq)
+    if scene.groups:
+        C = np.array([scene.Rlw @ g.bc + scene.off for g in scene.groups])
+        BR = np.array([g.br for g in scene.groups])
+        never = np.ones(len(ro), bool)
+        for c, br in zip(C, BR):  # perpendicular distance from each (parallel) ray to the sphere centre
+            w = c - ro
+            h = norm(w - (w @ cam.D)[:, None] * cam.D) - br
+            never &= h >= 0.05 + 1e-6
+        tmax = np.where(never, -1.0, tmax)
     t, hit = march(scene, ro, rd, t0, tmax)
     gid = np.full(len(ro), -1)
     val = np.zeros(len(ro))

@@ -1,6 +1,7 @@
 """Load, mirror and sanity-check SpriteKiln YAML specs."""
 
 import copy
+import json
 import os
 import re
 
@@ -8,6 +9,7 @@ import yaml
 
 from . import resources, schema
 from .errors import SpriteKilnError
+from .pixelize import hx
 
 DIRECTIONS8 = [('s', 0), ('se', 45), ('e', 90), ('ne', 135), ('n', 180), ('nw', -135), ('w', -90), ('sw', -45)]
 DIRECTIONS4 = [('s', 0), ('e', 90), ('n', 180), ('w', -90)]
@@ -96,16 +98,36 @@ def mirror_section(sec):
     return out
 
 
-def load_palette(ref, base_dir):
+def load_palette(ref, base_dir, used=None):
+    """Ramps of a palette: a file relative to the spec, a name in the project's palettes folder
+    (<specs>/palettes/<name>.yaml of spritekiln.toml) or a built-in name. `used` collects the file read."""
     if isinstance(ref, dict):
         return ref
-    path = ref if os.path.isabs(ref) else os.path.join(base_dir, ref)
-    if not os.path.exists(path):
-        path = resources.builtin_palette(ref) or path  # `palette: gothic` or a moved shared palette
-    if not os.path.exists(path):
-        raise SpecError(f'palette: file not found: {ref} (relative to {base_dir}, and not a built-in palette)')
+    path = palette_path(ref, base_dir)
+    if path is None:
+        raise SpecError(
+            f'palette: file not found: {ref} (relative to {base_dir}, in the project palettes folder, '
+            'or a built-in palette)'
+        )
+    if used is not None:
+        used.append(path)
     data = _read_yaml(path)
     return data.get('ramps', data)
+
+
+def palette_path(ref, base_dir):
+    path = ref if os.path.isabs(ref) else os.path.join(base_dir, ref)
+    if os.path.exists(path):
+        return path
+    name = os.path.basename(ref) if ref.endswith('.yaml') else os.path.basename(ref) + '.yaml'
+    from . import config
+
+    cfg = config.load(base_dir)
+    if cfg:
+        shared = os.path.join(cfg['specs'], 'palettes', name)
+        if os.path.exists(shared):
+            return shared
+    return resources.builtin_palette(ref)  # `palette: gothic` or a moved shared palette
 
 
 def _read_yaml(path):
@@ -155,8 +177,8 @@ def load(path, size=None):
         sh = dict(s.get('shadow') or {})
         if sh:
             k = new / s['size']
-            sh['rx'] = sh.get('rx', 13.5) * k
-            sh['ry'] = sh.get('ry', 4.5) * k
+            sh['rx'] = sh.get('rx', 13.5 * s['size'] / 64) * k  # the defaults scale with the spec's own size
+            sh['ry'] = sh.get('ry', 4.5 * s['size'] / 64) * k
             s['shadow'] = sh
         s['size'] = new
     li = dict(DEFAULT_LIGHT)
@@ -186,9 +208,10 @@ def load(path, size=None):
         s['directions'] = [(n, y) for n, y in s['directions'] if n not in s['mirrors']]
 
     ramps = {}
+    s['_files'] = []  # palette files read, so long-running processes notice when they change
     for p in (s.get('palette') or []) if isinstance(s.get('palette'), list) else [s.get('palette')]:
         if p:
-            ramps.update(load_palette(p, base))
+            ramps.update(load_palette(p, base, s['_files']))
     ramps.update(s.get('ramps') or {})
     s['ramps'] = ramps
 
@@ -221,6 +244,8 @@ def load(path, size=None):
     s.setdefault('animations', {})
     if 'shadow' not in s:  # a ground ellipse reads in top-down; a side view has the ground edge-on
         s['shadow'] = {'rx': 13.5 * s['size'] / 64, 'ry': 4.5 * s['size'] / 64} if preset['shadow'] else None
+    elif isinstance(s['shadow'], dict):  # `shadow: {alpha: 90}`: the radii default to the frame size
+        s['shadow'] = {'rx': 13.5 * s['size'] / 64, 'ry': 4.5 * s['size'] / 64, **s['shadow']}
     return s
 
 
@@ -251,6 +276,36 @@ def check(spec):
     return [_located(m, spec, marks) for m in errors], [_located(m, spec, marks) for m in warnings]
 
 
+def quick_errors(spec):
+    """The errors check() can find without building poses (what pose/render stop on before working)."""
+    raw = spec.get('_raw')
+    errors = [schema.describe_missing(p, k) for p, k in schema.scan(raw)[1]] if raw is not None else []
+    errors = errors or _static_problems(spec)
+    if not errors or raw is None:
+        return errors
+    try:
+        marks = schema.marks(spec['_path'], _Loader)
+    except (OSError, yaml.YAMLError):
+        marks = {}
+    return [_located(m, spec, marks) for m in errors]
+
+
+def warnings_only(spec):
+    """The warnings of check() without building every pose (what pose/render print before working)."""
+    raw = spec.get('_raw')
+    if raw is None:
+        return []
+    unknown, _ = schema.scan(raw)
+    warnings = list(spec.get('_warnings', [])) + [schema.describe_unknown(*u) for u in unknown]
+    if not warnings:
+        return []
+    try:
+        marks = schema.marks(spec['_path'], _Loader)
+    except (OSError, yaml.YAMLError):
+        marks = {}
+    return [_located(m, spec, marks) for m in warnings]
+
+
 def _located(message, spec, marks):
     pos = schema.locate(message, marks) or (1, 1)
     path = spec['_path']
@@ -263,9 +318,11 @@ def _located(message, spec, marks):
 
 
 def _problems(spec):
-    from .anim import frames_of
-    from .rig import build, rest_env, socket_points
+    return _static_problems(spec) or _pose_problems(spec)
 
+
+def _static_problems(spec):
+    """Problems found without building any pose (cheap: unknown frames, materials, empty parts...)."""
     problems = []
     frames_known = set(spec['bones']) | {'root'}
     for ik in spec['ik'].values():
@@ -289,10 +346,43 @@ def _problems(spec):
     for name, sk in spec['sockets'].items():
         if sk.get('bone') not in frames_known:
             problems.append(f'sockets.{name}.bone: unknown frame "{sk.get("bone")}"')
-    if problems:
-        return problems
-    # every direction: channels and bones may depend on `yaw`/`dir`
-    for d, yaw in spec['directions']:
+    for name, m in spec['materials'].items():
+        for c in m.get('colors') or []:
+            try:
+                hx(c)
+            except ValueError as e:
+                problems.append(f'materials.{name}: {e}')
+                break
+    for name, A in spec['animations'].items():
+        if 'keys' in A:
+            if not A['keys']:
+                problems.append(f'animations.{name}.keys: no keys')
+            continue
+        n = A.get('frames', 8)
+        if not isinstance(n, int) or n < 1:
+            problems.append(f'animations.{name}.frames: {n!r} (needs at least 1)')
+            continue
+        for k in A.get('events') or {}:
+            if not str(k).lstrip('-').isdigit() or not 0 <= int(k) < int(n):
+                problems.append(f'animations.{name}.events: frame {k} does not exist (frames 0..{int(n) - 1})')
+    for name, m in spec['materials'].items():
+        band = m.get('band')
+        if m.get('emissive') and isinstance(band, int) and not 0 <= band < len(m.get('colors') or []):
+            problems.append(f'materials.{name}.band: {band} is outside its ramp (0..{len(m["colors"]) - 1})')
+    return problems
+
+
+def _pose_problems(spec):
+    """Problems found by building the rest pose and every frame (expressions, IK, sockets)."""
+    from .anim import frames_of
+    from .rig import build, rest_env, socket_points
+
+    problems = []
+    # every direction when channels or bones may depend on `yaw`/`dir`; otherwise one shows them all
+    dirs = spec['directions']
+    if not re.search(r'\b(yaw|dir)\b', json.dumps(spec.get('_raw') or {})):
+        dirs = dirs[:1]
+    for d, yaw in dirs:
         try:
             build(spec, rest_env(spec, yaw))
         except Exception as e:  # noqa: BLE001 - report any failure as a spec problem
@@ -300,7 +390,7 @@ def _problems(spec):
             break
     for an in spec['animations']:
         count = None
-        for d, yaw in spec['directions']:
+        for d, yaw in dirs:
             try:
                 fr = frames_of(spec, an, yaw)
             except Exception as e:  # noqa: BLE001

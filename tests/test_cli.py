@@ -25,7 +25,7 @@ def run(*args):
         (['validate', 'nope.yaml'], 'file not found'),
         (['pose', GARGOYLE, '--anim', 'dance'], 'animation "dance" not in spec'),
         (['pose', GARGOYLE, '--anim', 'idle', '--frame', '99'], 'frame 99: animation "idle" has'),
-        (['pose', GARGOYLE, '--dirs', 'x'], 'dirs x: no such direction'),
+        (['pose', GARGOYLE, '--dirs', 'x'], 'dirs: no direction x here'),
         (['new', 'gargula', '--dir', os.path.join('specs', 'characters')], 'already exists'),
         (['new', 'x', '--template', 'robot'], 'template not found: robot (available: humanoid'),
         (['godot', GARGOYLE, '--project', REPO], 'not a Godot project'),

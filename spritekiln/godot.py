@@ -6,9 +6,10 @@ For a spec whose render exists in `<spec dir>/out/<name>/`, writes to `<project>
   <name>_lit.tres      SpriteFrames whose atlas is a CanvasTexture (diffuse + normal) -> Light2D works
   <name>_canvas.tres   CanvasTexture (diffuse + normal map)
   <name>_emissive.tres SpriteFrames over the emissive atlas (only when the atlas is not empty)
-  <name>.tscn          scene: PxSprite2D (addons/pxforge) already wired with frames + sheet JSON
+  <name>.tscn          scene: KilnSprite2D (addons/spritekiln) wired with frames + sheet JSON; projects driven
+                       by the legacy `pxforge` command get PxSprite2D (addons/pxforge) instead
 
-Also installs/updates `addons/pxforge` in the project when missing (or with --update-addon).
+Also installs the addon in the project when missing (or updates it with --update-addon).
 """
 
 import json
@@ -61,6 +62,21 @@ def _find_project(explicit=None, start=None):
     return p
 
 
+def _project_path(project, dest):
+    """`dest` (res://..., relative to the project, or an absolute path inside it) as a res:// relative path."""
+    if dest.startswith('res://'):
+        dest = dest[6:]
+    elif os.path.isabs(dest):
+        rel = os.path.relpath(os.path.abspath(dest), os.path.abspath(project))
+        if rel.startswith('..') or os.path.isabs(rel):
+            raise ExportError(f'{dest} is outside the Godot project {project}')
+        dest = rel
+    dest = dest.replace('\\', '/').strip('/')
+    if '..' in dest.split('/'):
+        raise ExportError(f'{dest}: the export folder must be inside the Godot project')
+    return dest
+
+
 def install_addon(project, update=False, addon='spritekiln'):
     src = ADDONS[addon][2]
     dst = os.path.join(project, 'addons', addon)
@@ -68,10 +84,13 @@ def install_addon(project, update=False, addon='spritekiln'):
         return False
     if not os.path.exists(src):
         raise ExportError(f'Godot addon not found in {src}')
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
-    if os.path.exists(dst):
-        shutil.rmtree(dst)
-    shutil.copytree(src, dst, ignore=shutil.ignore_patterns('*.uid', '.godot'))
+    os.makedirs(dst, exist_ok=True)
+    shipped = [f for f in os.listdir(src) if os.path.isfile(os.path.join(src, f)) and not f.endswith('.uid')]
+    for f in os.listdir(dst):  # drop files an older addon had; keep what Godot generated (.uid, .import)
+        if f not in shipped and not f.endswith(('.uid', '.import')) and os.path.isfile(os.path.join(dst, f)):
+            os.remove(os.path.join(dst, f))
+    for f in shipped:
+        shutil.copy2(os.path.join(src, f), os.path.join(dst, f))
     return True
 
 
@@ -172,9 +191,7 @@ def export_godot(spec, project, dest=None, lit=False, update_addon=False, render
     px = block(meta)
     if px is None:
         raise ExportError(f'{jpath}: no "spritekiln" (or "pxforge") block; not a spritekiln render')
-    dest = dest.replace('\\', '/').strip('/')
-    if dest.startswith('res://'):
-        dest = dest[6:].strip('/')
+    dest = _project_path(project, dest)
     out_dir = os.path.join(project, *dest.split('/'), name)
     os.makedirs(out_dir, exist_ok=True)
     res = 'res://' + dest + '/' + name

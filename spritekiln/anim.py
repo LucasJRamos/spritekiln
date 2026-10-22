@@ -77,10 +77,12 @@ def frames_of(spec, name, yaw=0.0):
             prev = env
         loop = A.get('loop', False)
         for i, (env, ms, ev) in enumerate(poses):
-            out.append((env, ms, [ev] if ev else []))
+            out.append((env, ms, event_list(ev)))
             tw = int(keys[i].get('tween', 0))
             if tw and (i + 1 < len(poses) or loop):
                 nxt = poses[(i + 1) % len(poses)][0]
+                if i + 1 == len(poses):  # the loop's way back to key 0: phase and counters keep going forward
+                    nxt = dict(nxt, p=2 * np.pi, t=1 + 1 / max(n_keys - 1, 1), f=n_keys)
                 ease = EASE[keys[i].get('ease', 'inout')]
                 tms = int(keys[i].get('tween_ms', max(ms // (tw + 1), 40)))
                 for j in range(1, tw + 1):
@@ -90,7 +92,7 @@ def frames_of(spec, name, yaw=0.0):
         return out
     n = int(A.get('frames', 8))
     ms = A.get('ms', 100)
-    events = A.get('events') or {}
+    events = {int(k): v for k, v in (A.get('events') or {}).items()}  # keys may be written "0"
     for i in range(n):
         env = dict(base)
         env.update(p=i / n * 2 * np.pi, t=i / n, f=i, n=n)
@@ -106,9 +108,15 @@ def frames_of(spec, name, yaw=0.0):
             if isinstance(ms, str)
             else int(ms)
         )
-        ev = events.get(i)
-        out.append((env, int(d), [ev] if ev else []))
+        out.append((env, int(d), event_list(events.get(i))))
     return out
+
+
+def event_list(ev):
+    """`hit`, [hit, shake] or nothing -> a list of event names."""
+    if not ev:
+        return []
+    return [str(e) for e in ev] if isinstance(ev, (list, tuple)) else [str(ev)]
 
 
 _DURATION = re.compile(r'^\s*([0-9]*\.?[0-9]+)\s*(f|ms)?\s*$')

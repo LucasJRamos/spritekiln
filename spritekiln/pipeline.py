@@ -22,12 +22,20 @@ _SPEC_CACHE = {}
 _FRAMES_CACHE = {}
 
 
+def _stamp(files):
+    return tuple(os.path.getmtime(f) if os.path.exists(f) else None for f in files)
+
+
 def get_spec(path, size=None):
-    m = os.path.getmtime(path)
+    """The loaded spec, reused while neither the spec nor its palette files change."""
     key = (path, size)
-    if key not in _SPEC_CACHE or _SPEC_CACHE[key][0] != m:
-        _SPEC_CACHE[key] = (m, specmod.load(path, size=size))
-    return _SPEC_CACHE[key][1]
+    hit = _SPEC_CACHE.get(key)
+    if hit and hit[0] == _stamp([path] + hit[1].get('_files', [])):
+        return hit[1]
+    spec = specmod.load(path, size=size)
+    _SPEC_CACHE[key] = (_stamp([path] + spec.get('_files', [])), spec)
+    _FRAMES_CACHE.clear()  # keyed by the spec object; old entries are stale
+    return spec
 
 
 def _frames(path, size, anim, yaw):
@@ -204,6 +212,10 @@ def _run_pool(tasks, jobs, out, on_done):
         except BrokenProcessPool:
             done = set(out)
             return [t for t in tasks if (t[2], t[3], t[5]) not in done]
+        except BaseException:  # a frame failed (or Ctrl+C): do not render the rest before reporting it
+            for fu in futures:
+                fu.cancel()
+            raise
     return []
 
 

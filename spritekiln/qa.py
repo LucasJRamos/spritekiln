@@ -27,8 +27,8 @@ def check(spec, anims, dlist, out):
         ]
         if edges:
             rep['errors'].append(
-                f'{a}/{d}/{i}: sprite clipped at the edge ({", ".join(edges)}) -> increase '
-                f'camera.scale (zoom out) or adjust camera.center'
+                f'{a}/{d}/{i}: sprite clipped at the edge ({", ".join(edges)}) -> move camera.center, '
+                f'raise size or reduce the gesture (camera.scale only for the whole game)'
             )
         pd = np.pad(op, 1)
         nn = pd[:-2, 1:-1].astype(int) + pd[2:, 1:-1] + pd[1:-1, :-2] + pd[1:-1, 2:]

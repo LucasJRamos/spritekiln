@@ -15,8 +15,12 @@ def _spec(path, size=None, warn=True):
     from . import spec as S
 
     sp = S.load(path, size=size)
+    errors = S.quick_errors(sp)  # cheap checks only; `validate` builds every pose
+    if errors:
+        listed = ''.join(f'\n  - {e}' for e in errors)
+        raise SpriteKilnError(f'the spec has errors (run `spritekiln validate` for all of them):{listed}')
     if warn:
-        _, warnings = S.check(sp) if sp.get('_raw') else ([], [])
+        warnings = S.warnings_only(sp)
         for w in warnings[:5]:
             _note(f'warning: {w}')
         if len(warnings) > 5:
@@ -79,10 +83,13 @@ def cmd_render(a):
     print(f'{res["frames"]} frames in {time.time() - t:.0f}s -> {res["dir"]}')
     print(qa.summary(res['qa']))
     print('review: ' + ', '.join(res['contact_sheets'].values()))
+    if a.anims or a.dirs:
+        _note('note: this atlas and JSON hold only the clips rendered now; run a full `render` before exporting')
     if a.godot is not None or a.export:
         engine = 'godot' if a.godot is not None else None
         w = api.export(a.spec, engine, res['dir'], project=a.godot or None, legacy=a.prog == 'pxforge')
         print(f'{w["engine"]}: {w.get("scene") or w["dir"]}')
+        _warn_missing(w)
 
 
 def cmd_export(a):
@@ -98,6 +105,12 @@ def cmd_export(a):
     else:
         for f in w['files']:
             print('  ', f)
+    _warn_missing(w)
+
+
+def _warn_missing(w):
+    if w.get('missing'):
+        _note(f'warning: the render lacks {", ".join(w["missing"])} (made with --anims?); run a full `render` first')
 
 
 def _look(a):
@@ -198,7 +211,8 @@ def cmd_review(a):
 def cmd_init(a):
     from .scaffold import init
 
-    res = init(a.dir, a.engine, a.ai.split(','), a.specs, a.export_dir, a.godot_project, not a.no_mcp, a.force, a.view)
+    ais = [x.strip() for x in a.ai.split(',') if x.strip()]
+    res = init(a.dir, a.engine, ais, a.specs, a.export_dir, a.godot_project, not a.no_mcp, a.force, a.view)
     print(f'SpriteKiln project in {res["root"]} (engine: {res["engine"]}; AI: {", ".join(res["ais"])})')
     for p in res['written']:
         print('  ', os.path.relpath(p, res['root']))
@@ -219,7 +233,12 @@ def cmd_palette(a):
     from . import palette as P
 
     if a.action == 'ramp':
-        r = P.ramp(a.input, a.steps, a.hue_shift)
+        if a.steps < 2:
+            raise SpriteKilnError('--steps: a ramp needs at least 2 colours')
+        try:
+            r = P.ramp(a.input, a.steps, a.hue_shift)
+        except ValueError:
+            raise SpriteKilnError(f'{a.input!r}: give a colour like "#5d4f6c"') from None
         print('[' + ', '.join(f'"{c}"' for c in r) + ']')
         return
     from .ref import cutout, load
@@ -227,6 +246,7 @@ def cmd_palette(a):
     cut, mask, used = cutout(load(a.input))
     y = P.palette_yaml(P.families(P.extract(np.asarray(cut), mask, a.k)), a.steps)
     if a.out:
+        os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
         with open(a.out, 'w', encoding='utf-8') as fh:
             fh.write(y)
         print('saved', a.out)
@@ -296,14 +316,14 @@ def cmd_godot(a):
     from .godot import ADDONS, _find_project, export_godot, install_addon
 
     addon = 'pxforge' if a.prog == 'pxforge' else 'spritekiln'  # the old command keeps Hunt Tower's PxSprite2D
+    if not a.spec and not a.install_addon:
+        raise SpriteKilnError('give a spec (or use --install-addon alone)')
     project = _find_project(a.project, start=a.spec)
     if a.install_addon:
         install_addon(project, True, addon)
         print('addon installed ->', os.path.join(project, 'addons', addon))
         if not a.spec:
             return
-    if not a.spec:
-        raise SpriteKilnError('give a spec (or use --install-addon alone)')
     sp = _spec(a.spec)
     cfg = config.load(a.spec)
     dest = a.dest or (cfg.get('export_dir') if cfg.get('engine') == 'godot' else None) or ADDONS[addon][1]
@@ -335,11 +355,21 @@ def _preview_args(s):
     s.add_argument('--tint', metavar='LIGHT', help='scene light for previews: 0.7,0.7,1.0 or #b3b5ff (emissive stays)')
 
 
+def _positive(text):
+    try:
+        n = int(text)
+    except ValueError:
+        n = 0
+    if n < 1:
+        raise argparse.ArgumentTypeError(f'{text!r}: give a whole number of at least 1')
+    return n
+
+
 def build_parser(prog='spritekiln'):
     p = argparse.ArgumentParser(
         prog=prog, description='Procedural SDF models in YAML -> animated 8-direction pixel art'
     )
-    p.add_argument('--version', action='version', version=f'spritekiln {__version__}')
+    p.add_argument('--version', action='version', version=f'{prog} {__version__}')
     sub = p.add_subparsers(dest='cmd', required=True)
 
     s = sub.add_parser('validate', help='check a spec')
@@ -352,7 +382,7 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--anim')
     s.add_argument('--frame', type=int, default=0)
     s.add_argument('--dirs', help='e.g. s,se,e or all')
-    s.add_argument('--scale', type=int, default=4, help='zoom of the preview PNG (default 4)')
+    s.add_argument('--scale', type=_positive, default=4, help='zoom of the preview PNG (default 4)')
     _preview_args(s)
     s.add_argument('-o', '--out')
     s.set_defaults(f=cmd_pose)
@@ -362,9 +392,9 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--anims', help='comma-separated (default: all)')
     s.add_argument('--dirs', help='comma-separated (default: all of the spec)')
     s.add_argument('-o', '--out')
-    s.add_argument('--jobs', type=int, help='worker processes')
+    s.add_argument('--jobs', type=_positive, help='worker processes')
     s.add_argument('--force', action='store_true', help='ignore the render cache')
-    s.add_argument('--size', type=int, help='32/48/64/128: rescale the camera, keeping the framing')
+    s.add_argument('--size', type=_positive, help='frame size (32, 48, 64, 96, 128...), same framing')
     s.add_argument(
         '--godot',
         nargs='?',
@@ -396,8 +426,8 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--ref-dir', default='s', choices=DIRS, help='direction the splash art shows')
     s.add_argument('--ref-anim', help='compare this animation instead of the rest pose')
     s.add_argument('--ref-frame', type=int, default=0)
-    s.add_argument('--scale', type=int, default=4, help='zoom of the sheets (default 4)')
-    s.add_argument('--jobs', type=int)
+    s.add_argument('--scale', type=_positive, default=4, help='zoom of the sheets (default 4)')
+    s.add_argument('--jobs', type=_positive)
     s.add_argument('-o', '--out', help='folder (default: <spec dir>/out/review/<name>)')
     s.set_defaults(f=cmd_review)
 
@@ -434,9 +464,9 @@ def build_parser(prog='spritekiln'):
     s = sub.add_parser('palette', help='hue-shifted ramps / extract a palette from an image')
     s.add_argument('action', choices=['ramp', 'extract'])
     s.add_argument('input', help='base colour (#hex) or image')
-    s.add_argument('--steps', type=int, default=6)
+    s.add_argument('--steps', type=_positive, default=6)
     s.add_argument('--hue-shift', type=float, default=22)
-    s.add_argument('--k', type=int, default=10)
+    s.add_argument('--k', type=_positive, default=10)
     s.add_argument('-o', '--out')
     s.set_defaults(f=cmd_palette)
 
@@ -450,7 +480,7 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--tol', type=float, help='prep: colour step of the background flood (default 9)')
     s.add_argument('--pitch', type=float, default=38, help='prep: camera pitch for cutout_pitchN.png (default 38)')
     s.add_argument('--no-pitch-correction', action='store_true', help='compare: IoU against the raw reference')
-    s.add_argument('--k', type=int, default=10)
+    s.add_argument('--k', type=_positive, default=10)
     s.add_argument('-o', '--out')
     s.set_defaults(f=cmd_ref)
 
@@ -496,6 +526,9 @@ def main(argv=None, prog='spritekiln'):
         rc = a.f(a)
     except SpriteKilnError as e:
         print(f'error: {e}', file=sys.stderr)
+        rc = 1
+    except OSError as e:  # a folder given as a file, a locked or missing path
+        print(f'error: {e.filename or ""}: {e.strerror or e}', file=sys.stderr)
         rc = 1
     except KeyboardInterrupt:
         print('interrupted', file=sys.stderr)

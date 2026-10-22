@@ -1,5 +1,6 @@
 """`spritekiln init`: set up a game project for SpriteKiln and for the coding AI that will drive it."""
 
+import importlib.util
 import os
 
 from . import agents, config
@@ -23,6 +24,9 @@ def init(
     written (paths) and notes for the user."""
     if engine not in config.ENGINES:
         raise SpriteKilnError(f'--engine {engine}: use one of {", ".join(config.ENGINES)}')
+    if view not in ('topdown', 'side'):
+        raise SpriteKilnError(f'--view {view}: use topdown or side')
+    specs = os.path.normpath(specs.replace('\\', '/')).replace(os.sep, '/')  # ./specs, art\specs -> art/specs
     root = os.path.abspath(root)
     os.makedirs(root, exist_ok=True)
     toml = os.path.join(root, config.FILENAME)
@@ -47,12 +51,23 @@ def init(
     written = [toml]
     for sub in ('characters', 'props', 'palettes'):
         os.makedirs(os.path.join(root, specs, sub), exist_ok=True)
+    if engine == 'godot':  # specs and renders inside the Godot project: keep the editor from importing them
+        gd = os.path.join(root, specs, '.gdignore')
+        if not os.path.exists(gd):
+            open(gd, 'w').close()
+        written.append(gd)
     agents.write_docs(os.path.join(root, DOCS_DIR))
     written.append(os.path.join(root, DOCS_DIR))
     ais = agents.install(root, ais, DOCS_DIR, specs_glob=f'{specs.rstrip("/")}/**/*.yaml')
     written += [os.path.join(root, f) for f in _adapter_files(ais) if os.path.exists(os.path.join(root, f))]
+    if mcp and importlib.util.find_spec('mcp') is None:
+        mcp = False
+        notes.append(
+            'the MCP server needs the mcp extra: pip install "spritekiln[mcp]", then run init again with --force '
+            '(the instructions files work without it)'
+        )
     if mcp:
-        written += agents.write_mcp_configs(root, ais)
+        written += agents.write_mcp_configs(root, ais, notes=notes)
         if 'codex' in ais:
             notes.append(
                 'Codex reads MCP servers from ~/.codex/config.toml: add [mcp_servers.spritekiln] with '

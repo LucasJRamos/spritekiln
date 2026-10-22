@@ -1,4 +1,5 @@
 spritekiln: 1
+# yaml-language-server: $schema=https://raw.githubusercontent.com/LucasJRamos/spritekiln/main/spritekiln/data/spec.schema.json
 name: TEMPLATE
 kind: character
 size: 64

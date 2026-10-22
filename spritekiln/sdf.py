@@ -8,12 +8,22 @@ def _dot(a, b):
 
 
 def norm(v):
+    if v.ndim == 2 and v.shape[1] == 3:
+        x, y, z = v[:, 0], v[:, 1], v[:, 2]
+        return np.sqrt(x * x + y * y + z * z)
     return np.sqrt((v * v).sum(-1))
 
 
 def normalize(v):
     v = np.asarray(v, float)
     return v / np.linalg.norm(v)
+
+
+def cross3(a, b):
+    """np.cross for two 3-vectors (same arithmetic, ~20x less overhead)."""
+    a0, a1, a2 = float(a[0]), float(a[1]), float(a[2])
+    b0, b1, b2 = float(b[0]), float(b[1]), float(b[2])
+    return np.array([a1 * b2 - a2 * b1, a2 * b0 - a0 * b2, a0 * b1 - a1 * b0])
 
 
 def rot_x(a):
@@ -97,10 +107,10 @@ def triangle(a, b, c, th):
     ba = b - a
     cb = c - b
     ac = a - c
-    nor = np.cross(ba, ac)
-    n_ba = np.cross(ba, nor)
-    n_cb = np.cross(cb, nor)
-    n_ac = np.cross(ac, nor)
+    nor = cross3(ba, ac)
+    n_ba = cross3(ba, nor)
+    n_cb = cross3(cb, nor)
+    n_ac = cross3(ac, nor)
     dba = ba @ ba
     dcb = cb @ cb
     dac = ac @ ac
@@ -111,9 +121,9 @@ def triangle(a, b, c, th):
         pb = p - b
         pc = p - c
         s = np.sign(pa @ n_ba) + np.sign(pb @ n_cb) + np.sign(pc @ n_ac)
-        e1 = ba * np.clip((pa @ ba) / dba, 0, 1)[:, None] - pa
-        e2 = cb * np.clip((pb @ cb) / dcb, 0, 1)[:, None] - pb
-        e3 = ac * np.clip((pc @ ac) / dac, 0, 1)[:, None] - pc
+        e1 = ba * _clip01((pa @ ba) / dba)[:, None] - pa
+        e2 = cb * _clip01((pb @ cb) / dcb)[:, None] - pb
+        e3 = ac * _clip01((pc @ ac) / dac)[:, None] - pc
         edge = np.minimum(np.minimum((e1 * e1).sum(-1), (e2 * e2).sum(-1)), (e3 * e3).sum(-1))
         face = (pa @ nor) ** 2 / dn
         return np.sqrt(np.where(s < 2, edge, face)) - th
@@ -177,10 +187,14 @@ def torus(c, R_major, r_minor, R=None):
     return f
 
 
+def _clip01(x):
+    return np.minimum(np.maximum(x, 0.0), 1.0)  # np.clip(x, 0, 1) without its Python-level overhead
+
+
 def smin(a, b, k):
     if k <= 0:
         return np.minimum(a, b)
-    h = np.clip(0.5 + 0.5 * (b - a) / k, 0, 1)
+    h = _clip01(0.5 + 0.5 * (b - a) / k)
     return b * (1 - h) + a * h - k * h * (1 - h)
 
 
@@ -210,14 +224,13 @@ class Group:
     def __call__(self, p):
         # cheap bounding-sphere skip
         db = norm(p - self.bc) - self.br
-        out = db.copy()
-        near = db < 0.05
-        if near.any():
-            q = p[near]
+        idx = np.flatnonzero(db < 0.05)
+        if idx.size:
+            q = p[idx]
             d = self.prims[0](q)
             for pr in self.prims[1:]:
                 d = smin(d, pr(q), self.k)
             for ct in self.cut:
                 d = smax(d, -ct(q), self.ck)
-            out[near] = d
-        return out
+            db[idx] = d
+        return db

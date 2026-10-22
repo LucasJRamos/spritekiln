@@ -60,9 +60,9 @@ def load(start=None):
         path=path,
         root=root,
         engine=engine,
-        specs=os.path.join(root, project.get('specs', 'specs')),
+        specs=os.path.normpath(os.path.join(root, project.get('specs', 'specs'))),
         export_dir=export.get('dir', EXPORT_DIRS[engine]),
-        godot_project=os.path.join(root, export.get('godot_project', '.')),
+        godot_project=os.path.normpath(os.path.join(root, export.get('godot_project', '.'))),
         defaults=data.get('defaults', {}),
     )
 

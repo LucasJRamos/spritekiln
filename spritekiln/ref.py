@@ -18,7 +18,10 @@ BANDS = 10
 
 
 def load(path):
-    return Image.open(path).convert('RGBA')
+    try:
+        return Image.open(path).convert('RGBA')
+    except (OSError, ValueError) as e:  # missing file, not an image
+        raise SpriteKilnError(f'{path}: cannot read the image ({e})') from None
 
 
 def _largest_component(mask):

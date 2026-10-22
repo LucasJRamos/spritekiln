@@ -1,4 +1,5 @@
 spritekiln: 1
+# yaml-language-server: $schema=https://raw.githubusercontent.com/LucasJRamos/spritekiln/main/spritekiln/data/spec.schema.json
 name: TEMPLATE
 kind: character
 view: side                      # profile camera (pitch 0), directions e and w, no ground shadow

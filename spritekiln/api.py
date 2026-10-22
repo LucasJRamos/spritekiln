@@ -20,16 +20,22 @@ def new(name, template=None, folder=None, ref=None, start=None, view=None):
     `side_humanoid` and a top-down one from `humanoid`."""
     if not re.fullmatch(r'[A-Za-z0-9_-]+', name or ''):
         raise SpriteKilnError(f'name {name!r}: use letters, digits, - and _ only')
+    if view and view not in specmod.VIEWS:
+        raise SpriteKilnError(f'view {view!r}: use one of {", ".join(specmod.VIEWS)}')
+    if ref and not os.path.isfile(ref):
+        raise SpriteKilnError(f'splash art not found: {ref}')
     cfg = config.load(start or folder)  # the project around the target folder (or the current one)
+    defaults = dict(cfg.get('defaults') or {})
+    project_view = defaults.pop('view', None) or 'topdown'
     if template is None:
-        side = (view or (cfg.get('defaults') or {}).get('view')) == 'side'
+        side = (view or project_view) == 'side'
         template = 'side_humanoid' if side and resources.template('side_humanoid') else 'humanoid'
     tpl = resources.template(template)
     if not tpl:
         raise SpriteKilnError(f'template not found: {template} (available: {", ".join(resources.templates())})')
     folder = folder or (os.path.join(cfg['specs'], 'characters') if cfg else os.path.join('specs', 'characters'))
     dst_dir = os.path.join(folder, name)
-    dst = os.path.join(dst_dir, f'{name}.yaml')
+    dst = os.path.normpath(os.path.join(dst_dir, f'{name}.yaml'))
     if os.path.exists(dst):
         raise SpriteKilnError(f'already exists: {dst}')
     with open(tpl, encoding='utf-8') as fh:
@@ -37,20 +43,18 @@ def new(name, template=None, folder=None, ref=None, start=None, view=None):
     import yaml
 
     base = yaml.safe_load(txt) or {}  # what the template already says: keys it satisfies stay as written
-    defaults = dict(cfg.get('defaults') or {})
-    project_view = defaults.pop('view', None)
-    if view and view != (project_view or 'topdown') and isinstance(defaults.get('camera'), dict):
+    made_for = base.get('view')  # a template made for one view (side_humanoid) keeps it
+    view = view or made_for or project_view
+    if made_for and made_for != view:
+        raise SpriteKilnError(f'template {template} is a {made_for} view; use --view {made_for} or another template')
+    if view != project_view and isinstance(defaults.get('camera'), dict):
         defaults['camera'] = {k: v for k, v in defaults['camera'].items() if k != 'pitch'}  # the view's pitch wins
-    view = view or project_view
-    if view and view != 'topdown':
-        if view not in specmod.VIEWS:
-            raise SpriteKilnError(f'view {view!r}: use one of {", ".join(specmod.VIEWS)}')
+    if view != 'topdown' and made_for != view:
         preset = specmod.VIEWS[view]
-        if base.get('view') != view:  # a template made for this view has its camera and directions already
-            txt = _set_top_level(txt, 'view', view)
-            txt = _set_top_level(txt, 'directions', preset['directions'])
-            txt = _set_top_level(txt, 'camera', {'pitch': preset['pitch']})
-            txt = _set_top_level(txt, 'shadow', None)
+        txt = _set_top_level(txt, 'view', view)
+        txt = _set_top_level(txt, 'directions', preset['directions'])
+        txt = _set_top_level(txt, 'camera', {'pitch': preset['pitch']})
+        txt = _set_top_level(txt, 'shadow', None)
     for key, value in defaults.items():
         if not _satisfies(base, key, value):
             txt = _set_top_level(txt, key, value)
@@ -125,15 +129,21 @@ def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=N
     from .export import BG, upscale
     from .pipeline import frame_image
 
-    sp = specmod.load(path)
+    sp = _checked(specmod.load(path))
     pose_env(sp, anim, frame)  # fails early on a bad anim/frame
-    wanted = dirs.split(',') if isinstance(dirs, str) else dirs
-    dl = [d for d in sp['directions'] if not wanted or d[0] in wanted]
-    top = sp['view'] == 'topdown'  # top-down characters show all 8 by default (a side view shows its own)
-    if wanted == ['all'] or (not wanted and top and len(sp['directions']) < 8 and sp['kind'] == 'character'):
-        dl = specmod.DIRECTIONS8
-    if not dl:
-        raise SpriteKilnError(f'dirs {dirs}: no such direction (have: {", ".join(d for d, _ in sp["directions"])})')
+    wanted = [w.strip() for w in dirs.split(',')] if isinstance(dirs, str) else dirs
+    pool = _viewable(sp)
+    if wanted == ['all']:
+        dl = pool
+    elif wanted:
+        unknown = [w for w in wanted if w not in dict(pool)]
+        if unknown:
+            raise SpriteKilnError(f'dirs: no direction {", ".join(unknown)} here (use {", ".join(dict(pool))} or all)')
+        dl = [d for d in pool if d[0] in wanted]
+    elif sp['view'] == 'topdown' and len(sp['directions']) < 8 and sp['kind'] == 'character':
+        dl = pool  # a top-down character shows all 8 by default
+    else:
+        dl = sp['directions']
     look = preview.viewer(preview.load_background(bg) if bg else None, preview.parse_tint(tint))
     shots = [frame_image(sp, pose_env(sp, anim, frame, y), y, maps=look is not None) for _, y in dl]
     imgs = [look(img, em) if look else img for img, _, em in shots]
@@ -141,6 +151,23 @@ def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=N
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     upscale(np.concatenate(imgs, 1), scale, None if look else BG).save(out)
     return out, [d for d, _ in dl]
+
+
+def _checked(sp):
+    """The spec, or SpriteKilnError with the problems found without building poses."""
+    errors = specmod.quick_errors(sp)
+    if errors:
+        listed = ''.join(f'\n  - {e}' for e in errors)
+        raise SpriteKilnError(f'the spec has errors (run `spritekiln validate` for all of them):{listed}')
+    return sp
+
+
+def _viewable(sp):
+    """Directions a pose can show: any of the 8 for a top-down model, the view's own otherwise."""
+    if sp['view'] == 'topdown':
+        return specmod.DIRECTIONS8
+    names = specmod.VIEWS[sp['view']]['directions']
+    return [d for d in specmod.DIRECTIONS8 if d[0] in names]
 
 
 def render(
@@ -162,11 +189,12 @@ def render(
     from .export import export
     from .pipeline import render_all
 
+    look = preview.viewer(preview.load_background(bg) if bg else None, preview.parse_tint(tint))  # fail early
+    _checked(specmod.load(path, size=size))
     sp, anims, dlist, frames = render_all(
         os.path.abspath(path), anims, dirs, jobs, force, progress=progress, size=size, log=log
     )
     dst = out or os.path.join(sp['_dir'], 'out', sp['name'] + (f'_{size}' if size else ''))
-    look = preview.viewer(preview.load_background(bg) if bg else None, preview.parse_tint(tint))
     export(sp, anims, dlist, frames, dst, block=block, look=look)
     rep = qa.check(sp, anims, dlist, frames)
     with open(os.path.join(dst, 'qa.json'), 'w', encoding='utf-8') as fh:
@@ -198,6 +226,8 @@ def ref_compare(path, image, direction='s', anim=None, frame=0, pitch_correction
     from .pipeline import frame_image
 
     sp = specmod.load(path)
+    if direction not in dict(specmod.DIRECTIONS8):
+        raise SpriteKilnError(f'direction {direction!r}: use one of {", ".join(dict(specmod.DIRECTIONS8))}')
     cut, mask, used = R.cutout(R.load(image), tol=tol)
     yaw = dict(specmod.DIRECTIONS8)[direction]
     spr = frame_image(sp, pose_env(sp, anim, frame, yaw), yaw, maps=False)[0]

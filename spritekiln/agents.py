@@ -109,9 +109,21 @@ def _section(text, heading):
     return text[i : i + len(heading) + m.start()] if m else text[i:]
 
 
-def _skill_links(text):
-    """Links between docs, as seen from a skill folder (the spec reference is SPEC.md there)."""
-    return text.replace('(spec.md)', '(SPEC.md)')
+def _skill_links(text, base='spritekiln', prefix=''):
+    """Links between docs as seen from skill `base`'s folder: a doc merged into its SKILL.md points there, the
+    spec reference is SPEC.md. `prefix` (e.g. '../skills/spritekiln/') serves files outside the folder."""
+
+    def target(m):
+        name = m.group(1) + '.md'
+        if name not in DOCS:
+            return m.group(0)
+        if name in SKILLS[base]['body']:
+            name = 'SKILL.md'
+        elif name == 'spec.md':
+            name = 'SPEC.md'
+        return f'({prefix}{name}{m.group(2) or ""})'
+
+    return re.sub(r'\(([a-z-]+)\.md(#[^)]*)?\)', target, text)
 
 
 def essentials(docs, cli='spritekiln', engine_note=True):
@@ -191,9 +203,9 @@ def write_claude(root, docs, cli='spritekiln', names=None, extra_note='', agents
             f'---\nname: {out_name}\ndescription: {desc}\n---\n\n{title}\n\n{body}\n\n'
             f'## More\nReference files in this folder: {others}.\n'
         )
-        _write(os.path.join(folder, 'SKILL.md'), with_cli(_skill_links(skill), cli))
+        _write(os.path.join(folder, 'SKILL.md'), with_cli(_skill_links(skill, base), cli))
         for target, n in _skill_files(base):
-            _write(os.path.join(folder, target), with_cli(_skill_links(source(n)), cli))
+            _write(os.path.join(folder, target), with_cli(_skill_links(source(n), base), cli))
     if not agents:
         return
     for name, meta in AGENT_ROLES.items():
@@ -208,7 +220,7 @@ def write_claude(root, docs, cli='spritekiln', names=None, extra_note='', agents
             f'{meta["role"]}\n\nRead {reads} before starting.\n\n'
             'Recommended model: the strongest one available to you, with image input; this work rewards '
             'visual judgement.\n\n'
-            f'{_skill_links(rules).strip()}\n'
+            f'{_skill_links(rules, meta["skill"], "../skills/" + meta["skill"] + "/").strip()}\n'
         )
         _write(os.path.join(root, '.claude', 'agents', f'{name}.md'), with_cli(text, cli))
     if not claude_md:
@@ -268,8 +280,9 @@ MCP_CONFIGS = {
 }
 
 
-def write_mcp_configs(root, ais, command='spritekiln'):
-    """Register `spritekiln mcp` in the project-level MCP config of each AI client that has one."""
+def write_mcp_configs(root, ais, command='spritekiln', notes=None):
+    """Register `spritekiln mcp` in the project-level MCP config of each AI client that has one. A config that
+    is not plain JSON (comments, trailing commas) is left alone, with a note in `notes`."""
     written = []
     for ai in ais:
         if ai not in MCP_CONFIGS:
@@ -278,8 +291,16 @@ def write_mcp_configs(root, ais, command='spritekiln'):
         path = os.path.join(root, rel)
         data = {}
         if os.path.exists(path):
-            with open(path, encoding='utf-8') as fh:
-                data = json.load(fh)
+            try:
+                with open(path, encoding='utf-8-sig') as fh:  # editors on Windows may add a BOM
+                    data = json.load(fh)
+            except ValueError as e:
+                if notes is not None:
+                    notes.append(
+                        f'{rel} is not plain JSON ({e}); add the server by hand: '
+                        f'"{key}": {{"spritekiln": {{"command": "{command}", "args": ["mcp"]}}}}'
+                    )
+                continue
         entry = {'command': command, 'args': ['mcp']}
         if key == 'servers':
             entry = {'type': 'stdio', **entry}

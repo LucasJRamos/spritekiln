@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw
 
 from . import preview
 from . import spec as specmod
+from .errors import SpriteKilnError
 from .export import BG, contact_sheet, font, upscale
 from .pipeline import render_all, render_frame
 from .pixelize import hx
@@ -144,9 +145,18 @@ def run(
     spec = specmod.load(spec_path)
     bg, tint = scene(spec, bg_path, tint)
     look = preview.viewer(bg, tint)
-    dl = [(d, y) for d, y in spec['directions'] if not dirs or d in dirs]
-    if spec['kind'] == 'character' and not dirs and spec['view'] == 'topdown':
+    from .api import _viewable, pose_env
+
+    pool = _viewable(spec)
+    if dirs:
+        unknown = [d for d in dirs if d not in dict(pool)]
+        if unknown:
+            raise SpriteKilnError(f'dirs: no direction {", ".join(unknown)} here (use {", ".join(dict(pool))})')
+        dl = [d for d in pool if d[0] in dirs]
+    elif spec['kind'] == 'character' and spec['view'] == 'topdown':
         dl = specmod.DIRECTIONS8
+    else:
+        dl = spec['directions']
     out_dir = out_dir or os.path.join(spec['_dir'], 'out', 'review', spec['name'])
     os.makedirs(out_dir, exist_ok=True)
 
@@ -154,7 +164,8 @@ def run(
     stats = {('rest', d): [frame_stats(f, spec, tint)] for d, f in rest.items()}
     clips = {}
     if anims:
-        _, anims, alist, out = render_all(os.path.abspath(spec_path), anims, [d for d, _ in dl], jobs, log=log)
+        rendered = [d for d, _ in dl if d in dict(spec['directions'])] or None  # clips exist in the spec's own
+        _, anims, alist, out = render_all(os.path.abspath(spec_path), anims, rendered, jobs, log=log)
         for a in anims:
             for d, _ in alist:
                 frames = [out[k] for k in sorted(k for k in out if k[0] == a and k[1] == d)]
@@ -199,12 +210,12 @@ def run(
             },
         )
     if ref:
+        if ref_dir not in dict(specmod.DIRECTIONS8):
+            raise SpriteKilnError(f'--ref-dir {ref_dir!r}: use one of {", ".join(dict(specmod.DIRECTIONS8))}')
         _, mask, used = R.cutout(R.load(ref))
         yaw = dict(specmod.DIRECTIONS8)[ref_dir]
         if ref_anim:
-            from .anim import frames_of
-
-            fr = render_frame(spec, frames_of(spec, ref_anim, yaw)[ref_frame][0], yaw)
+            fr = render_frame(spec, pose_env(spec, ref_anim, ref_frame, yaw), yaw)
         else:
             fr = rest[ref_dir] if ref_dir in rest else render_frame(spec, rest_env(spec, yaw), yaw)
         sprite = fr.img[..., 3] == 255

@@ -8,8 +8,13 @@ import numpy as np
 
 
 def hx(s):
-    s = s.lstrip('#')
-    return tuple(int(s[i : i + 2], 16) for i in (0, 2, 4))
+    """'#5d4f6c' or '#abc' -> (r, g, b)."""
+    h = str(s).strip().lstrip('#')
+    if len(h) == 3:
+        h = ''.join(c * 2 for c in h)
+    if len(h) != 6 or any(c not in '0123456789abcdefABCDEF' for c in h):
+        raise ValueError(f'{s!r} is not a colour (use "#rrggbb" or "#rgb")')
+    return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
 
 
 def band_of(M, v):

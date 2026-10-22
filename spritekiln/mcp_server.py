@@ -53,6 +53,8 @@ def build():
                 return fn(*args, **kwargs)
             except SpriteKilnError as e:  # problems the user (or the AI) can fix -> a tool error, not a crash
                 raise ToolError(str(e)) from None
+            except (OSError, KeyError, ValueError) as e:  # anything else still says what went wrong
+                raise ToolError(f'{type(e).__name__}: {e}') from None
 
         return run
 

@@ -16,9 +16,9 @@ import numpy as np
 DIRNAME = '.kilncache'
 LEGACY_DIRNAME = '.pxcache'  # pickle cache of pxforge <= 0.1; never read, `cache clear --legacy` removes it
 DEFAULT_MAX_MB = 1024  # per spec, enforced after each render (least recently used go first)
-FORMAT = 4
+FORMAT = 5  # 5: the order of parts is part of the key
 
-_ENGINE_MODULES = ('expr.py', 'rig.py', 'sdf.py', 'render.py')
+_ENGINE_MODULES = ('expr.py', 'rig.py', 'sdf.py', 'render.py', 'pipeline.py')
 
 
 def _engine_hash():
@@ -45,6 +45,7 @@ def key(spec, env, yaw):
         bones=spec['bones'],
         ik=spec['ik'],
         parts=spec['parts'],
+        order=list(spec['parts']),  # the cached group ids follow the order of the parts
         camera=spec['camera'],
         light=spec['light'],
         size=spec['size'],

@@ -90,6 +90,10 @@ def extract(img_rgba, mask=None, k=10, max_px=40000):
     if mask is None:
         mask = a[..., 3] > 128 if a.shape[-1] == 4 else np.ones(a.shape[:2], bool)
     px = a[..., :3][mask].astype(float)
+    if not len(px):
+        from .errors import SpriteKilnError
+
+        raise SpriteKilnError('the image has no opaque pixels to take colours from')
     if len(px) > max_px:
         px = px[np.random.default_rng(1).choice(len(px), max_px, replace=False)]
     X = oklab(px)

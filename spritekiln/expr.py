@@ -44,17 +44,17 @@ FUNCS = dict(
     cos=np.cos,
     tan=np.tan,
     abs=abs,
-    min=min,
-    max=max,
+    min=lambda *a: min(*a) if all(np.ndim(x) == 0 for x in a) else np.minimum.reduce(np.broadcast_arrays(*a)),
+    max=lambda *a: max(*a) if all(np.ndim(x) == 0 for x in a) else np.maximum.reduce(np.broadcast_arrays(*a)),
     sqrt=np.sqrt,
-    clamp=lambda x, a, b: float(np.clip(x, a, b)),
+    clamp=lambda x, a, b: float(np.clip(x, a, b)) if np.ndim(x) == 0 else np.clip(x, a, b),
     lerp=_lerp,
     mix=_lerp,
     unit=_unit,
     smoothstep=_smoothstep,
     pulse=_pulse,
-    pos=lambda x: max(0.0, x),
-    neg=lambda x: min(0.0, x),
+    pos=lambda x: max(0.0, x) if np.ndim(x) == 0 else np.maximum(0.0, x),
+    neg=lambda x: min(0.0, x) if np.ndim(x) == 0 else np.minimum(0.0, x),
     roty=rot_y,
     rotx=rot_x,
     rotz=rot_z,
@@ -151,7 +151,7 @@ def evaluate(value, env):
         return out
     if isinstance(value, (list, tuple)):
         vals = [evaluate(v, env) for v in value]
-        if all(np.ndim(v) == 0 for v in vals):
+        if all(type(v) in (int, float) or np.ndim(v) == 0 for v in vals):
             return np.asarray(vals, float)
         return vals
     return value
