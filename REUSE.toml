@@ -20,6 +20,7 @@ path = [
   "specs/palettes/props.yaml",
   "tests/golden/**",
   "examples/*/assets/**",
+  "examples/monogame/sprites/**",
   "integrations/unity/Samples~/*/gargula*",
 ]
 SPDX-FileCopyrightText = "2026 Lucas Ramos"

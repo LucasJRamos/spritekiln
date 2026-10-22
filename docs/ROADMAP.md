@@ -31,7 +31,7 @@ specs base (tocha, caixão, estátua, porta, grade, lápide, candelabro, baú) e
 
 ## 4. Iluminação
 - O normal map exportado (espaço de câmera) permite luz dinâmica 2D no MonoGame: shader simples
-  `N·L` por luz pontual + emissive aditivo. Planejado: `integrations/monogame/PxLit.fx` + exemplo.
+  `N·L` por luz pontual + emissive aditivo. Feito: `integrations/monogame/KilnLit.fx` + `examples/monogame`.
 - Opção de render "albedo plano" (sem luz assada) para jogos com iluminação totalmente dinâmica.
 - Luzes locais no spec (tocha do próprio personagem) via `light.points`.
 

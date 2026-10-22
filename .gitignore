@@ -18,3 +18,7 @@ specs/**/*_ref/
 
 # Godot editor metadata when testing the addon in place
 .godot/
+
+# .NET build output (MonoGame example and tests)
+bin/
+obj/

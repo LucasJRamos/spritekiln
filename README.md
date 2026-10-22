@@ -38,8 +38,9 @@ exata por frame), `<nome>_lit.tres` (CanvasTexture + normal map para Light2D), `
 `play_anim`, `face(velocity)`, sinais `px_event(anim, evento)` e `px_finished(anim)`.
 
 ## MonoGame
-`integrations/monogame/PxSprite.cs`: `PxSheet.Load(...)` + `PxAnimator` (8 direções a partir do vetor de
-movimento, durações por frame, eventos `hit`/`step_l`...). Use `SamplerState.PointClamp`.
+`integrations/monogame/KilnSprite.cs`: `KilnSheet.Load(...)` + `KilnAnimator` (8 direções a partir do vetor de
+movimento, durações por frame, eventos `hit`/`step_l`..., sockets, direções espelhadas) e `KilnLit.fx` (luz
+com normal map). Exemplo em `examples/monogame`; guia em `docs/engines/monogame.md`.
 
 ## Estrutura
 ```
