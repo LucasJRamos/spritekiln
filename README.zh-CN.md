@@ -28,19 +28,52 @@ Godot、Unity、MonoGame，或任何能读取Aseprite精灵表的引擎。
   用于Y排序的地面锚点、法线贴图和自发光贴图。
 - **为AI设计。** 一套适用于所有助手的说明、返回图像的MCP服务器、规格文件的JSON Schema、`文件:行:列`格式的
   错误信息，以及为看不到图像的助手提供的数值化美术评审。
-- **纯Python。** 只依赖numpy、Pillow和PyYAML，无需GPU，无需Blender。
+- **纯Python，任何系统。** 只依赖numpy、Pillow和PyYAML，无需GPU，无需Blender。已在Windows、macOS和Linux上测试。
+
+## 安装
+
+需要Python 3.10或更高版本。使用 [pipx](https://pipx.pypa.io) 安装 `spritekiln` 命令，它与其他软件包隔离，
+并会加入PATH：
+
+**Windows**（PowerShell。还没有Python？先运行 `winget install Python.Python.3.13`，再打开新的终端）
+
+```powershell
+py -m pip install --user pipx
+py -m pipx ensurepath
+py -m pipx install "spritekiln[mcp]"
+```
+
+**macOS**（终端，使用 [Homebrew](https://brew.sh)）
+
+```bash
+brew install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+**Linux**（以Debian/Ubuntu为例；Fedora用 `sudo dnf install pipx`，Arch用 `sudo pacman -S python-pipx`）
+
+```bash
+sudo apt install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+然后打开新的终端，用 `spritekiln --version` 检查。`[mcp]` 为AI助手添加工具；只用命令行的话，
+`pipx install spritekiln` 就够了。uv、虚拟环境、升级和常见问题，请参阅 [Install SpriteKiln](docs/tutorials/install.md)（英文）。
 
 ## 快速开始
 
+在所有系统上都一样：
+
 ```
-pip install spritekiln
 spritekiln new knight                                   # 从模板创建 specs/characters/knight/knight.yaml
 spritekiln render specs/characters/knight/knight.yaml   # 图集、JSON、贴图、GIF -> .../out/knight/
 ```
 
-然后交给你的助手：*"把这个骑士改成一个戴兜帽、拿短剑的哥布林斥候。渲染之前检查全部8个方向。"* 如何配置游戏项目，
-请参阅 [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)（英文）（先 `pip install "spritekiln[mcp]"`，
-再 `spritekiln init --engine godot --ai claude`）。
+然后交给你的助手：*"把这个骑士改成一个戴兜帽、拿短剑的哥布林斥候。渲染之前检查全部8个方向。"* 要配置游戏项目，
+在项目文件夹中运行 `spritekiln init --engine godot --ai claude`；详情请参阅
+[Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)（英文）。
 
 ## 工作原理
 
@@ -69,7 +102,7 @@ spec.yaml ──► 骨骼 + IK ──► SDF形状 ──► 光线步进渲染
 动画和游戏截图见 [`showcase/`](showcase)。
 
 ## 了解更多
-完整文档为英文：[README](README.md)、[第一个角色](docs/tutorials/first-character.md)、
+完整文档为英文：[README](README.md)、[安装](docs/tutorials/install.md)、[第一个角色](docs/tutorials/first-character.md)、
 [从你的原画开始](docs/tutorials/splash-art.md)、[动画与事件](docs/tutorials/animations.md)、
 [平台游戏角色](docs/tutorials/platformer.md)、[规格参考](docs/agent/spec.md)、[输出格式](docs/format.md)、
 [路线图](docs/ROADMAP.md)、[参与贡献](CONTRIBUTING.md)。

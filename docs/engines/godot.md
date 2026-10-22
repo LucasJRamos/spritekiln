@@ -1,8 +1,9 @@
 # SpriteKiln in Godot 4
 
 This guide takes a sprite from a spec to a moving character in a Godot 4 project. You need Godot 4.2 or
-newer (tested on 4.7) and, for the command-line route, `pip install "spritekiln[mcp]"` (`[mcp]` adds the
-tools for AI assistants; plain `spritekiln` is enough without them). A finished project is in
+newer (tested on 4.7) and, for the command-line route,
+[SpriteKiln installed](../tutorials/install.md) (Windows, macOS or Linux) with the `[mcp]` extra, which
+adds the tools for AI assistants (plain `spritekiln` is enough without them). A finished project is in
 [`examples/godot`](../../examples/godot): a gargoyle that walks, attacks and lights up in 8 directions.
 
 ## 1. Set up the game project

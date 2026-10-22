@@ -6,16 +6,30 @@ Chinese are the only translations, and follow `README.md` when it changes.
 
 ## Set up
 
-```
+Python 3.10 or newer (see [Install SpriteKiln](docs/tutorials/install.md) to get it) and git. The core is
+pure Python (numpy, Pillow, PyYAML).
+
+macOS and Linux:
+
+```bash
 git clone https://github.com/LucasJRamos/spritekiln.git
 cd spritekiln
-python -m venv .venv
-source .venv/bin/activate                 # Windows: .venv\Scripts\activate
+python3 -m venv .venv                     # Debian/Ubuntu: sudo apt install python3-venv first
+source .venv/bin/activate
 pip install -e ".[dev]" "reuse[charset-normalizer]"
 pytest                                    # unit, CLI and golden-image tests, about two minutes
 ```
 
-Python 3.10 or newer. The core is pure Python (numpy, Pillow, PyYAML).
+Windows (PowerShell):
+
+```powershell
+git clone https://github.com/LucasJRamos/spritekiln.git
+cd spritekiln
+py -m venv .venv
+.venv\Scripts\Activate.ps1                # cmd: .venv\Scripts\activate.bat
+pip install -e ".[dev]" "reuse[charset-normalizer]"
+pytest                                    # unit, CLI and golden-image tests, about two minutes
+```
 
 ## Before you open a pull request
 
@@ -42,6 +56,10 @@ mirrored directions. Their tests run inside the engine and are opt-in:
 | Godot 4 | `SPRITEKILN_GODOT_BIN=/path/to/godot` |
 | Unity 6 | `SPRITEKILN_UNITY_BIN=/path/to/Unity` (an activated license that allows batch mode) |
 | MonoGame | `SPRITEKILN_MONOGAME=1` (the .NET 8 SDK) |
+
+Set them for the session before `pytest`: `export SPRITEKILN_GODOT_BIN=/path/to/godot` on macOS and Linux,
+`$env:SPRITEKILN_GODOT_BIN = "C:\path\to\godot.exe"` in PowerShell, `set SPRITEKILN_GODOT_BIN=C:\path\to\godot.exe`
+in cmd.
 
 ## Sprites and specs
 

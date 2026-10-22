@@ -33,19 +33,55 @@ sees. You direct.
 - **Made for AIs.** One set of instructions for every assistant, an MCP server whose tools return images,
   a JSON Schema for the spec, errors with `file:line:column`, and an art-direction review in numbers for
   assistants that cannot see.
-- **Pure Python.** numpy, Pillow and PyYAML; no GPU, no Blender.
+- **Pure Python, any OS.** numpy, Pillow and PyYAML; no GPU, no Blender. Tested on Windows, macOS and
+  Linux.
+
+## Install
+
+Python 3.10 or newer. Install the `spritekiln` command with [pipx](https://pipx.pypa.io), which keeps it
+isolated and on your PATH:
+
+**Windows** (PowerShell; no Python yet? `winget install Python.Python.3.13`, then open a new terminal)
+
+```powershell
+py -m pip install --user pipx
+py -m pipx ensurepath
+py -m pipx install "spritekiln[mcp]"
+```
+
+**macOS** (Terminal, with [Homebrew](https://brew.sh))
+
+```bash
+brew install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+**Linux** (Debian/Ubuntu shown; Fedora: `sudo dnf install pipx`, Arch: `sudo pacman -S python-pipx`)
+
+```bash
+sudo apt install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+Then open a new terminal and check with `spritekiln --version`. `[mcp]` adds the tools for AI assistants;
+`pipx install spritekiln` is enough for the command line alone. uv, a virtual environment, upgrading and
+troubleshooting: [Install SpriteKiln](docs/tutorials/install.md).
 
 ## Quick start
 
+The same on every system:
+
 ```
-pip install spritekiln
 spritekiln new knight                                   # specs/characters/knight/knight.yaml, from the template
 spritekiln render specs/characters/knight/knight.yaml   # atlas, JSON, maps, GIFs -> specs/characters/knight/out/knight/
 ```
 
 Then hand it to your assistant: *"Turn this knight into a hooded goblin scout with a short sword. Check
-all 8 directions before rendering."* See [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)
-to set up a game project (`pip install "spritekiln[mcp]"`, then `spritekiln init --engine godot --ai claude`).
+all 8 directions before rendering."* To set up a game project, run
+`spritekiln init --engine godot --ai claude` in its folder; see
+[Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md).
 
 ## How it works
 
@@ -108,6 +144,7 @@ by Claude Code following the recipe above. Their specs are in `specs/characters/
 and in-game captures are in [`showcase/`](showcase).
 
 ## Learn more
+- [Install SpriteKiln](docs/tutorials/install.md) (Windows, macOS, Linux; pipx, uv or a virtual environment)
 - [Your first character in 10 minutes](docs/tutorials/first-character.md)
 - [From your splash art, with an AI](docs/tutorials/splash-art.md)
 - [Animations and events](docs/tutorials/animations.md)

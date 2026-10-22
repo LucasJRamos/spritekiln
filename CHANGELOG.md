@@ -39,8 +39,8 @@ First public release. SpriteKiln started as `pxforge`, the sprite toolkit of the
 ### Examples and docs
 - Example characters (CC0): a gargoyle, a hunter, Wren (side view), and props; the Huntress and the
   Templar of Hunt Tower as a showcase.
-- Tutorials: first character, from your splash art, animations and events, a platformer character, use
-  with your AI; engine guides.
+- Tutorials: install (Windows, macOS, Linux), first character, from your splash art, animations and
+  events, a platformer character, use with your AI; engine guides.
 
 ### Compatibility
 - `python -m pxforge`, the `pxforge` command, `pxforge: 1` spec headers and the `PxSprite2D` Godot addon

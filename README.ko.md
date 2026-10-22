@@ -31,19 +31,54 @@ YAML을 직접 쓸 필요는 없습니다. 코딩 어시스턴트(Claude Code, C
   타격 지점), Y 정렬을 위한 지면 피벗, 노멀 맵과 발광 맵.
 - **AI를 위해 설계.** 모든 어시스턴트를 위한 하나의 지침 세트, 이미지를 반환하는 MCP 서버, 스펙용 JSON Schema,
   `파일:줄:열` 형식의 오류, 이미지를 볼 수 없는 어시스턴트를 위한 수치 기반 아트 디렉션 리뷰.
-- **순수 Python.** numpy, Pillow, PyYAML만 사용합니다. GPU도 Blender도 필요 없습니다.
+- **순수 Python, 모든 OS.** numpy, Pillow, PyYAML만 사용합니다. GPU도 Blender도 필요 없습니다. Windows,
+  macOS, Linux에서 테스트되었습니다.
+
+## 설치
+
+Python 3.10 이상이 필요합니다. [pipx](https://pipx.pypa.io)로 `spritekiln` 명령을 설치하세요. 다른 패키지와
+격리되고 PATH에 등록됩니다.
+
+**Windows** (PowerShell. Python이 없다면 `winget install Python.Python.3.13` 후 새 터미널을 여세요)
+
+```powershell
+py -m pip install --user pipx
+py -m pipx ensurepath
+py -m pipx install "spritekiln[mcp]"
+```
+
+**macOS** (터미널, [Homebrew](https://brew.sh) 사용)
+
+```bash
+brew install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+**Linux** (Debian/Ubuntu 기준. Fedora: `sudo dnf install pipx`, Arch: `sudo pacman -S python-pipx`)
+
+```bash
+sudo apt install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+그다음 새 터미널을 열고 `spritekiln --version`으로 확인하세요. `[mcp]`는 AI 어시스턴트용 도구를 추가합니다.
+명령줄만 쓴다면 `pipx install spritekiln`으로 충분합니다. uv, 가상 환경, 업그레이드, 문제 해결은
+[Install SpriteKiln](docs/tutorials/install.md)(영어)을 참고하세요.
 
 ## 빠른 시작
 
+모든 OS에서 동일합니다:
+
 ```
-pip install spritekiln
 spritekiln new knight                                   # 템플릿에서 specs/characters/knight/knight.yaml 생성
 spritekiln render specs/characters/knight/knight.yaml   # 아틀라스, JSON, 맵, GIF -> .../out/knight/
 ```
 
 그다음 어시스턴트에게 맡기세요: *"이 기사를 짧은 검을 든 두건 쓴 고블린 정찰병으로 바꿔 줘. 렌더링 전에
-8방향을 모두 확인해."* 게임 프로젝트 설정은 [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)
-(영어)를 참고하세요 (`pip install "spritekiln[mcp]"` 후 `spritekiln init --engine godot --ai claude`).
+8방향을 모두 확인해."* 게임 프로젝트를 설정하려면 프로젝트 폴더에서 `spritekiln init --engine godot --ai claude`를
+실행하세요. 자세한 내용은 [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)(영어)를 참고하세요.
 
 ## 작동 방식
 
@@ -74,7 +109,8 @@ spec.yaml ──► 뼈대 + IK ──► SDF 도형 ──► 레이마칭 렌�
 SpriteKiln으로 만들었습니다. 더 많은 이미지, 애니메이션, 게임 캡처는 [`showcase/`](showcase)에 있습니다.
 
 ## 더 알아보기
-전체 문서는 영어로 되어 있습니다: [README](README.md), [첫 캐릭터](docs/tutorials/first-character.md),
+전체 문서는 영어로 되어 있습니다: [README](README.md), [설치](docs/tutorials/install.md),
+[첫 캐릭터](docs/tutorials/first-character.md),
 [스플래시 아트에서 시작하기](docs/tutorials/splash-art.md), [애니메이션과 이벤트](docs/tutorials/animations.md),
 [플랫포머 캐릭터](docs/tutorials/platformer.md), [스펙 레퍼런스](docs/agent/spec.md),
 [출력 형식](docs/format.md), [로드맵](docs/ROADMAP.md), [기여 방법](CONTRIBUTING.md).

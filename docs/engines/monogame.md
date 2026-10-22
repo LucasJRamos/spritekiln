@@ -16,8 +16,9 @@ Copy into your project:
 
 ## 2. Export a sprite
 
+[Install SpriteKiln](../tutorials/install.md) (Windows, macOS or Linux), then:
+
 ```
-pip install spritekiln
 spritekiln init --engine monogame          # once, in the game folder: specs in art/specs, exports in Content/sprites
 spritekiln new knight
 spritekiln render art/specs/characters/knight/knight.yaml --export

@@ -14,10 +14,10 @@ https://github.com/LucasJRamos/spritekiln.git?path=/integrations/unity
 
 ## 2. Set up the project for SpriteKiln
 
-In the Unity project folder (the one with `Assets/`):
+[Install SpriteKiln](../tutorials/install.md) with the `[mcp]` extra (Windows, macOS or Linux), then, in
+the Unity project folder (the one with `Assets/`):
 
 ```
-pip install "spritekiln[mcp]"
 spritekiln init --engine unity --ai claude      # or codex, gemini, copilot, cursor
 ```
 

@@ -34,20 +34,55 @@ imagens** e corrige o que vê. Você dirige.
 - **Feito para IAs.** Um conjunto de instruções para qualquer assistente, servidor MCP cujas ferramentas
   devolvem imagens, JSON Schema da spec, erros com `arquivo:linha:coluna` e uma revisão de direção de arte
   em números para assistentes que não enxergam.
-- **Python puro.** numpy, Pillow e PyYAML; sem GPU, sem Blender.
+- **Python puro, em qualquer sistema.** numpy, Pillow e PyYAML; sem GPU, sem Blender. Testado em Windows,
+  macOS e Linux.
+
+## Instalação
+
+Python 3.10 ou mais novo. Instale o comando `spritekiln` com o [pipx](https://pipx.pypa.io), que o deixa
+isolado e no PATH:
+
+**Windows** (PowerShell; ainda sem Python? `winget install Python.Python.3.13` e abra um terminal novo)
+
+```powershell
+py -m pip install --user pipx
+py -m pipx ensurepath
+py -m pipx install "spritekiln[mcp]"
+```
+
+**macOS** (Terminal, com o [Homebrew](https://brew.sh))
+
+```bash
+brew install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+**Linux** (Debian/Ubuntu; no Fedora `sudo dnf install pipx`, no Arch `sudo pacman -S python-pipx`)
+
+```bash
+sudo apt install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+Depois abra um terminal novo e confira com `spritekiln --version`. O `[mcp]` adiciona as ferramentas para
+assistentes de IA; só para a linha de comando, `pipx install spritekiln` basta. uv, ambiente virtual,
+atualização e solução de problemas: [Install SpriteKiln](docs/tutorials/install.md) (em inglês).
 
 ## Início rápido
 
+Igual em todos os sistemas:
+
 ```
-pip install spritekiln
 spritekiln new cavaleiro                                       # specs/characters/cavaleiro/cavaleiro.yaml, do template
 spritekiln render specs/characters/cavaleiro/cavaleiro.yaml   # atlas, JSON, mapas, GIFs -> .../out/cavaleiro/
 ```
 
 Depois passe para o seu assistente: *"Transforme este cavaleiro num goblin batedor encapuzado com uma
-espada curta. Confira as 8 direções antes de renderizar."* Veja
-[Use o SpriteKiln com a sua IA](docs/tutorials/use-with-your-ai.md) (em inglês) para preparar um projeto de
-jogo (`pip install "spritekiln[mcp]"` e depois `spritekiln init --engine godot --ai claude`).
+espada curta. Confira as 8 direções antes de renderizar."* Para preparar um projeto de jogo, rode
+`spritekiln init --engine godot --ai claude` na pasta dele; veja
+[Use o SpriteKiln com a sua IA](docs/tutorials/use-with-your-ai.md) (em inglês).
 
 ## Como funciona
 
@@ -79,7 +114,8 @@ arts, pelo Claude Code seguindo essa receita. Mais imagens, animações e captur
 [`showcase/`](showcase).
 
 ## Saiba mais
-A documentação completa está em inglês: [README](README.md), [primeiro personagem](docs/tutorials/first-character.md),
+A documentação completa está em inglês: [README](README.md), [instalação](docs/tutorials/install.md),
+[primeiro personagem](docs/tutorials/first-character.md),
 [a partir da sua splash art](docs/tutorials/splash-art.md), [animações e eventos](docs/tutorials/animations.md),
 [personagem de plataforma](docs/tutorials/platformer.md), [referência da spec](docs/agent/spec.md),
 [formato de saída](docs/format.md), [roadmap](docs/ROADMAP.md), [como contribuir](CONTRIBUTING.md).

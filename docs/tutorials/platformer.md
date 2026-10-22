@@ -9,10 +9,10 @@ template (a hunter with a sword); Wren is what it became.
 
 ## 1. A side-view project
 
-In your Godot project folder (the one with `project.godot`):
+[Install SpriteKiln](install.md) with the `[mcp]` extra (Windows, macOS or Linux), then, in your Godot
+project folder (the one with `project.godot`):
 
 ```
-pip install "spritekiln[mcp]"
 spritekiln init --engine godot --view side --ai claude
 spritekiln new wren
 ```

@@ -5,9 +5,12 @@ directions. Doing it once by hand shows what your AI assistant does for you late
 
 ## 1. Install and create
 
+[Install SpriteKiln](install.md) (Windows, macOS or Linux), then, in a new terminal (the commands are the
+same on every system):
+
 ```
-pip install spritekiln
-mkdir my-sprites && cd my-sprites
+mkdir my-sprites
+cd my-sprites
 spritekiln new knight
 spritekiln pose specs/characters/knight/knight.yaml --dirs all
 ```

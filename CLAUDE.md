@@ -6,8 +6,8 @@ below is about making assets.
 - For asset work, load the `spritekiln` skill (plus `spritekiln-splash-to-model` for a splash art and
   `spritekiln-animation` for animations), and delegate as in `docs/agent/recipe.md`: `character-modeler`,
   `pixel-art-director` (reviews, never edits), `animator`.
-- Use this folder's virtual environment: `.venv/Scripts/python.exe -m spritekiln ...` (Windows) when the
-  `spritekiln` command is not on the PATH.
+- Use this folder's virtual environment: `.venv/Scripts/python.exe -m spritekiln ...` (Windows) or
+  `.venv/bin/python -m spritekiln ...` (macOS, Linux) when the `spritekiln` command is not on the PATH.
 
 ## Maintainer notes (Hunt Tower)
 The maintainer's game `D:/GameProjects/tower-hunt` runs this toolkit through its `tools/px.cmd` (this

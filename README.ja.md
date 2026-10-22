@@ -32,19 +32,54 @@ YAMLを自分で書く必要はありません。コーディングアシスタ�
   `windup`）、ソケット（銃口、手、命中点）、Yソート用の接地ピボット、ノーマルマップと発光マップ。
 - **AIのための設計。** どのアシスタントにも使える1組の指示、画像を返すMCPサーバー、スペックのJSON Schema、
   `ファイル:行:列` 形式のエラー、画像を見られないアシスタント向けの数値によるアートディレクションレビュー。
-- **純粋なPython。** numpy、Pillow、PyYAMLのみ。GPUもBlenderも不要です。
+- **純粋なPython、どのOSでも。** numpy、Pillow、PyYAMLのみ。GPUもBlenderも不要です。Windows、macOS、Linuxで
+  テスト済みです。
+
+## インストール
+
+Python 3.10以上が必要です。`spritekiln` コマンドは [pipx](https://pipx.pypa.io) でインストールします。他の
+パッケージから隔離され、PATHに追加されます。
+
+**Windows**（PowerShell。Pythonがなければ `winget install Python.Python.3.13` を実行し、新しいターミナルを開く）
+
+```powershell
+py -m pip install --user pipx
+py -m pipx ensurepath
+py -m pipx install "spritekiln[mcp]"
+```
+
+**macOS**（ターミナル、[Homebrew](https://brew.sh) を使用）
+
+```bash
+brew install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+**Linux**（Debian/Ubuntuの例。Fedoraは `sudo dnf install pipx`、Archは `sudo pacman -S python-pipx`）
+
+```bash
+sudo apt install pipx
+pipx ensurepath
+pipx install "spritekiln[mcp]"
+```
+
+その後、新しいターミナルを開いて `spritekiln --version` で確認してください。`[mcp]` はAIアシスタント向けの
+ツールを追加します。コマンドラインだけなら `pipx install spritekiln` で十分です。uv、仮想環境、アップグレード、
+トラブルシューティングは [Install SpriteKiln](docs/tutorials/install.md)（英語）を参照してください。
 
 ## クイックスタート
 
+どのOSでも同じです：
+
 ```
-pip install spritekiln
 spritekiln new knight                                   # テンプレートから specs/characters/knight/knight.yaml を作成
 spritekiln render specs/characters/knight/knight.yaml   # アトラス、JSON、マップ、GIF -> .../out/knight/
 ```
 
 あとはアシスタントに任せましょう：*「この騎士を、短剣を持ったフード姿のゴブリン斥候に変えて。レンダリングの前に
-8方向すべてを確認して。」* ゲームプロジェクトの準備は [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)
-（英語）を参照してください（`pip install "spritekiln[mcp]"` のあと `spritekiln init --engine godot --ai claude`）。
+8方向すべてを確認して。」* ゲームプロジェクトを準備するには、そのフォルダで `spritekiln init --engine godot --ai claude`
+を実行します。詳しくは [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)（英語）を参照してください。
 
 ## しくみ
 
@@ -75,7 +110,8 @@ spec.yaml ──► 骨格 + IK ──► SDF形状 ──► レイマーチン
 SpriteKilnで作りました。画像、アニメーション、ゲーム画面は [`showcase/`](showcase) にあります。
 
 ## さらに詳しく
-ドキュメントはすべて英語です：[README](README.md)、[最初のキャラクター](docs/tutorials/first-character.md)、
+ドキュメントはすべて英語です：[README](README.md)、[インストール](docs/tutorials/install.md)、
+[最初のキャラクター](docs/tutorials/first-character.md)、
 [スプラッシュアートから](docs/tutorials/splash-art.md)、[アニメーションとイベント](docs/tutorials/animations.md)、
 [プラットフォーマーキャラクター](docs/tutorials/platformer.md)、[スペックリファレンス](docs/agent/spec.md)、
 [出力フォーマット](docs/format.md)、[ロードマップ](docs/ROADMAP.md)、[コントリビュート](CONTRIBUTING.md)。

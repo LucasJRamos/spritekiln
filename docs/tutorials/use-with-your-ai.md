@@ -13,8 +13,10 @@ There are two ways to connect them, and you can use both:
 
 ## 1. Set up the game project
 
+[Install SpriteKiln](install.md) with the `[mcp]` extra (`pipx install "spritekiln[mcp]"`; the page has the
+steps for Windows, macOS and Linux). Then, in your game folder:
+
 ```
-pip install "spritekiln[mcp]"
 cd my-game
 spritekiln init --engine godot --ai claude,codex
 ```
@@ -37,7 +39,7 @@ Existing `AGENTS.md`/`CLAUDE.md` files keep their content: SpriteKiln only manag
 them. After upgrading SpriteKiln, `spritekiln init` with the same options and `--force` refreshes the
 knowledge files; it also rewrites `spritekiln.toml`, so keep a copy if you edited it.
 
-Codex reads MCP servers from `~/.codex/config.toml`:
+Codex reads MCP servers from `~/.codex/config.toml` (on Windows, `%USERPROFILE%\.codex\config.toml`):
 
 ```toml
 [mcp_servers.spritekiln]
@@ -89,6 +91,9 @@ and one that cannot still gets the measurements.
   `pixel-art-director` and `animator` agents.
 - **Edits are text.** The spec is YAML with comments that explain the model; ask the assistant to edit it
   in place rather than regenerate it with a script, so the comments survive.
+- **The `spritekiln` command must be on the PATH** for the MCP configs above, which is what pipx and
+  `uv tool` do. Installed in a virtual environment instead, put the full path to the command in them
+  ([Install SpriteKiln](install.md#other-ways)).
 - **Codex on Windows:** its sandbox cannot start the Microsoft Store build of Python, so a `spritekiln`
-  installed with it fails with "Unable to create process". Install SpriteKiln with a python.org Python,
-  `pipx` or `uv tool install spritekiln`.
+  installed with it fails with "Unable to create process". Install SpriteKiln with a python.org Python
+  (`winget install Python.Python.3.13`), `pipx` or `uv tool install "spritekiln[mcp]"`.

@@ -12,10 +12,10 @@ numbers of `ref compare` and `review`, but check its results yourself.
 
 ## 1. Set up
 
-In your game folder, once:
+[Install SpriteKiln](install.md) with the `[mcp]` extra (Windows, macOS or Linux), then, in your game
+folder, once:
 
 ```
-pip install "spritekiln[mcp]"
 spritekiln init --engine godot --ai claude      # your engine and assistant
 ```
 
