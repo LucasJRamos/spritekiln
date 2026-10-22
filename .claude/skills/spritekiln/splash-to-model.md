@@ -38,7 +38,7 @@ background or noise families and merge near-identical ones. Adjust with
 `palette: [gothic, ../../palettes/<name>.yaml]` (gothic brings the `fx_*` ramps and basics).
 
 ## 4. Blockout
-Start from the template (humanoid) or a similar spec:
+Start from a template (`humanoid`, or `side_humanoid` for a side view) or a similar spec:
 1. **World scale:** total height 1.6–2.0; adjust the pelvis height (`torso_rot.pos`) and the IK lengths.
 2. **Big masses:** torso, head (`head` bone scale), hips, legs: ellipsoids and cones only.
 3. `pose --dirs all` and `ref compare <spec> <splash> --dir <dir>`.

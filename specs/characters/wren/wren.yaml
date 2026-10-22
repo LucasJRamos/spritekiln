@@ -1,0 +1,530 @@
+spritekiln: 1
+name: wren
+kind: character
+view: side                      # profile camera (pitch 0), directions e and w, no ground shadow
+mirror: false                   # true renders only e (engines flip it): the sword swaps hands, the light flips
+size: 64
+palette: [gothic, ../../palettes/wren.yaml]   # gothic for fx_*, steel, gold, flame; wren ramps override
+camera: {scale: 0.040, center: [0, 1.08, 0]}   # centre raised from 0.95: the hat clipped the top in jump/rise
+
+# Wren: the example side-scroller character (CC0), built from the side_humanoid template (light chibi
+# proportions: head 1.25x; same skeleton, channels and platformer clip set). In profile the silhouette is
+# what reads, so the hat brim, the scarf ends, the sword blade and the coat hem are set up for it.
+# In `e` the sword arm (right) is the near one, in `w` the far one. Jumps are in place: the game moves the
+# character, `root` only nudges the body inside the frame.
+brief:
+  summary: Wren, a young adventurer for a cozy platformer; light on her feet, curious, a little scruffy
+  reference: none (designed from a text brief); profile e/w at 64 px
+  proportions: "eyes at ~1.67, hat crown at ~2.0 (~50 px of the 64 px frame); head 1.25x; coat to mid-thigh"
+  must_keep:
+    - wide, slightly floppy felt hat (the strongest silhouette shape; brim droops at the front, flips up at the back)
+    - long warm red-orange scarf, wrapped at the neck, two ends hanging/trailing behind (channel `scarf`)
+    - short moss-green travel coat, canvas satchel on the right hip, tall boots with felt cuffs
+    - short sword in the right hand (template sword, swordgrip bone, sword_pitch channel)
+    - small brass lantern on the back-left of the belt with a warm emissive glow
+  simplify:
+    - hair reduced to the nape and a fringe under the brim (the crown hides the rest)
+    - scarf ends are round chains (a flat ribbon would be edge-on in profile)
+    - no buckles or stitching; the belt and the hat band are plain stripes
+    - no satchel shoulder strap (in profile it would only retrace the chest outline); the bag hangs from the belt
+  palette_notes:
+    - "warm and light (the template cloth read at median L* ~16): moss coat, red-orange scarf, brown felt and
+      leather, honey hair, fair skin, umber trousers; gold/flame from gothic for the lantern, steel for the sword"
+  decisions:
+    - "lantern hangs behind the left hip so it sticks out of the back silhouette in both profiles (e and w)"
+    - "satchel on the right hip: near side in e, hidden behind the hip in w (the lantern is the w-side detail)"
+    - "scarf: 0 = ends hang down the back; 0.5 = diagonal; 1 = streaming straight back (run, fall); > 1 curls
+      the tips up. The ends follow the torso's lean (the run's lean already tilts them back). scarf_wave adds a
+      ripple travelling along the ends with the clip phase p (0.15-0.3 with scarf ~1 in the run)"
+    - "hat on its own bone (hatseat): hat_tilt rocks it (+ over the eyes, e.g. in death lying face up), brim_flop
+      droops (+) or flicks up (-) the brim edge for follow-through on jumps and landings"
+    - "hat seated high on the head so a pixel of forehead separates the brim from the eye in profile"
+    - "lantern, scarf ends and hat are cut at the ground (y = 0) so nothing sinks below the floor when lying down"
+
+materials:
+  skin:    {ramp: skin, bands: [2, 5], gamma: 0.7}     # profile faces catch little light: lift them
+  coat:    {ramp: coat, bands: [1, 5], gamma: 0.85}
+  pants:   {ramp: pants, bands: [1, 4]}
+  hair:    {ramp: hair, bands: [2, 5]}
+  hat:     {ramp: felt, bands: [2, 5]}
+  brim:    {ramp: felt, bands: [1, 4]}    # brim one tone below the crown (separates the two shapes)
+  scarf:   {ramp: scarf, bands: [2, 5], gamma: 0.85}   # the accent: keep it saturated, never the dark band
+  steel:   {ramp: steel}
+  leather: {ramp: leather, bands: [1, 4]}
+  canvas:  {ramp: felt, bands: [2, 5]}    # satchel and boot cuffs
+  brass:   {ramp: gold, bands: [1, 4]}    # lantern frame
+  lantern: {ramp: flame, emissive: true, band: 3, outline: false, glow: {color: "#ffb13b", mix: 0.5, radius: 1}}
+  ink:     {ramp: pants, emissive: true, band: 0, outline: false}
+  fx_tail: {ramp: fx_tail, emissive: true}
+  fx_mid:  {ramp: fx_mid, emissive: true}
+  fx_core: {ramp: fx_core, emissive: true}
+
+channels:
+  root: [0, 0, 0]
+  bob: 0
+  lean: 0.05
+  twist: 0
+  roll: 0
+  squash: 1
+  head_pitch: 0
+  head_yaw: 0
+  hand_L: [0.33, 0.06, 0.06]
+  foot_L: [0.13, 0, 0.02]
+  pitch_foot_L: 0
+  coat: 0           # coat hem sway (+ forward, - trailing back)
+  scarf: 0          # scarf ends: 0 hang down the back, 0.5 diagonal, 1 stream straight back, > 1 curl up
+  scarf_wave: 0     # ripple along the scarf ends, travelling with the clip phase p (0.15-0.3 for a run)
+  hat_tilt: 0       # hat rocks on its seat (+ tips the front down over the eyes, - pushes it back)
+  brim_flop: 0      # brim edge flop (+ droops, - flicks up); follow-through on jumps and landings
+  sword_pitch: 0    # blade rotation at the wrist, in the profile plane (+ = tip toward the forearm)
+  smear_w: 0
+  smear_a0: 0       # smear angles in the profile plane: 0 = forward, pi/2 = up, -pi/2 = down
+  smear_a1: 0
+  smear_r: 0.80
+  smear_y: 1.15     # arc centre, about the shoulder (root space)
+  smear_z: 0.10
+  smear_fade: 1
+
+bones:
+  torso_rot: {parent: root, pos: "[0, 0.84 + bob, 0]", rot: "[lean, twist, roll]"}
+  pelvis:    {parent: torso_rot, scale: "[1/sqrt(squash), squash, 1/sqrt(squash)]"}
+  headbase:  {parent: pelvis, pos: [0, 0.70, 0.02], inherit_rot: false, inherit_scale: false,
+              rot: "[lean*0.5, twist, roll]"}
+  head:      {parent: headbase, rot: "[head_pitch, head_yaw, 0]", scale: 1.25}
+  hatseat:   {parent: head, pos: [0, 0.255, -0.01], rot: "[hat_tilt, 0, 0]"}   # hat sits high: forehead shows
+  shoulder_L: {parent: pelvis, pos: [0.27, 0.55, 0.0]}
+  hip_L:      {parent: pelvis, pos: [0.12, -0.02, 0.0]}
+  legyaw:     {parent: root, rot: "[0, twist*0.5, 0]"}
+  footyaw:    {parent: root, rot: "[0, twist*0.4, 0]"}
+  sole_L:     {parent: footyaw, at: ankle_L, rot: "[pitch_foot_L, 0.08, 0]"}
+  coatbase:   {parent: pelvis, rot: "[-coat*0.25, 0, 0]"}
+  # scarf ends: a 4-segment chain from the knot behind the neck (+x rot swings a hanging segment back);
+  # `scarf` lifts each segment a little more than the one above, so the ends curl back like a streamer
+  scarfknot:  {parent: pelvis, pos: [0.04, 0.60, -0.13], rot: "[0.25 + 1.05*scarf, 0, 0]"}
+  scarf_1:    {parent: scarfknot, pos: [0, -0.12, 0], rot: "[-0.10 + 0.25*scarf + scarf_wave*sin(p - 1.2), 0, 0]"}
+  scarf_2:    {parent: scarf_1, pos: [0, -0.12, 0], rot: "[-0.05 + 0.20*scarf + scarf_wave*sin(p - 2.4), 0, 0]"}
+  scarf_3:    {parent: scarf_2, pos: [0, -0.12, 0], rot: "[-0.10*scarf + scarf_wave*sin(p - 3.6), 0, 0]"}
+  scarf_tip:  {parent: scarf_3, pos: [0, -0.12, 0]}
+  swordgrip:  {parent: wrist_R, rot: "[sword_pitch, 0, 0]"}   # lets a windup cock the blade back
+  # side view: the smear arc turned into the profile plane (vertical slashes read; flat ones are edge-on)
+  fxspace:    {parent: root, pos: "[-0.20, smear_y, smear_z]", rot: "[0, 0, pi/2]"}   # x: sword side
+
+ik:
+  arm_L: {start: shoulder_L, space: torso_rot, target: hand_L, lengths: [0.29, 0.27],
+          pole: [0.3, 0.0, -1.0], pole_space: torso_rot, up: [0, 0, 1], joint: elbow_L, end: wrist_L}
+  leg_L: {start: hip_L, space: root, target: "foot_L + [0, 0.08, -0.02]", lengths: [0.42, 0.40],
+          pole: [0.1, 0, 1.0], pole_space: legyaw, joint: knee_L, end: ankle_L}
+
+parts:
+  torso:
+    material: coat
+    space: pelvis
+    blend: 0.06
+    prims:
+      - ellipsoid: {c: [0, 0.04, 0], r: [0.19, 0.13, 0.14]}
+      - ellipsoid: {c: [0, 0.25, 0.0], r: [0.18, 0.16, 0.13]}
+      - ellipsoid: {c: [0, 0.45, 0.0], r: [0.25, 0.16, 0.15]}
+  coat:            # short travel coat: open cone from the hip to mid-thigh
+    material: coat
+    space: coatbase
+    blend: 0.03
+    prims:
+      - cone: {a: [0, 0.05, -0.01], b: [0, -0.32, -0.04], r: [0.20, 0.23]}
+    cut:
+      - cone: {a: [0, -0.10, 0.20], b: [0, -0.45, 0.30], r: [0.06, 0.16]}   # front opening
+      - box: {c: [0, -0.46, 0], half: [0.4, 0.16, 0.4]}   # side view: flat hem at mid-thigh (round reads as a sack)
+  belt:
+    material: leather
+    space: pelvis
+    prims:
+      - cylinder: {a: [0, 0.10, 0], b: [0, 0.155, 0], r: 0.195}
+  satchel:         # canvas bag on the right hip (near side in e), hung from the belt
+    material: canvas
+    space: pelvis
+    prims:
+      - box: {c: [-0.215, -0.07, -0.05], half: [0.05, 0.09, 0.11], round: 0.035, rot: [0, 0, -0.12]}
+  satchel_flap:
+    material: leather
+    space: pelvis
+    prims:
+      - box: {c: [-0.235, -0.015, -0.05], half: [0.035, 0.04, 0.115], round: 0.025, rot: [0, 0, -0.12]}
+      - cone: {a: [-0.20, 0.13, -0.05], b: [-0.23, 0.02, -0.05], r: [0.025, 0.025]}   # loop to the belt
+  # lantern on the back-left of the belt: sticks out of the back silhouette in both profiles
+  lantern_frame:
+    material: brass
+    space: pelvis
+    blend: 0.01
+    prims:
+      - cone: {a: [0.11, 0.12, -0.18], b: [0.12, 0.05, -0.29], r: [0.022, 0.02]}       # hook from the belt
+      - cone: {a: [0.12, 0.055, -0.30], b: [0.12, 0.01, -0.30], r: [0.025, 0.068]}     # cap
+      - cylinder: {a: [0.12, -0.12, -0.30], b: [0.12, -0.14, -0.30], r: 0.066}        # base
+    cut:   # ground: nothing below y = 0 (lying on the back in death)
+      - sphere: {c: {at: root, off: [0, -20, 0]}, r: 20}
+  lantern_glass:
+    material: lantern
+    space: pelvis
+    prims:
+      - cylinder: {a: [0.12, 0.0, -0.30], b: [0.12, -0.115, -0.30], r: 0.058}
+    cut:   # ground: nothing below y = 0 (lying on the back in death)
+      - sphere: {c: {at: root, off: [0, -20, 0]}, r: 20}
+  neck:
+    material: skin
+    space: pelvis
+    prims:
+      - cone: {a: [0, 0.56, 0], b: [0, 0.70, 0.02], r: [0.07, 0.065]}
+  scarf:           # chunky wrap around the neck, knot at the back
+    material: scarf
+    space: pelvis
+    blend: 0.03
+    prims:
+      - torus: {c: [0, 0.62, 0.015], R: 0.10, r: 0.055, rot: [0.30, 0, 0]}    # +x rot drops the front onto the chest
+      - torus: {c: [0, 0.67, 0.02], R: 0.085, r: 0.045, rot: [0.15, 0, 0]}
+      - sphere: {c: [0.04, 0.62, -0.12], r: 0.06}
+  scarf_ends:      # two ends from the knot: the long one on the bones, the short one offset beside it
+    material: scarf
+    blend: 0.02
+    line: true
+    prims:
+      - chain: {pts: ["@scarfknot", "@scarf_1", "@scarf_2", "@scarf_3", "@scarf_tip"],
+                r: [0.05, 0.046, 0.046, 0.05, 0.056]}
+      - chain: {pts: [{at: scarfknot, off: [-0.06, 0, 0]}, {at: scarf_1, off: [-0.06, 0, 0.04]},
+                      {at: scarf_2, off: [-0.06, 0.02, 0.07]}, {at: scarf_2, off: [-0.06, -0.08, 0.09]}],
+                r: [0.046, 0.044, 0.046, 0.05]}
+    cut:   # ground: nothing below y = 0 (lying on the back in death)
+      - sphere: {c: {at: root, off: [0, -20, 0]}, r: 20}
+  head:
+    material: skin
+    space: head
+    blend: 0.05
+    prims:
+      - ellipsoid: {c: [0, 0.14, 0.0], r: [0.15, 0.16, 0.15]}
+      - ellipsoid: {c: [0, 0.07, 0.04], r: [0.11, 0.09, 0.11]}
+      - sphere: {c: [0, 0.11, 0.15], r: 0.025}
+  hair:            # only what shows under the hat: nape, sides and a fringe
+    material: hair
+    space: head
+    blend: 0.04
+    prims:
+      - ellipsoid: {c: [0, 0.15, -0.08], r: [0.158, 0.12, 0.10]}
+      - ellipsoid: {c: [0, 0.07, -0.12], r: [0.12, 0.07, 0.06], rot: [0.4, 0, 0]}   # tuft at the nape
+      - ellipsoid: {c: [0, 0.205, 0.10], r: [0.13, 0.045, 0.07]}     # fringe under the brim
+  hat_crown:       # rounded felt crown, tipped back a little
+    material: hat
+    space: hatseat
+    blend: 0.03
+    prims:
+      - cylinder: {a: [0, -0.01, 0], b: [0, 0.08, -0.03], r: 0.155, round: 0.05}
+    cut:   # ground (r 16 x head scale 1.25 = 20: top at y = 0)
+      - sphere: {c: {at: root, off: [0, -20, 0]}, r: 16}
+  hat_band:
+    material: leather
+    space: hatseat
+    prims:
+      - cylinder: {a: [0, -0.005, 0], b: [0, 0.035, -0.01], r: 0.162}
+  hat_brim:        # wide floppy brim: droops at the front and the sides, flips up at the back
+    material: brim
+    space: hatseat
+    prims:
+      - membrane:
+          hub: [0, 0, 0]
+          th: 0.035      # world units (not scaled by the head): ~2 px seen edge-on
+          # brim_flop > 0 droops the edge (most at the front and back tips), < 0 flicks it up
+          ring: ["[0, -0.055 - 0.06*brim_flop, 0.35]", "[0.20, -0.045 - 0.045*brim_flop, 0.27]",
+                 "[0.30, -0.05 - 0.03*brim_flop, 0.07]", "[0.29, -0.03 - 0.035*brim_flop, -0.13]",
+                 "[0.17, 0.02 - 0.045*brim_flop, -0.26]", "[0, 0.06 - 0.06*brim_flop, -0.31]",
+                 "[-0.17, 0.02 - 0.045*brim_flop, -0.26]", "[-0.29, -0.03 - 0.035*brim_flop, -0.13]",
+                 "[-0.30, -0.05 - 0.03*brim_flop, 0.07]", "[-0.20, -0.045 - 0.045*brim_flop, 0.27]",
+                 "[0, -0.055 - 0.06*brim_flop, 0.35]"]
+    cut:   # ground (r 16 x head scale 1.25 = 20: top at y = 0)
+      - sphere: {c: {at: root, off: [0, -20, 0]}, r: 16}
+  eye_L:
+    material: ink
+    space: head
+    prims:
+      - sphere: {c: [0.06, 0.105, 0.135], r: 0.04}
+  arm_L:
+    material: coat
+    blend: 0.03
+    prims:
+      - sphere: {c: "@shoulder_L", r: 0.085}
+      - cone: {a: "@shoulder_L", b: "@elbow_L", r: [0.075, 0.06]}
+      - cone: {a: "@elbow_L", b: "@wrist_L", r: [0.06, 0.05]}
+  hand_L:
+    material: skin
+    space: wrist_L
+    prims:
+      - sphere: {c: [0, 0, 0.04], r: 0.055}
+  leg_L:
+    material: pants
+    blend: 0.03
+    prims:
+      - cone: {a: "@hip_L", b: "@knee_L", r: [0.095, 0.07]}
+      - cone: {a: "@knee_L", b: "@ankle_L", r: [0.07, 0.055]}
+  boot_L:
+    material: leather
+    space: sole_L
+    blend: 0.03
+    prims:
+      - cone: {a: [0, 0.17, -0.005], b: [0, -0.02, 0.0], r: [0.07, 0.066]}   # tall shaft to mid-calf
+      - ellipsoid: {c: [0, -0.04, 0.05], r: [0.066, 0.046, 0.115]}
+  cuff_L:          # turned-down boot cuff, a lighter felt band
+    material: canvas
+    space: sole_L
+    prims:
+      - cylinder: {a: [0, 0.15, -0.005], b: [0, 0.20, -0.008], r: 0.08}
+  sword:           # right hand only (no _L => not mirrored)
+    material: steel
+    space: swordgrip
+    prims:         # side view: blade flat and guard turned into the profile plane (edge-on they break up)
+      - box: {c: [0, 0.26, 0.19], half: [0.010, 0.24, 0.026], rot: [0.52, 0, 0]}   # tilted blade
+      - box: {c: [0, 0.048, 0.068], half: [0.02, 0.013, 0.065], rot: [0.52, 0, 0]}
+  grip:
+    material: leather
+    space: swordgrip
+    prims:
+      - cylinder: {a: [0, -0.05, 0.01], b: [0, 0.04, 0.06], r: 0.021}
+  smear:
+    when: "smear_w > 0"
+    materials: [fx_tail, fx_mid, fx_core]
+    space: fxspace
+    prims:
+      - arc: {c: [0, 0, 0], r: smear_r, a0: smear_a0, a1: smear_a1, width: smear_w, fade: smear_fade, dip: 0.10}
+
+animations:
+  idle:            # ready stance, feet apart so both read in profile
+    frames: 6
+    ms: 150
+    channels:
+      bob: "-0.02 + 0.025*sin(p)"
+      squash: "1 + 0.015*sin(p)"
+      head_pitch: "-0.04*sin(p - 0.5)"
+      foot_L: [0.13, 0, 0.12]
+      foot_R: [0.13, 0, -0.08]
+      hand_L: "[0.33, 0.06 + 0.02*sin(p - 0.6), 0.06]"
+      hand_R: "[0.30, 0.10 + 0.02*sin(p - 0.6), 0.16]"
+      coat: "0.15*sin(p - 1.0)"
+      # overlap: the scarf ends sway behind the coat's phase; the brim lags the bob (droops as the body
+      # starts to rise, flicks up as it starts to sink); ~1-2 px each
+      scarf: "0.15 + 0.07*sin(p - 1.6)"
+      scarf_wave: 0.08
+      brim_flop: "-0.4*sin(p - 0.8)"
+  run:            # in place; phase warp p + 0.4*(1 - cos p): short stance (~3 frames), long swing
+    frames: 8
+    ms: 80
+    events: {0: step_l, 4: step_r}
+    channels:
+      lean: "0.30 + 0.03*sin(2*p)"
+      bob: "-0.05 - 0.04*sin(2*p)"
+      twist: "0.08*cos(p)"
+      foot_L: "[0.13, 0.28*pos(-sin(p + 0.4 - 0.4*cos(p))), 0.04 + 0.31*cos(p + 0.4 - 0.4*cos(p))]"
+      foot_R: "[0.13, 0.28*pos(sin(p + 0.4 + 0.4*cos(p))), 0.04 - 0.31*cos(p + 0.4 + 0.4*cos(p))]"
+      pitch_foot_L: "0.9*pos(-sin(p + 1.0 - 0.4*cos(p)))"
+      pitch_foot_R: "0.9*pos(sin(p + 1.0 + 0.4*cos(p)))"
+      hand_L: "[0.30, 0.31 - 0.08*cos(p - 0.3), 0.07 - 0.20*cos(p - 0.3)]"
+      hand_R: "[0.28, 0.24 + 0.06*cos(p - 0.3), 0.12 + 0.16*cos(p - 0.3)]"
+      head_pitch: "-0.18 + 0.03*sin(2*p)"
+      coat: "-1.0 + 0.3*sin(2*p - 1.0)"
+      # scarf streams back with a ripple (left hanging, the end read as a strap across the back in w);
+      # it bounces with the steps; the brim droops just after each contact and flicks up mid-stride
+      scarf: "0.9 + 0.08*sin(2*p - 1.2)"
+      scarf_wave: 0.28
+      brim_flop: "0.15 + 0.45*sin(2*p - 0.6)"
+  jump:            # take-off: anticipation crouch (longest key), stretch as the feet leave
+    loop: false
+    # follow-through: as the body sinks the scarf ends float and the brim flicks up; at the bottom the brim
+    # droops; on take-off the ends lag (drop and whip) and the brim droops hard; they swing back in the air
+    keys:
+      - {ms: 70, set: {bob: -0.10, squash: 0.93, lean: 0.22, head_pitch: 0.05, coat: 0.2,
+                       foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08],
+                       hand_L: [0.30, 0.10, -0.12], hand_R: [0.28, 0.12, -0.02],
+                       scarf: 0.35, brim_flop: -0.4}}
+      - {ms: 110, set: {bob: -0.18, squash: 0.86, lean: 0.35, head_pitch: 0.12, coat: 0.4,
+                        foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08],
+                        hand_L: [0.30, 0.12, -0.28], hand_R: [0.28, 0.14, -0.20],
+                        scarf: 0.2, brim_flop: 0.5}}
+      - ms: 80
+        event: takeoff
+        set: {root: [0, 0.06, 0], bob: 0.04, squash: 1.08, lean: 0.0, head_pitch: -0.15, coat: -0.6,
+              foot_L: [0.13, 0.0, 0.06], foot_R: [0.13, 0.0, -0.06], pitch_foot_L: 0.8, pitch_foot_R: 0.8,
+              hand_L: [0.30, 0.52, 0.36], hand_R: [0.28, 0.46, 0.36],
+              scarf: -0.15, scarf_wave: 0.3, brim_flop: 0.9}
+      - {ms: 100, set: {root: [0, 0.06, 0], bob: 0.04, squash: 1.05, lean: 0.10, head_pitch: -0.12, coat: -0.8,
+                        foot_L: [0.13, 0.30, 0.12], foot_R: [0.13, 0.12, -0.10], pitch_foot_L: 0.4, pitch_foot_R: 0.7,
+                        hand_L: [0.30, 0.62, 0.16], hand_R: [0.28, 0.46, 0.26],
+                        scarf: 0.3, scarf_wave: 0.3, brim_flop: 0.5}}
+  rise:            # going up: front knee high, arms up (the game picks it while moving up)
+    frames: 2
+    ms: 100
+    channels:
+      root: [0, 0.06, 0]
+      bob: 0.04
+      squash: "1.05 + 0.02*cos(p)"
+      lean: 0.10
+      head_pitch: -0.12
+      foot_L: "[0.13, 0.31 + 0.03*cos(p), 0.13]"
+      foot_R: [0.13, 0.12, -0.10]
+      pitch_foot_L: 0.4
+      pitch_foot_R: "0.7 + 0.1*cos(p)"
+      hand_L: "[0.30, 0.62 + 0.04*cos(p), 0.16]"
+      hand_R: "[0.28, 0.46 + 0.04*cos(p), 0.26]"
+      coat: "-0.8 + 0.4*cos(p)"
+      # going up, the air pushes down: the scarf ends trail low and flutter, the brim droops
+      scarf: "0.15 + 0.12*cos(p)"
+      scarf_wave: 0.3
+      brim_flop: "0.45 + 0.2*cos(p)"
+  fall:            # going down: arms and the back leg trail up, front leg reaches for the ground
+    frames: 2
+    ms: 100
+    channels:
+      root: [0, 0.06, 0]
+      bob: 0.02
+      squash: 1.0
+      lean: 0.08
+      head_pitch: 0.10
+      foot_L: "[0.13, 0.06 + 0.02*cos(p), 0.16]"
+      foot_R: "[0.13, 0.30 + 0.03*cos(p), -0.20]"
+      pitch_foot_L: 0.3
+      pitch_foot_R: 0.6
+      hand_L: "[0.34, 0.66 + 0.04*cos(p), 0.36]"
+      hand_R: "[0.34, 0.62 + 0.04*cos(p), -0.38]"
+      sword_pitch: 1.8
+      coat: "-0.4 + 0.5*cos(p)"
+      # coming down, the air pushes up: the scarf streams up and back (tips curl), the brim flicks up
+      scarf: "1.45 + 0.12*cos(p)"
+      scarf_wave: 0.25
+      brim_flop: "-0.6 - 0.2*cos(p)"
+      hat_tilt: -0.08
+  land:            # squash on contact (event on frame 0), settle back to the idle stance
+    loop: false
+    # follow-through: the brim flops down on impact (the hat bumps forward) and rebounds; the scarf, still
+    # up from the fall, slaps down past its rest, overshoots back and settles; the last key matches idle 0
+    keys:
+      - ms: 70
+        event: land
+        set: {bob: -0.20, squash: 0.84, lean: 0.35, head_pitch: 0.15, coat: 0.8,
+              foot_L: [0.13, 0, 0.16], foot_R: [0.13, 0, -0.12],
+              hand_L: [0.32, 0.25, 0.30], hand_R: [0.30, 0.22, 0.32],
+              scarf: 1.0, scarf_wave: 0.2, brim_flop: 1.0, hat_tilt: 0.12}
+      - {ms: 90, set: {bob: -0.14, squash: 0.90, lean: 0.28, head_pitch: 0.08, coat: 0.4,
+                       foot_L: [0.13, 0, 0.15], foot_R: [0.13, 0, -0.11],
+                       hand_L: [0.32, 0.15, 0.20], hand_R: [0.30, 0.15, 0.25],
+                       scarf: -0.15, scarf_wave: 0.2, brim_flop: 0.6, hat_tilt: 0.06}}
+      - {ms: 100, set: {bob: -0.04, squash: 1.02, lean: 0.10, coat: -0.1,
+                        foot_L: [0.13, 0, 0.13], foot_R: [0.13, 0, -0.09],
+                        hand_L: [0.33, 0.08, 0.08], hand_R: [0.30, 0.10, 0.18],
+                        scarf: 0.35, brim_flop: -0.25, hat_tilt: -0.03}}
+      - {ms: 110, set: {bob: -0.02, foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08], hand_R: [0.30, 0.10, 0.16],
+                        scarf: 0.08, scarf_wave: 0.08, brim_flop: 0.29}}
+  crouch:          # duck; the game holds the last frame
+    loop: false
+    # the brim flicks up as the body drops and droops when it stops; the scarf ends lift, then settle
+    keys:
+      - {ms: 60, set: {bob: -0.12, squash: 0.94, lean: 0.18, coat: 0.2,
+                       foot_L: [0.13, 0, 0.14], foot_R: [0.13, 0.02, -0.12], pitch_foot_R: 0.3,
+                       hand_L: [0.33, 0.10, 0.10], hand_R: [0.30, 0.12, 0.20],
+                       scarf: 0.35, brim_flop: -0.35}}
+      - {ms: 80, set: {bob: -0.31, squash: 0.88, lean: 0.32, head_pitch: 0.05, coat: 0.3,
+                       foot_L: [0.13, 0, 0.14], foot_R: [0.13, 0.06, -0.14], pitch_foot_R: 0.6,
+                       hand_L: [0.30, 0.02, 0.26], hand_R: [0.28, 0.06, 0.30],
+                       scarf: 0.05, brim_flop: 0.5}}
+      - {ms: 150, set: {bob: -0.28, squash: 0.91, lean: 0.28, coat: 0.2,
+                        foot_L: [0.13, 0, 0.14], foot_R: [0.13, 0.06, -0.14], pitch_foot_R: 0.6,
+                        hand_L: [0.30, 0.04, 0.24], hand_R: [0.28, 0.08, 0.28],
+                        scarf: 0.15, brim_flop: 0.15}}
+  attack:          # overhead slash: cocked back (windup), smear over the top, follow-through low
+    loop: false
+    # the smear runs at the blade tip's radius (r ~1.0, the hat sits at ~0.75-0.87 from the arc centre), so it
+    # clears the tan hat with a dark gap instead of crossing it: over the crown in the strike, then in front of
+    # the brim (centre pulled back with smear_z 0 to keep the arc inside the frame)
+    # follow-through: the hat rocks back on the windup and lags the lunge, then tips forward as the head
+    # stops; the scarf hangs on the windup, trails the lunge with a ripple and swings back down on recovery
+    keys:
+      - {ms: 90, set: {lean: -0.05, bob: -0.04, squash: 0.96, head_pitch: -0.05, coat: -0.2,
+                       foot_L: [0.13, 0, 0.16], foot_R: [0.13, 0, -0.12],
+                       hand_L: [0.30, 0.30, 0.22], hand_R: [0.30, 0.42, -0.24], sword_pitch: 2.5,
+                       scarf: 0.1, brim_flop: 0.1}}
+      - ms: 150
+        event: windup
+        set: {lean: -0.12, bob: -0.06, squash: 0.94, head_pitch: -0.08, coat: -0.35,
+              foot_L: [0.13, 0, 0.16], foot_R: [0.13, 0, -0.12],
+              hand_L: [0.30, 0.32, 0.26], hand_R: [0.26, 0.76, -0.24], sword_pitch: 2.0,
+              scarf: 0.05, brim_flop: -0.25, hat_tilt: -0.08}
+      - ms: 50
+        set: {root: [0, 0, 0.10], lean: 0.30, bob: -0.03, squash: 1.06, coat: 0.5,
+              foot_L: [0.13, 0, 0.26], foot_R: [0.13, 0, -0.14],
+              hand_L: [0.30, 0.10, -0.10], hand_R: [0.18, 0.90, 0.36], sword_pitch: 1.7,
+              smear_a0: 2.4, smear_a1: 0.7, smear_w: 0.08, smear_r: 1.09, smear_y: 1.10,
+              scarf: 0.5, scarf_wave: 0.3, brim_flop: -0.45, hat_tilt: -0.12}
+      - ms: 80
+        event: hit
+        set: {root: [0, 0, 0.14], lean: 0.42, bob: -0.07, coat: 0.7,
+              foot_L: [0.13, 0, 0.28], foot_R: [0.13, 0, -0.14],
+              hand_L: [0.30, 0.06, -0.16], hand_R: [0.14, 0.28, 0.48], sword_pitch: 0.6,
+              smear_a0: 0.8, smear_a1: -0.45, smear_w: 0.10, smear_r: 0.99, smear_y: 1.10, smear_z: 0.0,
+              scarf: 0.85, scarf_wave: 0.3, brim_flop: 0.2}
+      - ms: 100
+        set: {root: [0, 0, 0.13], lean: 0.48, bob: -0.09, squash: 0.97, coat: 0.4,
+              foot_L: [0.13, 0, 0.28], foot_R: [0.13, 0, -0.14],
+              hand_L: [0.30, 0.06, -0.14], hand_R: [0.16, -0.04, 0.32], sword_pitch: 0.4,
+              smear_a0: 0.55, smear_a1: -1.0, smear_w: 0.06, smear_fade: 0.7, smear_r: 0.98, smear_z: 0.0,
+              scarf: 0.7, scarf_wave: -0.25, brim_flop: 0.6, hat_tilt: 0.1}
+      - {ms: 120, set: {root: [0, 0, 0.07], lean: 0.25, bob: -0.05, coat: 0.1,
+                        foot_L: [0.13, 0, 0.20], foot_R: [0.13, 0, -0.10],
+                        hand_L: [0.32, 0.06, 0.0], hand_R: [0.26, 0.06, 0.20], sword_pitch: 0.1,
+                        scarf: 0.2, brim_flop: -0.1, hat_tilt: 0.04}}
+      - {ms: 130, set: {bob: -0.02, foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08], hand_R: [0.30, 0.10, 0.16],
+                        scarf: 0.08, scarf_wave: 0.08, brim_flop: 0.29}}
+  hurt:            # knocked back, recoil, recover
+    loop: false
+    # the hit knocks the hat back (brim flicks up) and whips the scarf out; both swing back and settle; the
+    # last key matches idle 0
+    keys:
+      - {ms: 70, set: {root: [0, 0, -0.08], lean: -0.25, bob: -0.03, squash: 0.94, head_pitch: -0.25, coat: 0.6,
+                       foot_L: [0.13, 0.04, 0.16], foot_R: [0.13, 0, -0.10],
+                       hand_L: [0.36, 0.40, 0.20], hand_R: [0.34, 0.36, 0.28],
+                       hat_tilt: -0.45, brim_flop: -0.5, scarf: 0.65, scarf_wave: 0.35}}
+      - {ms: 90, set: {root: [0, 0, -0.10], lean: -0.15, bob: -0.08, squash: 0.92, head_pitch: 0.05, coat: 0.3,
+                       foot_L: [0.13, 0, 0.14], foot_R: [0.13, 0, -0.10],
+                       hand_L: [0.34, 0.20, 0.16], hand_R: [0.32, 0.18, 0.24],
+                       hat_tilt: -0.3, brim_flop: 0.4, scarf: 0.85, scarf_wave: -0.3}}
+      - {ms: 90, set: {root: [0, 0, -0.05], lean: 0.0, bob: -0.04, squash: 0.98,
+                       foot_L: [0.13, 0, 0.13], foot_R: [0.13, 0, -0.09], hand_R: [0.30, 0.12, 0.18],
+                       hat_tilt: -0.1, brim_flop: -0.15, scarf: 0.25}}
+      - {ms: 90, set: {bob: -0.02, foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08], hand_R: [0.30, 0.10, 0.16],
+                       scarf: 0.08, scarf_wave: 0.08, brim_flop: 0.29}}
+  death:           # hit, stagger, knees buckle, fall on the back; the last frame is held
+    loop: false
+    # the hit knocks the hat back and whips the scarf; while she falls the hat lags and starts to tip over
+    # the face and the scarf floats; on the ground the hat tips past and rocks back to lie over the face
+    # (hat_tilt ~1.1: at 1.3+ the brim lies flat at the top of the head and the face pokes past the crown),
+    # and the scarf settles along the ground. root z 0.18 -> 0.23 on the ground (0.26 on the bounce key)
+    # keeps the laid hat's back brim 2 px off the frame edge.
+    keys:
+      - {ms: 90, set: {root: [0, 0, -0.06], lean: -0.30, squash: 0.95, head_pitch: -0.30, coat: 0.6,
+                       foot_L: [0.13, 0.04, 0.16], foot_R: [0.13, 0, -0.10],
+                       hand_L: [0.36, 0.42, 0.22], hand_R: [0.34, 0.38, 0.28],
+                       hat_tilt: -0.4, brim_flop: -0.45, scarf: 0.65, scarf_wave: 0.3}}
+      - {ms: 110, set: {root: [0, 0, -0.10], lean: -0.40, bob: -0.08, head_pitch: -0.20, coat: 0.5,
+                        foot_L: [0.13, 0.08, 0.20], foot_R: [0.13, 0, -0.12],
+                        hand_L: [0.38, 0.30, 0.10], hand_R: [0.36, 0.20, 0.15],
+                        hat_tilt: -0.5, brim_flop: 0.35, scarf: 0.95, scarf_wave: -0.3}}
+      - {ms: 110, set: {root: [0, 0, -0.04], lean: -0.55, bob: -0.25, squash: 0.92, head_pitch: 0.15, coat: 0.5,
+                        foot_L: [0.13, 0.04, 0.28], foot_R: [0.13, 0, 0.08],
+                        hand_L: [0.36, 0.10, 0.12], hand_R: [0.34, 0.06, 0.20], sword_pitch: 0.6,
+                        hat_tilt: -0.3, brim_flop: 0.3, scarf: 1.1}}
+      - {ms: 120, set: {lean: -0.9, bob: -0.45, head_pitch: -0.20, coat: 0.8,
+                        foot_L: [0.13, 0.10, 0.40], foot_R: [0.13, 0.04, 0.30],
+                        hand_L: [0.40, 0.45, 0.20], hand_R: [0.38, 0.40, 0.25],
+                        hat_tilt: 0.45, brim_flop: -0.5, scarf: 1.6, scarf_wave: 0.25}}
+      - {ms: 100, set: {root: [0, 0, 0.23], lean: -1.45, bob: -0.66, squash: 0.94, head_pitch: -0.55, coat: 0.6,
+                        foot_L: [0.13, 0.12, 0.78], foot_R: [0.13, 0.08, 0.70], pitch_foot_L: -1.2, pitch_foot_R: -1.2,
+                        hand_L: [0.36, 0.20, 0.14], hand_R: [0.34, 0.20, 0.18], sword_pitch: 1.4,
+                        hat_tilt: 1.25, brim_flop: 0.8, scarf: 0.6}}
+      - {ms: 110, set: {root: [0, 0, 0.26], lean: -1.52, bob: -0.62, head_pitch: -0.65, coat: 0.4,
+                        foot_L: [0.13, 0.02, 0.80], foot_R: [0.13, 0, 0.72], pitch_foot_L: -1.4, pitch_foot_R: -1.4,
+                        hand_L: [0.34, 0.12, 0.10], hand_R: [0.32, 0.12, 0.14], sword_pitch: 2.0,
+                        hat_tilt: 0.95, brim_flop: -0.1, scarf: 0.15}}
+      - {ms: 600, set: {root: [0, 0, 0.23], lean: -1.57, bob: -0.66, squash: 0.96, head_pitch: -0.78, coat: 0.3,
+                        foot_L: [0.13, 0, 0.82], foot_R: [0.13, 0, 0.74], pitch_foot_L: -1.5, pitch_foot_R: -1.5,
+                        hand_L: [0.34, 0.10, 0.08], hand_R: [0.32, 0.10, 0.12], sword_pitch: 2.2,
+                        hat_tilt: 1.1, brim_flop: 0.4}}

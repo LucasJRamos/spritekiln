@@ -18,6 +18,7 @@ sees. You direct.
 <p align="center">
   <img src="showcase/huntress/turnaround.gif" alt="The Huntress idling in 8 directions" height="220">
   <img src="showcase/templar/turnaround.gif" alt="The Templar idling in 8 directions" height="220">
+  <img src="docs/images/tutorials/platformer-run.gif" alt="Wren, a side-view platformer character, running in both profiles" height="220">
 </p>
 
 ## Why
@@ -62,8 +63,9 @@ render writes a QA report (clipping, palette, silhouette stability) and contact 
   `_L`/`_R` parts, materials with palette ramps, emissive and glow, two-sided membranes, conditional parts.
 - **Animation:** cycles from expressions or keyframes with per-frame timing, tweens and easing, smears,
   per-direction cheats, events, timing targets checked by `validate` (e.g. "impact at 300 ms").
-- **Views:** top-down 3/4 in 8 (or 4, or 1) directions, or a side view for platformers (`view: side`);
-  `mirror: true` renders half the directions for symmetric designs.
+- **Views:** top-down 3/4 in 8 (or 4, or 1) directions, or a side view for platformers (`view: side`, with
+  a template that has run, jump, rise, fall and land); `mirror: true` renders half the directions for
+  symmetric designs.
 - **From a splash art:** `ref prep` cuts the character out and extracts its palette; `ref compare` scores
   the silhouette against the model (pitch-corrected IoU) and says what to change.
 - **Review:** `spritekiln review` measures value range, contrast, pixels per material and legibility, and
@@ -112,7 +114,7 @@ and in-game captures are in [`showcase/`](showcase).
 - [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Leia em português](README.pt-BR.md)
 
 ## License
-Code, docs and integrations: [MIT](LICENSE). Example assets (the gargoyle, the hunter, the crates, gas lamp
+Code, docs and integrations: [MIT](LICENSE). Example assets (the gargoyle, the hunter, Wren, the crates, gas lamp
 and training dummy props, the templates, the gothic and props palettes, the examples' sprites):
 [CC0 1.0](LICENSES/CC0-1.0.txt). Showcase assets (Templar and Huntress from Hunt Tower, with the Huntress's
 mine: specs, splash arts, palettes, renders and game captures): © 2026 Lucas Ramos / PlayRPG, all rights

@@ -20,7 +20,7 @@ python -m pxforge ref prep <splash.png>                       # cutout, palette 
 python -m pxforge ref compare <spec.yaml> <splash.png> --dir se   # silhouette IoU (camera-corrected) + hints
 python -m pxforge palette ramp "#5d4f6c" --steps 6            # hue-shifted ramp
 python -m pxforge palette extract <image>                     # palette YAML from an image
-python -m pxforge new <name> [--template humanoid] [--ref splash.png]
+python -m pxforge new <name> [--template humanoid|side_humanoid] [--view side] [--ref splash.png]
 python -m pxforge cache info|prune|clear                      # render cache (.kilncache/)
 ```
 `pose` costs about 1 s per direction. A full `render` of 3 animations × 8 directions is about 190 frames
@@ -30,8 +30,9 @@ processes from the free memory; pass `--jobs 1` on a busy machine.
 If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or the project's wrapper).
 
 ## The loop (always)
-1. **Read** the spec and its `brief:`. No spec yet: `python -m pxforge new <name>` (humanoid template), or start
-   from a similar spec (the gargoyle in this repository is a good base for creatures).
+1. **Read** the spec and its `brief:`. No spec yet: `python -m pxforge new <name>` (the humanoid template, or
+   `side_humanoid` with platformer clips for a side view), or start from a similar spec (the gargoyle in
+   this repository is a good base for creatures).
 2. **Edit** a little at a time: one part or one key. Edit the YAML as text, in place: its comments explain
    the model and the compact `{...}` style keeps it readable. Never regenerate a spec with a YAML dumper
    or a script.

@@ -12,6 +12,8 @@ SPDX-License-Identifier = "MIT"
 path = [
   "specs/characters/gargula/**",
   "specs/characters/cacador/**",
+  "specs/characters/wren/**",
+  "specs/palettes/wren.yaml",
   "specs/props/crates/**",
   "specs/props/gas_lamp/**",
   "specs/props/training_dummy/**",

@@ -19,6 +19,7 @@ imagens** e corrige o que vê. Você dirige.
 <p align="center">
   <img src="showcase/huntress/turnaround.gif" alt="A Caçadora em idle nas 8 direções" height="220">
   <img src="showcase/templar/turnaround.gif" alt="O Templário em idle nas 8 direções" height="220">
+  <img src="docs/images/tutorials/platformer-run.gif" alt="Wren, personagem de plataforma em visão lateral, correndo nos dois perfis" height="220">
 </p>
 
 ## Por quê
@@ -82,7 +83,7 @@ A documentação completa está em inglês: [README](README.md), [primeiro perso
 [formato de saída](docs/format.md), [roadmap](docs/ROADMAP.md), [como contribuir](CONTRIBUTING.md).
 
 ## Licença
-Código, documentação e integrações: [MIT](LICENSE). Assets de exemplo (a gárgula, o caçador, os props
+Código, documentação e integrações: [MIT](LICENSE). Assets de exemplo (a gárgula, o caçador, a Wren, os props
 caixotes, lampião a gás e boneco de treino, os templates, as paletas gothic e props, os sprites dos
 exemplos): [CC0 1.0](LICENSES/CC0-1.0.txt). Assets do showcase (Templário e Caçadora do Hunt Tower, com a
 mina da Caçadora: specs, splash arts, paletas, renders e capturas do jogo): © 2026 Lucas Ramos / PlayRPG,
