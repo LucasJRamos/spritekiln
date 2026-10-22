@@ -327,23 +327,33 @@ Next, in the phases below (marked **[side]**):
 **Done when:** each integration has a minimal example that runs and a tutorial.
 
 ## Phase 5: showcase, docs, launch
-- [ ] English README: Huntress 8-direction turnaround GIF and "From this → to this" at the top; what it
-      is; features; 3-command quick start; YAML → SDF → render → pixelize → atlas diagram; the AI recipe;
-      engine and AI matrices; showcase, roadmap, licenses.
-- [ ] `README.pt-BR.md`.
-- [ ] `showcase/`: Templar and Huntress (spec, splash, turnaround/GIFs, contact sheets) and game images
-      (copied from `tower-hunt/captures/` and `research/.../images/`; optional short Movie Maker clip,
-      reading the game project without changing it).
-- [ ] Tutorials in `docs/`: first character in 10 minutes; from your splash art with an AI; animations
-      and events; Godot; Unity; MonoGame/generic; use with your AI (MCP and AGENTS.md); spec reference
-      (from `SPEC.md`).
-- [ ] **[side]** Side-view template (`side_humanoid`), a side-scroller example asset and the tutorial "a
-      platformer character".
-- [ ] Translate the comments of the humanoid template and the example specs to English.
-- [ ] `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue/PR templates, `CHANGELOG.md`; optional MkDocs
-      Material site on GitHub Pages.
-- [ ] Release v0.1.0: PyPI via trusted publishing in Actions; tag + release notes; Godot Asset Library
-      submission; announcement text (r/godot, r/gamedev, r/PixelArt, itch.io devlog, X).
+- [x] English README: "From this → to this" (Huntress) at the top, turnaround GIFs (Huntress, Templar) and
+      Wren running; what it is; why; 3-command quick start; pipeline diagram; features; engine and AI
+      tables; showcase, learn more, licenses. On PyPI the relative links become GitHub URLs
+      (hatch-fancy-pypi-readme).
+- [x] `README.pt-BR.md`.
+- [x] `showcase/`: Huntress and Templar (splash → sprite, turnarounds, animation GIFs, contact sheets, the
+      silhouette comparison at IoU 0.69) and two Hunt Tower captures; `tools/make_showcase.py` rebuilds the
+      composites. No Movie Maker clip (optional; running the game would touch its folder).
+- [x] Tutorials in `docs/tutorials/`: first character, from your splash art, animations and events, use
+      with your AI, a platformer character; engines in `docs/engines/`; the spec reference is
+      `docs/agent/spec.md`. Each tutorial was run end to end and its images come from those runs; the
+      platformer controller was run in headless Godot.
+- [x] **[side]** `side_humanoid` template (10 clips), Wren (CC0 example made by the modeler and animator
+      roles, QA clean) and the platformer tutorial; `new --view side` starts from the side template.
+- [x] Comments and briefs of the template, example and showcase specs and palettes in English (pose
+      sheets byte-identical; names unchanged for Hunt Tower).
+- [x] `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue/PR templates, `CHANGELOG.md`, `ROADMAP.md` in English.
+      MkDocs site: not done (optional).
+- [x] CI: a `godot` job runs the addon and the example headless on Linux.
+- [ ] Release v0.1.0 — prepared, waiting for the maintainer:
+      - `.github/workflows/release.yml` publishes on a `v*` tag (versions checked, PyPI by trusted
+        publishing, GitHub release with the wheel, sdist and the Godot addon zip, notes from CHANGELOG).
+      - Maintainer steps: make the repository public; on pypi.org add a pending trusted publisher
+        (project `spritekiln`, owner `LucasJRamos`, repository `spritekiln`, workflow `release.yml`,
+        environment `pypi`); push the tag `v0.1.0`; submit to the Godot Asset Library with
+        `integrations/godot/assetlib/LISTING.md`; post the announcements (drafts in the local, unversioned
+        `ANNOUNCE.md`).
 - Scope of v0.1: characters and props. Tiles and VFX are v0.2 (see `docs/ROADMAP.md`).
 
 ## Phase 6: Hunt Tower migration (only with the maintainer's OK, in a game-project session)

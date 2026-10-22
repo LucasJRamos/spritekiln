@@ -11,8 +11,9 @@ First public release. SpriteKiln started as `pxforge`, the sprite toolkit of the
   materials with palette ramps, emissive and glow, mirrored `_L`/`_R` parts.
 - Animations from cycles or keys with per-frame timing, tweens and easing, events (`hit`, `step_l`...),
   per-direction cheats, smears, and timing targets checked by `validate` and QA.
-- Top-down 3/4 view in 8 directions, or a side view (`view: side`); `mirror: true` renders half the
-  directions for symmetric designs.
+- Top-down 3/4 view in 8 directions, or a side view (`view: side`) with a platformer template
+  (`side_humanoid`: run, jump, rise, fall, land, crouch, attack, hurt, death); `mirror: true` renders
+  half the directions for symmetric designs.
 - Sockets: attachment points (muzzles, hands, impact points) exported per frame.
 - Output: atlas, normal map and emissive map, Aseprite-compatible JSON (output format 1), GIFs, contact
   sheets and `qa.json`.
@@ -33,6 +34,12 @@ First public release. SpriteKiln started as `pxforge`, the sprite toolkit of the
 - Unity 2022.3+ (tested on 6000.3): UPM package with a `.kiln` importer and `KilnAnimator`.
 - MonoGame 3.8: `KilnSprite.cs` runtime and the `KilnLit.fx` normal-mapped light shader.
 - Examples for Godot, Unity and MonoGame; a guide for Phaser, LÖVE, Defold and GameMaker.
+
+### Examples and docs
+- Example characters (CC0): a gargoyle, a hunter, Wren (side view), and props; the Huntress and the
+  Templar of Hunt Tower as a showcase.
+- Tutorials: first character, from your splash art, animations and events, a platformer character, use
+  with your AI; engine guides.
 
 ### Compatibility
 - `python -m pxforge`, the `pxforge` command, `pxforge: 1` spec headers and the `PxSprite2D` Godot addon
