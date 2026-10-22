@@ -118,16 +118,25 @@ byte-identical to `specs/**/out/` (empty emissive maps are deleted by the export
     `xfail` in `tests/test_palette.py`; fix in Phase 1. *(Fixed in Phase 1.)*
 
 **Found in Phase 1**
-21. `PxSprite2D.play_anim()` emits frame-0 events twice: once itself, once more when Godot reports the
-    first `frame_changed`. Reproduced headless in Godot 4.7.2 with the addon copy Hunt Tower ships
-    (`windup` arrives twice before `hit`), with or without `face()`. Likely the "1 tick" event offset the
-    game saw. Fix with the addon rework in Phase 4 (the game keeps its own copy until Phase 6).
+21. `PxSprite2D` emits frame-0 events twice when `play_anim()` runs before the node enters the tree:
+    `_ready()` then replays the clip because of `auto_play` (found in Phase 4; the first guess,
+    `frame_changed`, was wrong). Reproduced headless in Godot 4.7.2 with the addon copy Hunt Tower ships
+    (`windup` arrives twice before `hit`). Likely the "1 tick" event offset the game saw. *(Fixed in
+    `KilnSprite2D`, Phase 4; the game keeps its own `PxSprite2D` copy until Phase 6.)*
 22. The OOM kills during Hunt Tower renders came from numpy: OpenBLAS commits ~500 MB per process at
     import on a 16-thread CPU. Fixed in Phase 1 (ADR-012).
 23. QA told the user to *reduce* `camera.scale` for a clipped sprite; zooming out means increasing it.
     Fixed in Phase 1.
 24. `spritekiln godot` only exports from `<spec dir>/out/<name>/`; it has no option for a render made with
-    `render -o`. Add `--render-dir` in Phase 4.
+    `render -o`. *(Fixed in Phase 4: `--render-dir`.)*
+
+**Found in Phase 4**
+25. In `PxSprite2D`, when a listener of `px_event`/`px_finished` starts another clip, the listeners after
+    it receive the new clip's name: Godot passes the `anim` member itself, not a copy. *(Fixed in
+    `KilnSprite2D`; `PxSprite2D` unchanged until Phase 6.)*
+26. On Windows, text outputs (render JSON, Godot `.tres`/`.tscn`) are written with CRLF line endings. Godot
+    and the importers read both, and git normalizes them, but the bytes differ between platforms. Decide
+    in Phase 6 together with the Hunt Tower re-export check (switching to LF changes the files the game has).
 
 **What leaves the repository:** `legacy/` (not versioned; delete when the maintainer agrees),
 `research/` (not versioned: raw session material with game captures and scratchpad paths; Phase 2 ports
@@ -283,18 +292,29 @@ Next, in the phases below (marked **[side]**):
 - v0.2: side-view tiles (platforms, slopes) and parallax backgrounds, with the tiles work in the ROADMAP.
 
 ## Phase 4: engines
-- [ ] **Godot 4:** clean up the addon (sockets, light and emissive, icon, docs); import without the CLI
-      (plugin that reads the JSON); prepare for the Godot Asset Library; headless test with the local
-      Godot 4.7.2.
-- [ ] **Unity** (UPM package in `integrations/unity`, installable by git URL): `ScriptedImporter` for the
-      JSON (sliced sprites, AnimationClips per animation × direction, AnimationEvents); `KilnAnimator`
-      component (direction from a vector, events, sockets); normal and emissive as secondary textures
-      (`_NormalMap`, `_MaskTex`) for URP 2D lights; validate on Unity 6 LTS or mark "experimental".
-- [ ] **MonoGame:** DesktopGL sample project with `PxSprite.cs` and a light shader (`PxLit.fx`).
-- [ ] **[side]** Two-direction (e/w) clips in every runtime, optional `flip_h` mirroring, and a `mirror`
-      export option (one profile rendered, the other flipped by the engine).
-- [ ] **Generic:** "use it in any engine" guide (Phaser, LÖVE, Defold, GameMaker) based on the
-      Aseprite-compatible JSON.
+- [x] **Godot 4:** new addon `addons/spritekiln` (`KilnSprite2D`, `KilnBuilder`, editor plugin that builds
+      SpriteFrames and scenes from render JSONs without the CLI, icon, README); `spritekiln godot
+      --render-dir`; Asset Library zip (`tools/package_godot_addon.py`, "Custom" download URL);
+      `examples/godot` (gargoyle with light, emissive, events and the `strike` socket); headless tests
+      with Godot 4.7.2 (addon behaviour + the example driven by simulated input). The old addon stays
+      for Hunt Tower (audit #21, #25).
+- [x] **Unity** (`integrations/unity`, UPM by git URL): `.kiln` ScriptedImporter (ADR-024) with sprites
+      (`_NormalMap` secondary texture), AnimationClips with AnimationEvents and flipX; `KilnAnimator`;
+      sample "Gargoyle demo". Validated in Unity 6000.3.6f1 batch mode (`tests/test_unity_runtime.py`:
+      import, timing, events, mirroring with a pixel-exact render, sockets, side view) and compiled
+      against its assemblies with warnings as errors. Emissive is an unlit child renderer rather than
+      `_MaskTex`, which URP uses for light blending, not emission.
+- [x] **MonoGame:** `integrations/monogame/KilnSprite.cs` (replaces `PxSprite.cs`; mirroring, emissive
+      pass, sockets) and `KilnLit.fx` (up to 4 point lights through the normal map, mirrored normals by
+      `ddx`); `examples/monogame` (DesktopGL, MonoGame 3.8.4). `tests/test_monogame_runtime.py` runs the
+      animator headless and the example with a scripted run that saves a frame.
+- [x] **[side]** Two-direction (e/w) clips play in every runtime; `mirror: true` renders one profile and
+      the runtimes flip the other (ADR-025).
+- [x] **Generic:** `docs/engines/generic.md` (Phaser, LÖVE, Defold, GameMaker), marked as untested sketches.
+- [x] Tutorials: `docs/engines/godot.md`, `unity.md`, `monogame.md`, `generic.md`.
+- Engine tests are opt-in (`SPRITEKILN_GODOT_BIN`, `SPRITEKILN_UNITY_BIN`, `SPRITEKILN_MONOGAME=1`) and
+  not in CI yet; a Godot job in CI is a candidate for Phase 5.
+- Still to do for the Asset Library listing (Phase 5): a PNG icon and screenshots.
 
 **Done when:** each integration has a minimal example that runs and a tutorial.
 

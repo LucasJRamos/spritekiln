@@ -1,9 +1,8 @@
 # SpriteKiln in Unity
 
-> **Status: experimental.** The package compiles against Unity 6000.3 with no warnings; its in-editor test
-> (`tests/test_unity_runtime.py`) has not run on a licensed editor yet.
-
-This guide takes a sprite from a spec to a moving character in Unity 2022.3 or newer (tested with 6000.3).
+This guide takes a sprite from a spec to a moving character in Unity 2022.3 or newer. The package is
+tested in Unity 6000.3 (import, timing, events, mirroring, sockets) with the built-in renderer; URP 2D
+lighting with the normal map has not been tested yet.
 
 ## 1. Install the package
 

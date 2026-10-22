@@ -55,7 +55,7 @@ public static class KilnChecks
         k.Play("attack");
         log.Add("after-play");
         float total = sheet.FindClip("attack", "s", out _).durations.Sum();
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 100; i++)
             k.Tick(total / 1000f / 100f);
         k.Tick(0.05f);
         R["events"] = log.ToArray();
@@ -82,6 +82,38 @@ public static class KilnChecks
         var side = AssetDatabase.LoadAssetAtPath<KilnSheet>("Assets/SpriteKiln/minimal_side/minimal_side.kiln");
         R["side"] = side.directions.Select(d => d.name).ToArray();
         R["side_view"] = side.view;
+
+        // 5. a picture of idle frame 0 facing s, e, n and w (w is e flipped), one 32 px cell each
+        if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null)
+            return;
+        go.SetActive(false);
+        string[] dirs = { "s", "e", "n", "w" };
+        for (int i = 0; i < dirs.Length; i++)
+        {
+            var o = new GameObject("shot_" + dirs[i], typeof(SpriteRenderer));
+            o.transform.position = new Vector3(i - 1.5f, 0, 0);
+            var a = o.AddComponent<KilnAnimator>();
+            a.sheet = sheet;
+            a.SetFacing(dirs[i]);
+            a.Play("idle");
+        }
+        float top = sheet.pivot.y / sheet.pixelsPerUnit;            // the cells span [-(32 - top), top] around y = 0
+        var cam = new GameObject("cam").AddComponent<Camera>();
+        cam.orthographic = true;
+        cam.orthographicSize = 0.5f;
+        cam.transform.position = new Vector3(0, top - 0.5f, -10);
+        cam.clearFlags = CameraClearFlags.SolidColor;
+        cam.backgroundColor = new Color(0, 0, 0, 0);
+        var rt = new RenderTexture(128, 32, 24, RenderTextureFormat.ARGB32);
+        cam.targetTexture = rt;
+        cam.aspect = 4;
+        cam.Render();
+        RenderTexture.active = rt;
+        var shot = new Texture2D(128, 32, TextureFormat.RGBA32, false);
+        shot.ReadPixels(new Rect(0, 0, 128, 32), 0, 0);
+        shot.Apply();
+        RenderTexture.active = null;
+        File.WriteAllBytes("kiln_shot.png", shot.EncodeToPNG());
     }
 
     static string ToJson(object o)

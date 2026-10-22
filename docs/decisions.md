@@ -162,3 +162,27 @@ sockets, timing, review, export, MCP) is shared; the JSON says which view produc
 default with `init --view`; a game should keep one view. Mirroring one profile in the engine is left as an
 opt-in export option for Phase 4, because the fixed world light makes a flipped sprite lit from the wrong
 side.
+
+## ADR-023: Engine runtimes share one API and the Kiln prefix (2026-10-21)
+Godot (`KilnSprite2D`), Unity (`KilnAnimator`) and MonoGame (`KilnAnimator`) expose the same behaviour,
+pinned by tests in each engine: clips named `<anim>_<dir>`, exact per-frame durations, frame-0 events inside
+the call that starts a clip (and once), events of later frames when they become visible, a finish event
+for clips that do not loop, the direction nearest to a vector, sockets for the current frame, mirrored
+directions drawn flipped around the pivot with socket `x` negated, and the emissive layer drawn over the
+sprite unaffected by the scene's light. Listeners receive the name of the clip that fired even when an
+earlier listener started another one. The old Godot addon (`PxSprite2D`, `addons/pxforge`) stays as it is
+for Hunt Tower until Phase 6; the old MonoGame file (`PxSprite.cs`) had no users and was replaced.
+
+## ADR-024: Unity reads renders as .kiln files (2026-10-21)
+Unity imports every `.json` as a TextAsset and a ScriptedImporter cannot take the extension over without
+the user picking it per file, so `spritekiln export --engine unity` writes the same JSON as `<name>.kiln`.
+The importer reads the PNGs itself (point filter, no compression) and makes everything a sub-asset of the
+`.kiln`: the `KilnSheet`, the sprites (normal map as the `_NormalMap` secondary texture for URP 2D lights)
+and optional AnimationClips for Animator users. The package is installed by git URL, so its `.meta` files
+are versioned.
+
+## ADR-025: `mirror: true` is opt-in (2026-10-21)
+A spec can render only the right-facing half of its directions and let the engine flip the rest: about 40%
+less atlas and render time. The JSON lists the flipped directions in `mirrors`, and `direction_yaw` keeps
+all of them so direction picking does not change. It stays opt-in because SpriteKiln's light is fixed in
+the world: a flipped sprite is lit from the other side, and asymmetric designs swap hands.

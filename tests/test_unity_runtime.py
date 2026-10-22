@@ -7,7 +7,9 @@ import os
 import shutil
 import subprocess
 
+import numpy as np
 import pytest
+from PIL import Image
 
 from spritekiln import api
 
@@ -81,7 +83,7 @@ def test_package_in_unity(tmp_path):
         [
             UNITY,
             '-batchmode',
-            '-nographics',
+            *(['-force-d3d11'] if os.name == 'nt' else []),  # a GPU for the picture; batch mode defaults to none
             '-projectPath',
             str(game),
             '-executeMethod',
@@ -107,13 +109,19 @@ def test_package_in_unity(tmp_path):
     assert px == pytest.approx(ex) and py == pytest.approx(ey)
     assert r['ppu'] == 32 and r['secondary'] == 1 and r['filter'] == 'Point'
     assert r['clip_events'][0].endswith(':windup') and r['clip_loop'] == [False, True] and r['clip_w_flip'] == 1
-    # frame 0's event fires inside Play, once; later events in order; then the clip ends and idle starts
     ev = r['events']
-    assert ev[:2] == ['attack:windup', 'after-play'] and ev.count('attack:windup') == 1
-    assert ev[-1] == 'finished:attack' and r['after'] == ['idle', 'True']
+    # frame 0's event fires inside the call, once; the finish handler starts idle, whose frame 0 has step_l
+    assert ev == ['attack:windup', 'after-play', 'attack:hit', 'finished:attack', 'idle:step_l']
+    assert r['after'] == ['idle', 'True']
     flipped, flip_x, same_sprite, both, west_x, minus_east_x, dy, ddepth = r['mirror']
     assert flipped and flip_x and same_sprite and both
     assert west_x == pytest.approx(minus_east_x) and dy == pytest.approx(0) and ddepth == pytest.approx(0)
     assert r['face'] == ['w', 'n', 's', 'e']
     assert r['emissive_child']
     assert r['side'] == ['e', 'w'] and r['side_view'] == 'side'
+    shot = game / 'kiln_shot.png'
+    if shot.exists():  # the editor had a GPU: mirrored w is exactly e flipped around the pivot
+        img = np.asarray(Image.open(shot).convert('RGBA'))
+        cells = [img[:, 32 * i : 32 * i + 32] for i in range(4)]
+        assert all(c[..., 3].any() for c in cells)
+        assert np.array_equal(cells[3], cells[1][:, ::-1])

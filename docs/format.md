@@ -58,7 +58,7 @@ For direction yaw *y*, the facing vector on screen is `(sin y, cos y)` with x to
 `s` faces the viewer (down), `e` faces right, `n` faces away (up). To pick a direction from a velocity
 `v` in screen space, take `atan2(v.x, v.y)` and choose the exported direction with the nearest yaw.
 Mirrored directions (`mirrors`) take part in this choice like the others. `KilnSprite2D.face()` (Godot),
-`KilnAnimator.Face()` (Unity) and `PxAnimator.FaceTowards()` (MonoGame) do exactly this.
+`KilnAnimator.Face()` (Unity) and `KilnAnimator.FaceTowards()` (MonoGame) do exactly this.
 
 ### Camera
 The model is rendered with an orthographic top-down 3/4 camera:
@@ -107,7 +107,7 @@ with an automatic `_R` twin) and the exporter writes its position for every fram
 
 Runtimes: `KilnSprite2D.get_socket(name)` / `get_socket_depth(name)` / `has_socket(name)` in Godot (local
 coordinates of the node, whose origin is the pivot), `KilnAnimator.TryGetSocket(name, out local, out depth)`
-in Unity (local units) and `PxAnimator.TryGetSocket(name, out offset, out depth)` in MonoGame. In a mirrored
+in Unity (local units) and `KilnAnimator.TryGetSocket(name, out offset, out depth)` in MonoGame (pixels). In a mirrored
 direction the runtimes negate `x`. Positions are exact to well under a pixel: on the Huntress, every muzzle socket is
 within 0.3 px of the centre of the muzzle-flash pixels in all 8 directions.
 
