@@ -1,4 +1,4 @@
-# Huntress palette (ref: D:\GameProjects\tower-hunt\refs\cacadora.png). Index 0 = outline/darkest.
+# Huntress palette (ref: specs/characters/huntress/splash.png). Index 0 = outline/darkest.
 # Used together with gothic.yaml (gold, blood, fx_*). Colors sampled from the splash and hand-tuned
 # (hue shift: cool/violet shadows, warm highlights).
 ramps:

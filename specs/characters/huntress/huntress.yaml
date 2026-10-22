@@ -10,7 +10,7 @@ shadow: {rx: 9, ry: 3.2, alpha: 120}
 brief:
   summary: aristocratic gothic monster huntress (Bloodborne + Victorian gunslinger); young, confident and provocative,
     slender, angular and asymmetric; two long-barreled pistols, rifle for the heavy attack, mine as the special
-  reference: "splash.png (copy of D:/GameProjects/tower-hunt/refs/cacadora.png, ~s view, low camera);
+  reference: "splash.png (Hunt Tower's splash art, ~s view, low camera);
     splash_alpha.png = cutout with transparent background and gaps (between the legs, arm/gun);
     splash_alpha_pitch38.png = same cutout with height × cos 38° (how the splash would look in the game camera)"
   proportions: "1.83 tall without the hat (2.02 with it; ~43 px tall on screen); hips at 1.01 (legs = 55% of the
@@ -514,7 +514,7 @@ sockets:                   # attachment points exported per frame and direction 
   foot_L: {bone: ankle_L}
 
 animations:
-  # Target timings (60 fps, attack speed x1) in D:\GameProjects\tower-hunt\docs\design\personagens.md
+  # Target timings (60 fps, attack speed x1) from Hunt Tower's character design document
   # (Huntress / required animations). Event = sum of the previous frames' durations (±1 f).
   # Runs match the game speed (0.040 u/px): the planted foot moves back 1 table step per frame.
   #   run:       0.364 u / 70 ms = 5.2 u/s = 130 px/s

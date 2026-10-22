@@ -14,8 +14,8 @@ same one every AI adapter gets) and **developing the toolkit** (below).
 - The AI instructions (this block, `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`,
   `.cursor/rules/`, `.claude/skills/`, `.claude/agents/`) are generated from `docs/agent/`: edit those files,
   then run `python -m spritekiln.agents` (CI runs it with `--check`).
-- Contracts and decisions: `docs/format.md` (output format), `docs/decisions.md` (ADRs), `docs/LAUNCH.md`
-  (the launch plan).
+- Contracts and decisions: `docs/format.md` (output format), `docs/decisions.md` (ADRs), `docs/ROADMAP.md`
+  (what comes next).
 - Everything in the repository is written in English; the only translations are the READMEs
   (`README.pt-BR.md`, `README.ko.md`, `README.ja.md`, `README.zh-CN.md`), which follow `README.md`.
 

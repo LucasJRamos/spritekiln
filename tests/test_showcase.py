@@ -114,7 +114,7 @@ if __name__ == '__main__':
     ],
 )
 def test_huntress_muzzle_sockets_match_the_flash(tmp_path, anim, index, socket, flash):
-    """LAUNCH.md Phase 2: the muzzle a game would measure (centre of the muzzle-flash pixels) is the socket +-1 px."""
+    """The muzzle a game would measure (centre of the muzzle-flash pixels) is the socket +-1 px."""
     from spritekiln import spec as S
     from spritekiln.anim import frames_of
     from spritekiln.pipeline import render_frame

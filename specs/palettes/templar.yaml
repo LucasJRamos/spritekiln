@@ -1,4 +1,4 @@
-# Templar palette (ref: D:\GameProjects\tower-hunt\refs\templario.png). Index 0 = outline/darkest.
+# Templar palette (ref: specs/characters/templar/splash.png). Index 0 = outline/darkest.
 # Used together with gothic.yaml (gold, blood, bone, fx_*).
 ramps:
   iron:   ["#0b0a0e", "#1d1c22", "#302f36", "#47454d", "#67646b", "#9a969a"]   # dark gray iron armor

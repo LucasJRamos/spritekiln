@@ -9,11 +9,10 @@ below is about making assets.
 - Use this folder's virtual environment: `.venv/Scripts/python.exe -m spritekiln ...` (Windows) or
   `.venv/bin/python -m spritekiln ...` (macOS, Linux) when the `spritekiln` command is not on the PATH.
 
-## Maintainer notes (Hunt Tower)
-The maintainer's game `D:/GameProjects/tower-hunt` runs this toolkit through its `tools/px.cmd` (this
-folder's `.venv`, `python -m pxforge`, `PXFORGE_GODOT_PROJECT`) and links the skill folders
-`.claude/skills/pxforge*` (generated alongside the `spritekiln*` ones). Keep those working until the game
-migrates (Phase 6 of `docs/LAUNCH.md`), and never edit the game from here.
+## Compatibility with pxforge
+SpriteKiln was called pxforge. Projects made with it run `python -m pxforge` (with `PXFORGE_GODOT_PROJECT`)
+and link the skill folders `.claude/skills/pxforge*`, generated alongside the `spritekiln*` ones: keep them
+working (see "Compatibility" in `CHANGELOG.md`).
 
 <!-- spritekiln:begin (generated from docs/agent by spritekiln; edit the sources, not this block) -->
 ## SpriteKiln assets

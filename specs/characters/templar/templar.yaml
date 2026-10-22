@@ -329,7 +329,7 @@ timing:                    # timing targets the game tests (validate and QA fail
   attack_heavy: {hit: 500ms, total: 1000ms}
 
 animations:
-  # Target timings (attack speed x1) in D:\GameProjects\tower-hunt\docs\design\personagens.md (required animations).
+  # Target timings (attack speed x1) from Hunt Tower's character design document (required animations).
   # The hammer is its own bone in the right hand: ham_pitch/ham_yaw rotate the haft (0 = down).
   idle:
     frames: 8

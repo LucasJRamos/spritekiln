@@ -74,7 +74,7 @@ def test_extract_respects_alpha():
 
 
 def test_extract_with_fewer_colours_than_k():
-    # regression (LAUNCH.md audit #20): k-means++ init used to divide by zero
+    # regression: k-means++ init used to divide by zero
     img = two_colour_image()
     img[30:, :, 3] = 0
     out = P.extract(img, k=2)
