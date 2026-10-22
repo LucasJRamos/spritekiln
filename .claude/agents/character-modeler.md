@@ -14,7 +14,7 @@ Recommended model: the strongest one available to you, with image input; this wo
 - Work only in the asked asset's spec. Iterate in small steps: edit → `validate` → `pose --dirs all` →
   **look at the PNG** → fix. Never call a model done without having seen the 8 directions.
 - With a splash art: `ref prep` once, `ref compare` after every proportion change (targets in
-  [splash-to-model.md](splash-to-model.md)).
+  [splash-to-model.md](../skills/spritekiln/splash-to-model.md)).
 - Keep the skeleton, channels and names the animations use. If you rename something, update the
   animations too and `validate`.
 - Do not change `camera.pitch`, `light` or shared palettes unless asked.

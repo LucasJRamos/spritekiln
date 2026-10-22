@@ -58,7 +58,8 @@ An event on frame *i* fires at the sum of the durations before it. Here: 80 + 11
 
 ## Timing targets
 
-Say your game design wants the hit at 350 ms. Write it in the spec:
+Say your game design wants the hit at 350 ms. Write it at the top level of the spec (for example before
+`animations:`):
 
 ```yaml
 timing: {attack: {hit: 350ms}}   # the game deals damage 350 ms after the attack starts
@@ -101,6 +102,8 @@ spritekiln render specs/characters/knight/knight.yaml --anims attack
 
 `pose` shows one frame in a second; `render --anims` re-renders only that animation (unchanged frames come
 from the cache). Then open `preview/contact_attack.png`: one row per direction, one column per frame.
+`render --anims` writes an atlas and JSON with only those clips, so run a full `render` (quick, from the
+cache) before you export.
 Check `n` and the diagonals: an attack that reads in `s` can vanish behind the body in `n`.
 
 QA flags what usually goes wrong: a gesture clipped at the frame's edge, a loop that jumps between its last

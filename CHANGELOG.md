@@ -13,7 +13,7 @@ First public release. SpriteKiln started as `pxforge`, the sprite toolkit of the
   per-direction cheats, smears, and timing targets checked by `validate` and QA.
 - Top-down 3/4 view in 8 directions, or a side view (`view: side`) with a platformer template
   (`side_humanoid`: run, jump, rise, fall, land, crouch, attack, hurt, death); `mirror: true` renders
-  half the directions for symmetric designs.
+  only the right-facing directions (5 of 8, or 1 of 2 in a side view) for symmetric designs.
 - Sockets: attachment points (muzzles, hands, impact points) exported per frame.
 - Output: atlas, normal map and emissive map, Aseprite-compatible JSON (output format 1), GIFs, contact
   sheets and `qa.json`.
@@ -33,7 +33,8 @@ First public release. SpriteKiln started as `pxforge`, the sprite toolkit of the
   plugin that builds SpriteFrames and scenes from render JSONs.
 - Unity 2022.3+ (tested on 6000.3): UPM package with a `.kiln` importer and `KilnAnimator`.
 - MonoGame 3.8: `KilnSprite.cs` runtime and the `KilnLit.fx` normal-mapped light shader.
-- Examples for Godot, Unity and MonoGame; a guide for Phaser, LÖVE, Defold and GameMaker.
+- Example projects for Godot and MonoGame, a package sample for Unity; a guide for Phaser, LÖVE, Defold
+  and GameMaker.
 
 ### Examples and docs
 - Example characters (CC0): a gargoyle, a hunter, Wren (side view), and props; the Huntress and the

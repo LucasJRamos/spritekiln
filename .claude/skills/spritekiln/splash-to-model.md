@@ -1,8 +1,8 @@
 # From a splash art to a model
 
 Goal: capture the character's **identity** (silhouette, proportions, striking shapes, palette), not the
-brush strokes. At 64 px only what is big and contrasted survives. Read [workflow.md](workflow.md),
-[modeling.md](modeling.md) and [spec.md](SPEC.md) first.
+brush strokes. At 64 px only what is big and contrasted survives. Read [workflow.md](SKILL.md),
+[modeling.md](SKILL.md) and [spec.md](SPEC.md) first.
 
 ## 1. Prepare the reference
 ```

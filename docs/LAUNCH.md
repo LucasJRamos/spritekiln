@@ -26,7 +26,7 @@ requirements.
   squashed before the first push.
 - **Rendered output** (`out/`, `.pxcache/`) never goes into git. Exception: curated images for the
   showcase and docs, copied to `docs/media/` or `showcase/` with controlled size.
-- **Language:** everything in the repository is English; `README.pt-BR.md` is the translation.
+- **Language:** everything in the repository is English; the READMEs have pt-BR, ko, ja and zh-CN translations.
 - **Visual claims** are only made after opening the PNGs. Iterate with `pose`; full `render` at the end.
 - **Regression:** every engine change runs the golden tests (and the gargoyle pose). An intentional
   visual change updates the goldens with the reason in the commit message.
@@ -331,7 +331,8 @@ Next, in the phases below (marked **[side]**):
       Wren running; what it is; why; 3-command quick start; pipeline diagram; features; engine and AI
       tables; showcase, learn more, licenses. On PyPI the relative links become GitHub URLs
       (hatch-fancy-pypi-readme).
-- [x] `README.pt-BR.md`.
+- [x] `README.pt-BR.md`; added 2026-10-22 at the maintainer's request: `README.ko.md`, `README.ja.md`,
+      `README.zh-CN.md`, with a language switcher at the top of every README (English stays the original).
 - [x] `showcase/`: Huntress and Templar (splash → sprite, turnarounds, animation GIFs, contact sheets, the
       silhouette comparison at IoU 0.69) and two Hunt Tower captures; `tools/make_showcase.py` rebuilds the
       composites. No Movie Maker clip (optional; running the game would touch its folder).
@@ -354,6 +355,19 @@ Next, in the phases below (marked **[side]**):
         environment `pypi`); push the tag `v0.1.0`; submit to the Godot Asset Library with
         `integrations/godot/assetlib/LISTING.md`; post the announcements (drafts in the local, unversioned
         `ANNOUNCE.md`).
+- Pre-launch review (2026-10-22): four reviewers (core pipeline and performance, CLI/API/exporters, engine
+  runtimes, docs) reproduced their findings; all confirmed bugs were fixed and pinned by
+  `tests/test_regressions.py` and the engine tests. Highlights: the render cache ignored the order of parts
+  (wrong materials after reordering), in-process renders kept an edited palette's old colours, Godot event
+  timing drifted with uneven durations (ADR-026), Unity UnityEvents got the wrong clip name, the Godot plugin
+  never built on import, `px export` without a project file wrote into this repository, exports used the
+  wrong engine's folder, several tracebacks instead of messages, broken links in the generated skills.
+  Performance, byte-identical output: `pose` from the CLI ~5x faster (warnings without building every pose,
+  bounding-sphere ray culling, early-out soft shadows, cheaper vector maths), renders ~26% less CPU,
+  `validate` checks one direction when no expression uses `yaw`/`dir`.
+- Left for later: the old `PxSprite2D` (`addons/pxforge`) keeps its known issues (timing drift, live `anim`
+  name, frame-0 replay, no `mirrors` support) until Hunt Tower migrates (Phase 6); normal-map encoding rounds
+  0 to 127 instead of 128 (fixing it changes the goldens); a parallel `pose --dirs all`.
 - Scope of v0.1: characters and props. Tiles and VFX are v0.2 (see `docs/ROADMAP.md`).
 
 ## Phase 6: Hunt Tower migration (only with the maintainer's OK, in a game-project session)

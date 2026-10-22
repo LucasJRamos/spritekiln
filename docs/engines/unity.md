@@ -17,7 +17,7 @@ https://github.com/LucasJRamos/spritekiln.git?path=/integrations/unity
 In the Unity project folder (the one with `Assets/`):
 
 ```
-pip install spritekiln
+pip install "spritekiln[mcp]"
 spritekiln init --engine unity --ai claude      # or codex, gemini, copilot, cursor
 ```
 
@@ -84,11 +84,14 @@ The package sample **Gargoyle demo** (Package Manager > SpriteKiln > Samples) is
 ## 5. Sorting, light and glow
 
 - Top-down games: set **Transparency Sort Mode** to Custom Axis (0, 1, 0) (Graphics settings, or the URP 2D
-  Renderer asset). Sprites are pivoted on the ground point, so they sort by where they stand.
+  Renderer asset). `KilnAnimator` sets the renderer's Sprite Sort Point to Pivot, the ground point, so
+  characters sort by where they stand; with an emissive layer it adds a Sorting Group so the glow sorts
+  with its sprite.
 - URP 2D lights: the sprites carry the normal map as `_NormalMap`; with `Sprite-Lit-Default` and a light set
   to use normal maps, they shade by the light's position.
-- Emissive parts are a child `Emissive` SpriteRenderer with an unlit material, so they glow in dark scenes.
-  Set **Emissive Material** for another look (additive, for example).
+- Emissive parts are a child `Emissive` SpriteRenderer drawn with an unlit material over the sprite (the
+  exact colours of the emissive map), so they glow in dark scenes. Set **Emissive Material** for another
+  look (additive, as the Godot and MonoGame runtimes draw it, for example).
 
 ## 6. With an Animator instead
 

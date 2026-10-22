@@ -4,13 +4,15 @@
 
 # SpriteKiln
 
+[English](README.md) | **Português (BR)** | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
+
 **Sprites animados em pixel art a partir de modelos 3D procedurais, feitos para serem operados por IAs de
 programação.**
 
 Um personagem é um arquivo YAML pequeno: esqueleto, formas 3D suaves, materiais e animações. O SpriteKiln
 renderiza isso em pixel art em 8 direções (top-down 3/4) ou de perfil (visão lateral), com duração exata
 por frame, eventos de gameplay, pontos de encaixe, normal map para luz dinâmica e camada emissiva, pronto
-para Godot, Unity, MonoGame ou qualquer engine que leia folhas do Aseprite.
+para Godot, Unity, MonoGame ou qualquer engine que leia spritesheets do Aseprite.
 
 Você não precisa escrever o YAML. Seu assistente de programação (Claude Code, Codex, Gemini, Copilot,
 Cursor) escreve, a partir de uma descrição ou de uma splash art: edita a spec, renderiza, **olha as
@@ -34,7 +36,7 @@ imagens** e corrige o que vê. Você dirige.
   em números para assistentes que não enxergam.
 - **Python puro.** numpy, Pillow e PyYAML; sem GPU, sem Blender.
 
-## Começo rápido
+## Início rápido
 
 ```
 pip install spritekiln
@@ -45,7 +47,7 @@ spritekiln render specs/characters/cavaleiro/cavaleiro.yaml   # atlas, JSON, map
 Depois passe para o seu assistente: *"Transforme este cavaleiro num goblin batedor encapuzado com uma
 espada curta. Confira as 8 direções antes de renderizar."* Veja
 [Use o SpriteKiln com a sua IA](docs/tutorials/use-with-your-ai.md) (em inglês) para preparar um projeto de
-jogo (`spritekiln init --engine godot --ai claude`).
+jogo (`pip install "spritekiln[mcp]"` e depois `spritekiln init --engine godot --ai claude`).
 
 ## Como funciona
 
@@ -68,7 +70,7 @@ gera um relatório de QA e folhas de contato para revisar.
 ## Assistentes de IA
 `spritekiln init --ai claude,codex,gemini,copilot,cursor` escreve as instruções de cada um a partir de uma
 fonte só ([`docs/agent/`](docs/agent)) e registra o servidor MCP (`spritekiln mcp`). A receita para um
-personagem novo a partir de splash art: um modelador constrói a forma, um diretor de arte revisa contra a
+personagem novo a partir de splash art: um modelador constrói a forma, um diretor de arte compara com a
 arte, o modelador corrige, um animador anima e o diretor revisa de novo ([recipe.md](docs/agent/recipe.md)).
 
 ## Showcase
@@ -84,7 +86,7 @@ A documentação completa está em inglês: [README](README.md), [primeiro perso
 
 ## Licença
 Código, documentação e integrações: [MIT](LICENSE). Assets de exemplo (a gárgula, o caçador, a Wren, os props
-caixotes, lampião a gás e boneco de treino, os templates, as paletas gothic e props, os sprites dos
+(caixotes, lampião a gás e boneco de treino), os templates, as paletas gothic e props, os sprites dos
 exemplos): [CC0 1.0](LICENSES/CC0-1.0.txt). Assets do showcase (Templário e Caçadora do Hunt Tower, com a
 mina da Caçadora: specs, splash arts, paletas, renders e capturas do jogo): © 2026 Lucas Ramos / PlayRPG,
 todos os direitos reservados, incluídos só para demonstração ([termos](LICENSES/LicenseRef-Showcase.txt)).

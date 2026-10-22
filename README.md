@@ -4,6 +4,8 @@
 
 # SpriteKiln
 
+**English** | [Português (BR)](README.pt-BR.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
+
 **Animated pixel-art sprites from procedural 3D models, made to be driven by coding AIs.**
 
 A character is a small YAML file: a skeleton, smooth 3D shapes, materials and animations. SpriteKiln renders
@@ -43,7 +45,7 @@ spritekiln render specs/characters/knight/knight.yaml   # atlas, JSON, maps, GIF
 
 Then hand it to your assistant: *"Turn this knight into a hooded goblin scout with a short sword. Check
 all 8 directions before rendering."* See [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)
-to set up a game project (`spritekiln init --engine godot --ai claude`).
+to set up a game project (`pip install "spritekiln[mcp]"`, then `spritekiln init --engine godot --ai claude`).
 
 ## How it works
 
@@ -64,8 +66,8 @@ render writes a QA report (clipping, palette, silhouette stability) and contact 
 - **Animation:** cycles from expressions or keyframes with per-frame timing, tweens and easing, smears,
   per-direction cheats, events, timing targets checked by `validate` (e.g. "impact at 300 ms").
 - **Views:** top-down 3/4 in 8 (or 4, or 1) directions, or a side view for platformers (`view: side`, with
-  a template that has run, jump, rise, fall and land); `mirror: true` renders half the directions for
-  symmetric designs.
+  a template that has run, jump, rise, fall and land); `mirror: true` renders only the right-facing
+  directions (the engine flips the rest) for symmetric designs.
 - **From a splash art:** `ref prep` cuts the character out and extracts its palette; `ref compare` scores
   the silhouette against the model (pitch-corrected IoU) and says what to change.
 - **Review:** `spritekiln review` measures value range, contrast, pixels per material and legibility, and
@@ -110,8 +112,10 @@ and in-game captures are in [`showcase/`](showcase).
 - [From your splash art, with an AI](docs/tutorials/splash-art.md)
 - [Animations and events](docs/tutorials/animations.md)
 - [A platformer character (side view)](docs/tutorials/platformer.md)
+- [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md) (instructions files and MCP tools)
 - [Spec reference](docs/agent/spec.md) · [Output format](docs/format.md) · [Roadmap](docs/ROADMAP.md)
-- [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Leia em português](README.pt-BR.md)
+- [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · Translations: [Português (BR)](README.pt-BR.md), [한국어](README.ko.md), [日本語](README.ja.md),
+  [简体中文](README.zh-CN.md)
 
 ## License
 Code, docs and integrations: [MIT](LICENSE). Example assets (the gargoyle, the hunter, Wren, the crates, gas lamp

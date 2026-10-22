@@ -35,6 +35,7 @@ final contact sheets.
 
 ## Cost control
 - Iterate with `pose` (about a second per direction); render whole animations only when the model is
-  approved, and only the animations that changed (`--anims`).
+  approved, and only the animations that changed (`--anims`). That render's atlas holds only those clips:
+  finish with a full `render` (fast, from the cache) before `export`.
 - On a machine with little free memory, `render` sizes the worker pool automatically; `--jobs 1` is
   always safe and the cache resumes interrupted renders.

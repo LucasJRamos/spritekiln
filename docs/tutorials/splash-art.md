@@ -15,7 +15,7 @@ numbers of `ref compare` and `review`, but check its results yourself.
 In your game folder, once:
 
 ```
-pip install spritekiln
+pip install "spritekiln[mcp]"
 spritekiln init --engine godot --ai claude      # your engine and assistant
 ```
 

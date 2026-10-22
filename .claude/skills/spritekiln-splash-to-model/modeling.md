@@ -12,8 +12,8 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
 - **Perspective:** things that stick out backwards or away rise on the screen. Check the diagonals: a thin
   piece seen edge-on becomes a stick; change its angle, or cheat per direction with `yaw`/`dir` in an
   expression.
-- **Margins:** keep ≥ 2 px free around every frame (QA warns). If a frame clips, increase `camera.scale`
-  (zoom out) for the whole asset, raise `size`, or reduce that gesture.
+- **Margins:** keep ≥ 2 px free around every frame (QA warns). If a frame clips, move `camera.center`,
+  raise `size`, or reduce that gesture; change `camera.scale` only for the whole game.
 - **Consistency:** never change one asset's camera `pitch`, `light` or density (`camera.scale`); the
   whole game shares them. A bigger creature gets a bigger `size`.
 
@@ -27,7 +27,7 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
 
 ## Procedure
 1. Start from a template (`spritekiln new <name>`) or the closest existing spec. Fill `brief:` first (see
-   [splash-to-model.md](splash-to-model.md)).
+   [splash-to-model.md](SKILL.md)).
 2. **Big masses first**: world scale (total height 1.6–2.0 for a human), pelvis height, IK lengths, then
    torso, head, hips and legs as ellipsoids and cones only.
 3. Add the striking shapes one at a time (`chain` horns, `membrane` capes and wings, `box`/`cylinder`
@@ -41,7 +41,7 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
 - Work only in the asked asset's spec. Iterate in small steps: edit → `validate` → `pose --dirs all` →
   **look at the PNG** → fix. Never call a model done without having seen the 8 directions.
 - With a splash art: `ref prep` once, `ref compare` after every proportion change (targets in
-  [splash-to-model.md](splash-to-model.md)).
+  [splash-to-model.md](SKILL.md)).
 - Keep the skeleton, channels and names the animations use. If you rename something, update the
   animations too and `validate`.
 - Do not change `camera.pitch`, `light` or shared palettes unless asked.

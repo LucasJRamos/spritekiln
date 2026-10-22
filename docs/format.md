@@ -57,11 +57,14 @@ Per animation and direction:
 For direction yaw *y*, the facing vector on screen is `(sin y, cos y)` with x to the right and y down:
 `s` faces the viewer (down), `e` faces right, `n` faces away (up). To pick a direction from a velocity
 `v` in screen space, take `atan2(v.x, v.y)` and choose the exported direction with the nearest yaw.
-Mirrored directions (`mirrors`) take part in this choice like the others. `KilnSprite2D.face()` (Godot),
-`KilnAnimator.Face()` (Unity) and `KilnAnimator.FaceTowards()` (MonoGame) do exactly this.
+Mirrored directions (`mirrors`) take part in this choice like the others. On a tie (within half a degree:
+straight up or down in a side view, an exact diagonal on a 4-direction sheet) keep the current direction.
+`KilnSprite2D.face()` (Godot) and `KilnAnimator.FaceTowards()` (MonoGame) take this screen vector;
+`KilnAnimator.Face()` (Unity) takes a world vector with y up, so it uses `atan2(v.x, -v.y)`.
 
 ### Camera
-The model is rendered with an orthographic top-down 3/4 camera:
+The model is rendered with an orthographic camera: top-down 3/4 (`pitch_deg` 38 by default) or, for
+`view: side`, a profile (`pitch_deg` 0, so `ground_k` is 0 and `height_k` is 1):
 
 | Field | Meaning |
 |---|---|
@@ -86,9 +89,12 @@ Durations are the source of truth; there is no fps in the file.
 - **An event listed on frame *i* fires at *Tᵢ*, when frame *i* becomes visible.** Events on frame 0
   fire when the clip starts; in a looping clip they fire again at the start of every loop.
 - A clip with `loop: false` ends at *Tₙ* = *d₀ + … + dₙ₋₁*; its last frame stays visible.
-- Engines should advance clips with accumulated time, not frame counts. At 60 fps, the event on frame
-  *i* belongs to tick ⌊*Tᵢ* · 60 / 1000⌋ counted from the tick that started the clip. The runtimes
-  emit frame-0 events inside the call that starts the clip (`play_anim()`, `Play()`), in the same tick.
+- Engines should advance clips with accumulated time, not frame counts: the event on frame *i* fires on
+  the first tick whose accumulated time reaches *Tᵢ* (at 60 fps, tick ⌈*Tᵢ* · 60 / 1000⌉ counted from the
+  tick that started the clip). The runtimes emit frame-0 events inside the call that starts the clip
+  (`play_anim()`, `Play()`), in the same tick, and keep their own clock for the rest.
+- A clip started from inside an event or finish handler starts at that moment: the rest of the current
+  tick does not carry over into it.
 - Common event names: `step_l`, `step_r`, `windup`, `hit`, `release`. They are free-form strings set in
   the spec.
 

@@ -1,7 +1,8 @@
 # SpriteKiln in Godot 4
 
 This guide takes a sprite from a spec to a moving character in a Godot 4 project. You need Godot 4.2 or
-newer (tested on 4.7) and, for the command-line route, `pip install spritekiln`. A finished project is in
+newer (tested on 4.7) and, for the command-line route, `pip install "spritekiln[mcp]"` (`[mcp]` adds the
+tools for AI assistants; plain `spritekiln` is enough without them). A finished project is in
 [`examples/godot`](../../examples/godot): a gargoyle that walks, attacks and lights up in 8 directions.
 
 ## 1. Set up the game project
@@ -12,8 +13,9 @@ In the folder that holds `project.godot`:
 spritekiln init --engine godot --ai claude      # or codex, gemini, copilot, cursor; several with commas
 ```
 
-This writes `spritekiln.toml` (specs in `art/specs/`, exports to `assets/spritekiln/`), the AI adapters and
-a `.gitignore` entry for renders and caches. Specs and renders stay outside `res://` imports until you export.
+This writes `spritekiln.toml` (specs in `art/specs/`, exports to `assets/spritekiln/`), the AI adapters, a
+`.gitignore` entry for renders and caches, and an empty `art/specs/.gdignore` so the Godot editor does not
+import the specs and their renders: only what you export lands in the game.
 
 ## 2. Make and export a sprite
 
@@ -49,7 +51,7 @@ Instance `knight.tscn` under your character. Its origin is the ground point unde
 ```gdscript
 extends CharacterBody2D
 
-@onready var sprite: KilnSprite2D = $Knight
+@onready var sprite: KilnSprite2D = $knight    # the instanced knight.tscn
 
 func _ready() -> void:
     sprite.anim_event.connect(_on_event)
@@ -68,7 +70,7 @@ func _physics_process(_delta: float) -> void:
 
 func _on_event(anim: StringName, event: StringName) -> void:
     if event == &"hit":
-        var tip := sprite.to_global(sprite.get_socket(&"strike"))
+        var tip := sprite.to_global(sprite.get_socket(&"strike"))   # a socket declared in the spec
         # spawn the hitbox or a spark at `tip`
 ```
 
@@ -87,28 +89,32 @@ Events and sockets are declared in the spec (`events:` and `sockets:`); see [the
 
 - For `PointLight2D`/`DirectionalLight2D` shading, export with `--lit` (or set the node's `sprite_frames` to
   `knight_lit.tres`): the frames use the normal map through a `CanvasTexture`.
-- Emissive parts (eyes, runes, lanterns) are a second sprite drawn with additive blending, so they keep
-  glowing in dark scenes. The scene wires `knight_emissive.tres` into `emissive_frames`.
+- Emissive parts (eyes, runes, lanterns) are a second sprite drawn additively and unshaded, so they keep
+  glowing under `CanvasModulate` and in dark scenes. The scene wires `knight_emissive.tres` into
+  `emissive_frames`.
 
 ## 5. Mirrored directions and side view
 
-- A top-down spec with `mirror: true` renders the eastern half only; the node plays west-facing
-  directions with `flip_h` and mirrors the sockets. Half the atlas, same API.
+- A top-down spec with `mirror: true` renders `s, se, e, ne, n` only; the node plays `sw, w, nw` as their
+  twins with `flip_h` and mirrors the sockets: about 40% less atlas, same API.
 - A side-view spec (`view: side`, or `spritekiln new hero --view side`) has the directions `e` and `w`;
-  `face()` picks one from the vector's x. With `mirror: true` only `e` is rendered.
+  `face()` picks one from the vector's x and keeps the current one for a vertical vector. With
+  `mirror: true` only `e` is rendered.
 
 ## 6. Without the command line
 
 The plugin builds the same resources from a render dropped into the project: copy `<name>.png`,
-`<name>.json` (and `_normal.png`, `_emissive.png`) anywhere under `res://`. When Godot imports the JSON the
-plugin writes the `.tres` files next to it (and the scene, when there is none yet); **Project > Tools > SpriteKiln: build sprites from
-render JSONs** rebuilds every render in the project. From a script, `KilnBuilder.build("res://...json")`
-does the same.
+`<name>.json` (and `_normal.png`, `_emissive.png`) anywhere under `res://`. When Godot imports the atlas,
+the plugin writes the `.tres` files next to the JSON (and the scene, when there is none yet); copying a new
+render over the old one rebuilds it. **Project > Tools > SpriteKiln: build sprites from render JSONs**
+rebuilds every render in the project. From a script, `KilnBuilder.build("res://...json")` does the same.
 
 ## Notes
 
 - Clip names are `<anim>_<dir>` with `speed = 1` and durations in seconds, so a plain `AnimatedSprite2D`
-  can play them too; `KilnSprite2D` adds directions, events, sockets and the emissive layer.
+  can play them too. `KilnSprite2D` keeps its own clock from the JSON's durations (so events land on the
+  same tick as in the Unity and MonoGame runtimes) and adds directions, events, sockets and the emissive
+  layer. `advance(seconds)` steps it by hand; `speed_scale` speeds it up or down.
 - Projects made with the older `pxforge` command keep the `PxSprite2D` addon (`addons/pxforge/`), which
   the `pxforge` command still exports to.
 - The JSON format is documented in [format.md](../format.md).

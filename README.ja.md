@@ -1,0 +1,88 @@
+<p align="center">
+  <img src="showcase/huntress/from_this_to_this.png" alt="ガンスリンガーのスプラッシュアートと8方向のピクセルアートスプライト" width="100%">
+</p>
+
+# SpriteKiln
+
+[English](README.md) | [Português (BR)](README.pt-BR.md) | [한국어](README.ko.md) | **日本語** | [简体中文](README.zh-CN.md)
+
+**プロシージャル3Dモデルから、アニメーション付きのピクセルアートスプライトを。コーディングAIが操作することを
+前提に設計されています。**
+
+キャラクターは小さなYAMLファイル1つです。骨格、なめらかな3D形状、マテリアル、アニメーションを記述します。
+SpriteKilnはそれを8方向（トップダウン3/4）または横向き（サイドビュー）のピクセルアートにレンダリングします。
+フレームごとの正確な表示時間、ゲームプレイ用イベント、アタッチポイント（ソケット）、動的ライティング用の
+ノーマルマップ、発光レイヤーを備え、Godot、Unity、MonoGame、またはAsepriteのスプライトシートを読めるあらゆる
+エンジンですぐに使えます。
+
+YAMLを自分で書く必要はありません。コーディングアシスタント（Claude Code、Codex、Gemini、Copilot、Cursor）が
+説明やスプラッシュアートからスペックを書き、レンダリングし、**画像を見て**、気づいた点を直します。あなたは方向性を
+示すだけです。
+
+<p align="center">
+  <img src="showcase/huntress/turnaround.gif" alt="8方向で待機するハントレス" height="220">
+  <img src="showcase/templar/turnaround.gif" alt="8方向で待機するテンプラー" height="220">
+  <img src="docs/images/tutorials/platformer-run.gif" alt="サイドビューのプラットフォーマーキャラクター、レンが左右両方向に走る様子" height="220">
+</p>
+
+## 特長
+- **構造的に一貫している。** すべてのアセットが、すべての方向とフレームで同じカメラ、ライト、パレットを共有します。
+- **変更が安い。** 「帽子を大きく」「攻撃の溜めを遅く」は300フレームの描き直しではなく、1行の修正です。
+- **そのままゲームに使える。** フレームごとの表示時間、正しいフレームに付いたイベント（`hit`、`step_l`、
+  `windup`）、ソケット（銃口、手、命中点）、Yソート用の接地ピボット、ノーマルマップと発光マップ。
+- **AIのための設計。** どのアシスタントにも使える1組の指示、画像を返すMCPサーバー、スペックのJSON Schema、
+  `ファイル:行:列` 形式のエラー、画像を見られないアシスタント向けの数値によるアートディレクションレビュー。
+- **純粋なPython。** numpy、Pillow、PyYAMLのみ。GPUもBlenderも不要です。
+
+## クイックスタート
+
+```
+pip install spritekiln
+spritekiln new knight                                   # テンプレートから specs/characters/knight/knight.yaml を作成
+spritekiln render specs/characters/knight/knight.yaml   # アトラス、JSON、マップ、GIF -> .../out/knight/
+```
+
+あとはアシスタントに任せましょう：*「この騎士を、短剣を持ったフード姿のゴブリン斥候に変えて。レンダリングの前に
+8方向すべてを確認して。」* ゲームプロジェクトの準備は [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)
+（英語）を参照してください（`pip install "spritekiln[mcp]"` のあと `spritekiln init --engine godot --ai claude`）。
+
+## しくみ
+
+```
+spec.yaml ──► 骨格 + IK ──► SDF形状 ──► レイマーチング描画 ──► ピクセル化 ──► アトラス + JSON
+```
+
+ライトはワールドに固定され、モデルが回転するため、すべての方向で陰影が一貫します。レンダリングのたびにQAレポートと
+確認用のコンタクトシートが出力されます。
+
+## エンジン
+
+| エンジン | 提供されるもの | ガイド |
+|---|---|---|
+| **Godot 4** | `KilnSprite2D` ノード、SpriteFrames、完成したシーン。レンダーJSONからそれらを作るエディタープラグイン | [godot.md](docs/engines/godot.md) · [サンプル](examples/godot) |
+| **Unity 2022.3+** | UPMパッケージ：`.kiln` インポーター（スプライト、ノーマルマップ、AnimationClip）と `KilnAnimator` | [unity.md](docs/engines/unity.md) |
+| **MonoGame** | `KilnSprite.cs` ランタイムとノーマルマップ対応ライトシェーダー `KilnLit.fx` | [monogame.md](docs/engines/monogame.md) · [サンプル](examples/monogame) |
+| **その他** | Aseprite互換JSON：Phaser、LÖVE、Defold、GameMaker… | [generic.md](docs/engines/generic.md) |
+
+## AIアシスタント
+`spritekiln init --ai claude,codex,gemini,copilot,cursor` は、ひとつの原本（[`docs/agent/`](docs/agent)）から各
+アシスタント用の指示を生成し、MCPサーバー（`spritekiln mcp`）を登録します。スプラッシュアートから新しい
+キャラクターを作るレシピ：モデラーが形を作り、アートディレクターが原画と比べ、モデラーが修正し、アニメーターが
+アニメーションを付け、ディレクターがもう一度レビューします（[recipe.md](docs/agent/recipe.md)）。
+
+## ショーケース
+テンプラーとハントレスは、ゲーム **Hunt Tower** のために、スプラッシュアートをもとに上のレシピに従ったClaude Codeが
+SpriteKilnで作りました。画像、アニメーション、ゲーム画面は [`showcase/`](showcase) にあります。
+
+## さらに詳しく
+ドキュメントはすべて英語です：[README](README.md)、[最初のキャラクター](docs/tutorials/first-character.md)、
+[スプラッシュアートから](docs/tutorials/splash-art.md)、[アニメーションとイベント](docs/tutorials/animations.md)、
+[プラットフォーマーキャラクター](docs/tutorials/platformer.md)、[スペックリファレンス](docs/agent/spec.md)、
+[出力フォーマット](docs/format.md)、[ロードマップ](docs/ROADMAP.md)、[コントリビュート](CONTRIBUTING.md)。
+
+## ライセンス
+コード、ドキュメント、各エンジン連携：[MIT](LICENSE)。サンプルアセット（ガーゴイル、ハンター、レン、小道具（木箱、
+ガス灯、訓練用人形）、テンプレート、gothic・propsパレット、サンプルのスプライト）：[CC0 1.0](LICENSES/CC0-1.0.txt)。
+ショーケースのアセット（Hunt Towerのテンプラーとハントレス、ハントレスの地雷：スペック、スプラッシュアート、パレット、
+レンダー、ゲーム画面）：© 2026 Lucas Ramos / PlayRPG、無断転載禁止、デモ目的でのみ収録
+（[条件](LICENSES/LicenseRef-Showcase.txt)）。

@@ -186,3 +186,13 @@ A spec can render only the right-facing half of its directions and let the engin
 less atlas and render time. The JSON lists the flipped directions in `mirrors`, and `direction_yaw` keeps
 all of them so direction picking does not change. It stays opt-in because SpriteKiln's light is fixed in
 the world: a flipped sprite is lit from the other side, and asymmetric designs swap hands.
+
+## ADR-026: Every runtime keeps its own clock (2026-10-22)
+The first `KilnSprite2D` let AnimatedSprite2D advance the frames. When consecutive frames have different
+durations, AnimatedSprite2D spends the rest of a tick on the new frame at the previous frame's speed, so
+events and the end of a clip drifted by up to three ticks (a 40/130/40/130 ms clip ended 50 ms early). Like
+the Unity and MonoGame runtimes, it now accumulates time from the JSON's durations and only uses
+AnimatedSprite2D to show the frame (playing at speed 0 so `is_playing()` still works). The three runtimes
+share the rules in `docs/format.md`: an event fires on the first tick whose accumulated time reaches its
+frame's start, a clip started from inside an event or finish handler starts fresh, and a direction tie
+keeps the current direction.

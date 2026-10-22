@@ -63,7 +63,7 @@ Open the comparison sheet (reference | sprite | silhouette overlay | 8 direction
 sheet. Then an art-direction pass ([art-direction.md](art-direction.md)); apply the high-priority fixes.
 
 ## 7. Animate
-With the model approved, follow [animation.md](animation.md). The personality of the splash (heavy, agile,
+With the model approved, follow [animation.md](SKILL.md). The personality of the splash (heavy, agile,
 arrogant) must show in the idle and in the timing of the attack.
 
 ## Pitfalls

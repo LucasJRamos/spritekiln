@@ -7,7 +7,7 @@ Unity and MonoGame have ready runtimes ([godot.md](godot.md), [unity.md](unity.m
 for the rest, this page shows what to read and how.
 
 ```
-spritekiln render specs/characters/knight/knight.yaml          # out/knight/: knight.png, knight.json, maps
+spritekiln render specs/characters/knight/knight.yaml          # specs/characters/knight/out/knight/: png, json, maps
 spritekiln export specs/characters/knight/knight.yaml --engine generic --to path/in/your/game
 ```
 

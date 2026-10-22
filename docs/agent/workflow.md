@@ -27,7 +27,8 @@ If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or t
 ## The loop (always)
 1. **Read** the spec and its `brief:`. No spec yet: `spritekiln new <name>` (the humanoid template, or
    `side_humanoid` with platformer clips for a side view), or start from a similar spec (the gargoyle in
-   this repository is a good base for creatures).
+   SpriteKiln's repository, `specs/characters/gargula/gargula.yaml` on
+   https://github.com/LucasJRamos/spritekiln, is a good base for creatures).
 2. **Edit** a little at a time: one part or one key. Edit the YAML as text, in place: its comments explain
    the model and the compact `{...}` style keeps it readable. Never regenerate a spec with a YAML dumper
    or a script.
@@ -45,7 +46,8 @@ Never call something visual "good" without having looked at the PNG (or read `re
 ## Outputs
 `out/<name>/` next to the spec: `<name>.png` (atlas: one row per animation × direction), `<name>.json`
 (Aseprite-compatible, plus the `spritekiln` block with directions, pivot, camera, durations, events and
-sockets; see `docs/format.md`), `<name>_normal.png`, `<name>_emissive.png`, `preview/<anim>_8dir.gif`,
+sockets; see the output format at https://github.com/LucasJRamos/spritekiln/blob/main/docs/format.md),
+`<name>_normal.png`, `<name>_emissive.png`, `preview/<anim>_<n>dir.gif` (`_8dir`, `_2dir` for a side view),
 `preview/contact_<anim>.png` and `qa.json`. Outputs are generated: never edit them by hand.
 
 ## Top-down or side-scroller

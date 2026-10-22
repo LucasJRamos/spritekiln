@@ -1,15 +1,18 @@
 # A platformer character
 
 Side-scrollers use the same models and workflow as top-down games; only the camera changes. This tutorial
-follows Wren, the example character in [`specs/characters/wren`](../../specs/characters/wren) (public
-domain), from the side template to a running, jumping sprite in Godot.
+goes from the side template to a running, jumping sprite in Godot, following Wren, the example character in
+this repository ([`specs/characters/wren`](../../specs/characters/wren), public domain). `new` gives you the
+template (a hunter with a sword); Wren is what it became.
 
 ![Wren running, both profiles](../images/tutorials/platformer-run.gif)
 
 ## 1. A side-view project
 
+In your Godot project folder (the one with `project.godot`):
+
 ```
-pip install spritekiln
+pip install "spritekiln[mcp]"
 spritekiln init --engine godot --view side --ai claude
 spritekiln new wren
 ```
@@ -37,8 +40,8 @@ it. That keeps the jump height, gravity and air control in your code, where they
 Edit the spec as in [Your first character](first-character.md), checking both profiles:
 
 ```
-spritekiln pose specs/characters/wren/wren.yaml --dirs e,w
-spritekiln pose specs/characters/wren/wren.yaml --anim run --frame 2 --dirs e,w
+spritekiln pose art/specs/characters/wren/wren.yaml
+spritekiln pose art/specs/characters/wren/wren.yaml --anim run --frame 2
 ```
 
 What changes in profile:
@@ -60,15 +63,17 @@ What changes in profile:
 ## 3. Render and export
 
 ```
-spritekiln render specs/characters/wren/wren.yaml
-spritekiln export specs/characters/wren/wren.yaml
+spritekiln render art/specs/characters/wren/wren.yaml
+spritekiln export art/specs/characters/wren/wren.yaml
 ```
 
-With `mirror: true` in the spec, only `e` is rendered and the engine flips it for `w`: half the atlas and
-render time, at the cost of the light coming from the other side and asymmetric details swapping sides.
+`export` writes `assets/spritekiln/wren/` with a ready `wren.tscn`. With `mirror: true` in the spec, only `e`
+is rendered and the engine flips it for `w`: half the atlas and render time, at the cost of the light coming
+from the other side and asymmetric details swapping sides.
 
 ## 4. Play it in Godot
 
+Instance `wren.tscn` under a `CharacterBody2D` (with a collision shape) and give the body this script.
 `KilnSprite2D` picks the profile from the sign of the horizontal velocity:
 
 ```gdscript
@@ -78,7 +83,7 @@ const SPEED := 90.0
 const JUMP := -260.0
 const GRAVITY := 700.0
 
-@onready var sprite: KilnSprite2D = $Wren
+@onready var sprite: KilnSprite2D = $wren      # the instanced wren.tscn
 var jumping := false
 
 func _ready() -> void:

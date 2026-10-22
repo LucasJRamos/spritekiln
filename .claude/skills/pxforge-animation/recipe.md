@@ -9,7 +9,7 @@ saved and the next step reads it.
 | 1 | modeler | brief, palette, blockout, striking shapes | [splash-to-model.md](splash-to-model.md), [modeling.md](modeling.md) | 8 directions look right; corrected IoU ≥ 0.65 |
 | 2 | art director (model round) | numbers + critique, ≤ 8 fixes | [art-direction.md](art-direction.md) | verdict written |
 | 3 | modeler | applies the high-priority fixes | the director's list | fixes visible in `pose` |
-| 4 | animator | animations, events, timing targets, sockets | [animation.md](animation.md) | QA clean on the clips |
+| 4 | animator | animations, events, timing targets, sockets | [animation.md](SKILL.md) | QA clean on the clips |
 | 5 | art director (animation round) | critique of the clips | contact sheets, GIFs, `review --anims` | verdict written |
 | 6 | animator | applies the fixes | the director's list | QA clean |
 | 7 | anyone | `render`, then `export` | | atlas, JSON and engine files in place |
@@ -35,6 +35,7 @@ final contact sheets.
 
 ## Cost control
 - Iterate with `pose` (about a second per direction); render whole animations only when the model is
-  approved, and only the animations that changed (`--anims`).
+  approved, and only the animations that changed (`--anims`). That render's atlas holds only those clips:
+  finish with a full `render` (fast, from the cache) before `export`.
 - On a machine with little free memory, `render` sizes the worker pool automatically; `--jobs 1` is
   always safe and the cache resumes interrupted renders.

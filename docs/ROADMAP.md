@@ -33,8 +33,9 @@ flickering with `noise`, a door opening).
 - Optional ordered dithering for translucent VFX only (smoke, fog).
 
 ## 4. Lighting
-- Done in v0.1: dynamic 2D light through the normal map in MonoGame (`integrations/monogame/KilnLit.fx`),
-  Godot (`CanvasTexture`) and Unity (`_NormalMap`).
+- Done in v0.1: dynamic 2D light through the normal map in MonoGame (`integrations/monogame/KilnLit.fx`)
+  and Godot (`CanvasTexture`); Unity gets the normal map as `_NormalMap` for URP 2D lights (not tested
+  yet with URP).
 - A "flat albedo" render (no baked light) for games lit entirely at run time.
 - Local lights in the spec (a character's own torch) through `light.points`.
 

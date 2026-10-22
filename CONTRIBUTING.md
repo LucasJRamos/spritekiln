@@ -1,7 +1,8 @@
 # Contributing to SpriteKiln
 
 Thanks for helping. Bug reports, sprites made with SpriteKiln, engine integrations and docs fixes are all
-welcome. Everything in the repository is written in English (`README.pt-BR.md` is the only translation).
+welcome. Everything in the repository is written in English; the READMEs in Portuguese, Korean, Japanese and
+Chinese are the only translations, and follow `README.md` when it changes.
 
 ## Set up
 
@@ -9,7 +10,8 @@ welcome. Everything in the repository is written in English (`README.pt-BR.md` i
 git clone https://github.com/LucasJRamos/spritekiln.git
 cd spritekiln
 python -m venv .venv
-.venv/bin/pip install -e ".[dev]"        # Windows: .venv\Scripts\pip install -e ".[dev]"
+source .venv/bin/activate                 # Windows: .venv\Scripts\activate
+pip install -e ".[dev]" "reuse[charset-normalizer]"
 pytest                                    # unit, CLI and golden-image tests, about two minutes
 ```
 
@@ -32,7 +34,7 @@ Python 3.10 or newer. The core is pure Python (numpy, Pillow, PyYAML).
 ## Engine integrations
 
 Each runtime (`integrations/godot`, `integrations/unity`, `integrations/monogame`) follows the same
-behaviour (ADR-023): exact per-frame durations, frame-0 events inside the call that starts a clip, sockets,
+behaviour ([ADR-023](docs/decisions.md)): exact per-frame durations, frame-0 events inside the call that starts a clip, sockets,
 mirrored directions. Their tests run inside the engine and are opt-in:
 
 | Engine | Enable with |

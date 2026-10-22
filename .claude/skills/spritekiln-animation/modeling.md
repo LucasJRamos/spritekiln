@@ -12,8 +12,8 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
 - **Perspective:** things that stick out backwards or away rise on the screen. Check the diagonals: a thin
   piece seen edge-on becomes a stick; change its angle, or cheat per direction with `yaw`/`dir` in an
   expression.
-- **Margins:** keep ≥ 2 px free around every frame (QA warns). If a frame clips, increase `camera.scale`
-  (zoom out) for the whole asset, raise `size`, or reduce that gesture.
+- **Margins:** keep ≥ 2 px free around every frame (QA warns). If a frame clips, move `camera.center`,
+  raise `size`, or reduce that gesture; change `camera.scale` only for the whole game.
 - **Consistency:** never change one asset's camera `pitch`, `light` or density (`camera.scale`); the
   whole game shares them. A bigger creature gets a bigger `size`.
 

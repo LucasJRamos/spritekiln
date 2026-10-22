@@ -2,8 +2,9 @@
 
 A character or prop is **one YAML file** (`<specs>/characters/<name>/<name>.yaml`). SpriteKiln reads the
 spec, builds a skeleton, generates SDF geometry (smooth primitives), renders it with a top-down 3/4 camera
-and turns the result into pixel art. Editors with the YAML extension autocomplete specs from the JSON
-Schema `spritekiln/data/spec.schema.json`.
+and turns the result into pixel art. Editors with a YAML language server (VS Code's YAML extension, for
+example) autocomplete and check specs from the JSON Schema when the spec carries the line the templates start
+with: `# yaml-language-server: $schema=https://raw.githubusercontent.com/LucasJRamos/spritekiln/main/spritekiln/data/spec.schema.json`.
 
 ```yaml
 spritekiln: 1            # spec format version (first line)
@@ -78,6 +79,11 @@ Fields: `ramp` (name or list of hex colours; default: the material's name), `emi
 uses `band`), `bands: [lo, hi]` (index range the light uses), `line` (takes part in inner lines),
 `line_band` (colour of inner lines, default 1), `outline` (outer outline), `two_sided`, `glow`, `gamma`
 (light → band curve, default 1.05).
+
+Ramps come from `palette:`: a file path relative to the spec, a name in the project's palettes folder
+(`<specs>/palettes/<name>.yaml` of `spritekiln.toml`), a built-in name (`gothic`), or a list of them (later
+ones win). A top-level `ramps:` mapping adds or overrides ramps for this spec alone:
+`ramps: {body: ["#1a1020", "#3b2a4a", "#5d4f6c", "#8a7a9a", "#c0b3cc"]}`.
 
 ## channels
 Animatable values with defaults, scalars or vectors. Everything an animation changes goes through a

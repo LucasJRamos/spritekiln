@@ -16,7 +16,8 @@ same one every AI adapter gets) and **developing the toolkit** (below).
   then run `python -m spritekiln.agents` (CI runs it with `--check`).
 - Contracts and decisions: `docs/format.md` (output format), `docs/decisions.md` (ADRs), `docs/LAUNCH.md`
   (the launch plan).
-- Everything in the repository is written in English; `README.pt-BR.md` is the only translation.
+- Everything in the repository is written in English; the only translations are the READMEs
+  (`README.pt-BR.md`, `README.ko.md`, `README.ja.md`, `README.zh-CN.md`), which follow `README.md`.
 
 <!-- spritekiln:begin (generated from docs/agent by spritekiln; edit the sources, not this block) -->
 ## SpriteKiln assets
