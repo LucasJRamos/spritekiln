@@ -8,10 +8,10 @@ camera: {pitch: 38, scale: 0.050, center: [0, 1.0, 0]}
 shadow: {rx: 13.5, ry: 4.5, alpha: 120}
 
 brief:
-  summary: Gárgula de pedra violácea, chefe da torre. Corcunda, cabeça grande com chifres de osso,
-    olhos em brasa, asas de morcego carmesim, cauda com ponta em pá.
-  must_keep: [chifres curvos para trás, olhos laranja brilhando, asas membranosas recortadas, garras de osso]
-  simplify: [sem rachaduras na pedra, dedos viram 3 garras]
+  summary: Violet-stone gargoyle, the tower boss. Hunched, big head with bone horns,
+    ember eyes, crimson bat wings, spade-tipped tail.
+  must_keep: [backward-curving horns, glowing orange eyes, scalloped membrane wings, bone claws]
+  simplify: [no cracks in the stone, fingers become 3 claws]
 
 materials:
   stone: {ramp: stone}
@@ -24,7 +24,7 @@ materials:
   fx_core: {ramp: fx_core, emissive: true}
 
 # ---------------------------------------------------------------- channels
-# Canais *_R usam a mesma convenção do *_L (x positivo = para fora do corpo).
+# *_R channels use the same convention as *_L (positive x = away from the body).
 channels:
   root: [0, 0, 0]
   bob: 0

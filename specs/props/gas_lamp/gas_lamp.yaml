@@ -8,8 +8,8 @@ camera: {pitch: 38, scale: 0.040, center: [0, 1.30, 0]}
 shadow: {rx: 7, ry: 2.5, alpha: 110}
 
 brief:
-  summary: poste de lampião a gás vitoriano de ferro fundido, lanterna de vidro com chama
-  must_keep: [poste fino e alto, base ornamentada, lanterna com chama emissiva, chapéu pontudo]
+  summary: Victorian cast-iron gas lamp post, glass lantern with a flame
+  must_keep: [tall thin post, ornate base, lantern with an emissive flame, pointed cap]
 
 materials:
   iron:  {ramp: wiron}
@@ -17,7 +17,7 @@ materials:
   core:  {ramp: flame, emissive: true, band: 4, outline: false}
 
 channels:
-  flick: 1         # tamanho da chama
+  flick: 1         # flame size
 
 bones: {}
 
@@ -58,7 +58,7 @@ parts:
       - ellipsoid: {c: [0, 2.25, 0.05], r: "[0.04*flick, 0.08*flick, 0.04*flick]"}
 
 animations:
-  idle:            # chama tremulando (ruído suave, ciclo fechado)
+  idle:            # flickering flame (soft noise, seamless loop)
     frames: 4
     ms: 140
     channels:

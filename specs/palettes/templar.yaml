@@ -1,7 +1,7 @@
-# Paleta do Templário (ref: D:\GameProjects\tower-hunt\refs\templario.png). Índice 0 = contorno/mais escuro.
-# Usada junto com gothic.yaml (gold, blood, bone, fx_*).
+# Templar palette (ref: D:\GameProjects\tower-hunt\refs\templario.png). Index 0 = outline/darkest.
+# Used together with gothic.yaml (gold, blood, bone, fx_*).
 ramps:
-  iron:   ["#0b0a0e", "#1d1c22", "#302f36", "#47454d", "#67646b", "#9a969a"]   # armadura de ferro cinza-escuro
-  linen:  ["#16110e", "#4a3e36", "#7f7163", "#b0a491", "#d8cfbd", "#f1ece0"]   # manto/tabardo branco envelhecido
-  crossk: ["#09080a", "#141217", "#221f26"]                                    # cruz preta do peito
-  holy:   ["#5a2a06", "#c46e0c", "#f5b23a", "#ffe08a", "#fff8dc"]              # magia sagrada dourada (emissivo)
+  iron:   ["#0b0a0e", "#1d1c22", "#302f36", "#47454d", "#67646b", "#9a969a"]   # dark gray iron armor
+  linen:  ["#16110e", "#4a3e36", "#7f7163", "#b0a491", "#d8cfbd", "#f1ece0"]   # aged white cloak/tabard
+  crossk: ["#09080a", "#141217", "#221f26"]                                    # black chest cross
+  holy:   ["#5a2a06", "#c46e0c", "#f5b23a", "#ffe08a", "#fff8dc"]              # golden holy magic (emissive)

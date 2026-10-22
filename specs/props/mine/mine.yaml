@@ -1,28 +1,29 @@
 pxforge: 1
 name: mine
 kind: prop
-size: 32                 # disco de ~11 px + brilho: 32 px sobra margem (densidade 0,040 como o resto)
-directions: 1            # disco simétrico visto de cima: 1 direção basta
+size: 32                 # ~11 px disc + glow: 32 px leaves spare margin (density 0.040 like the rest)
+directions: 1            # symmetric disc seen from above: 1 direction is enough
 palette: [../../palettes/gothic.yaml, ../../palettes/huntress.yaml]
 camera: {pitch: 38, scale: 0.040, center: [0, 0.05, 0]}
 shadow: {rx: 6, ry: 2.2, alpha: 110}
 
 brief:
-  summary: mina da Caçadora (especial); disco metálico baixo de aço escurecido com aro dourado e uma luz no centro
-    que indica o estado (apagada / âmbar = desarmada / vermelha = armada)
-  reference: sem arte do usuário; mesmo acabamento das armas dela (aço escurecido + dourado)
-  proportions: "diâmetro 0,38 (≈10-11 px no chão com contorno), altura 0,12; a luz é a forma mais clara e fica no topo"
-  must_keep: [disco escuro legível no chão escuro (contorno + aro dourado), luz central emissiva bem visível,
-    estado lido só pela cor da luz]
-  simplify: [rebites e mecanismo/gatilho somem; o aro dourado é o único detalhe]
+  summary: the Huntress's mine (special); low disc of blackened steel with a gold rim and a light in the center
+    that shows the state (off / amber = unarmed / red = armed)
+  reference: no user art; same finish as her guns (blackened steel + gold)
+  proportions: "diameter 0.38 (≈10-11 px on the ground with outline), height 0.12; the light is the brightest
+    shape and sits on top"
+  must_keep: [dark disc readable on the dark floor (outline + gold rim), clearly visible emissive center light,
+    state read from the light color alone]
+  simplify: [rivets and mechanism/trigger are dropped; the gold rim is the only detail]
   decisions:
-    - "proposta de arte (a splash não mostra a mina): disco com cúpula, aro dourado largo no topo e lente central"
-    - "canal light: 0 = apagada (lente vinho-escura), 1 = âmbar (desarmada), 2 = vermelha (armada); flare escala a luz
-      para o piscar (o animator faz o ciclo)"
-    - "a mesma mina aparece na mão esquerda da Caçadora (huntress.yaml, canal mine_L) com a luz âmbar"
-    - "revisão do pixel-art-director: ouro bands [1,4], luz r 0.06, núcleo r 0.035. O núcleo foi deslocado para a câmera
-      (c [0, 0.127, 0.028]) porque dentro da esfera da luz ele não aparecia; assim a luz acesa é o pixel mais claro e a cor
-      do estado ainda domina (4 px de cor + 2 px quentes)"
+    - "art proposal (the splash does not show the mine): domed disc, wide gold rim on top and a center lens"
+    - "light channel: 0 = off (dark wine lens), 1 = amber (unarmed), 2 = red (armed); flare scales the light
+      for the blink (the animator makes the cycle)"
+    - "the same mine appears in the Huntress's left hand (huntress.yaml, channel mine_L) with the amber light"
+    - "pixel-art-director review: gold bands [1,4], light r 0.06, core r 0.035. The core was moved toward the camera
+      (c [0, 0.127, 0.028]) because it did not show inside the light sphere; this way the lit light is the brightest
+      pixel and the state color still dominates (4 px of color + 2 warm px)"
 
 materials:
   metal:      {ramp: gunmetal, bands: [1, 4]}
@@ -34,8 +35,8 @@ materials:
   red_core:   {ramp: mine_red, emissive: true, band: 4, outline: false}
 
 channels:
-  light: 1         # 0 = apagada | 1 = âmbar (desarmada) | 2 = vermelha (armada)
-  flare: 1         # tamanho da luz (piscar)
+  light: 1         # 0 = off | 1 = amber (unarmed) | 2 = red (armed)
+  flare: 1         # light size (blink)
 
 bones: {}
 
@@ -65,7 +66,7 @@ parts:
     when: "light >= 0.5 and light < 1.5"
     material: amber_core
     prims:
-      - sphere: {c: "[0, 0.105 + 0.022*flare, 0.028*flare]", r: "0.035*flare"}   # deslocado para a câmera: fura a esfera da luz (~1 px quente)
+      - sphere: {c: "[0, 0.105 + 0.022*flare, 0.028*flare]", r: "0.035*flare"}   # moved toward camera: pierces the light sphere (~1 warm px)
   light_red:
     when: "light >= 1.5"
     material: red
@@ -75,23 +76,23 @@ parts:
     when: "light >= 1.5"
     material: red_core
     prims:
-      - sphere: {c: "[0, 0.105 + 0.022*flare, 0.028*flare]", r: "0.035*flare"}   # deslocado para a câmera: fura a esfera da luz (~1 px quente)
+      - sphere: {c: "[0, 0.105 + 0.022*flare, 0.028*flare]", r: "0.035*flare"}   # moved toward camera: pierces the light sphere (~1 warm px)
 
 animations:
-  # Estados da mina no jogo (MineDef: arma em 0,4 s). light: 0 apagada | 1 âmbar | 2 vermelha; flare = tamanho da luz.
-  arming:                  # desarmada (0,4 s no jogo): âmbar piscando rápido, ciclo de 200 ms
+  # Mine states in the game (MineDef: arms in 0.4 s). light: 0 off | 1 amber | 2 red; flare = light size.
+  arming:                  # unarmed (0.4 s in game): fast amber blink, 200 ms cycle
     frames: 4
     ms: 50
     channels:
       light: "[1, 1, 1, 0][f]"
       flare: "[1.25, 1.0, 0.75, 1.0][f]"
-  armed:                   # armada: vermelha, pulso mais lento com flare (acende forte e decai), ciclo de 500 ms
+  armed:                   # armed: red, slower pulse with flare (flashes bright and fades), 500 ms cycle
     frames: 4
     ms: 125
     channels:
       light: 2
       flare: "[0.6, 1.45, 1.1, 0.8][f]"
-  off:                     # apagada (lente vinho-escura), estática
+  off:                     # off (dark wine lens), static
     loop: false
     keys:
       - {ms: 200, set: {light: 0}}

@@ -8,8 +8,8 @@ camera: {pitch: 38, scale: 0.040, center: [0, 0.75, 0]}
 shadow: {rx: 10, ry: 3.5, alpha: 110}
 
 brief:
-  summary: boneco de treino de estopa num poste de madeira, com alvo vermelho pintado no peito
-  must_keep: [poste e base em cruz, saco de estopa amarrado, braço transversal, alvo vermelho]
+  summary: burlap training dummy on a wooden post, with a red target painted on the chest
+  must_keep: [post and cross-shaped base, tied burlap sack, crossbar arm, red target]
 
 materials:
   wood:   {ramp: wood}
@@ -18,7 +18,7 @@ materials:
   paint:  {ramp: blood, bands: [2, 4], line: false}
 
 channels:
-  tilt: 0          # inclinação para trás (impacto)
+  tilt: 0          # backward tilt (impact)
   roll: 0
   squash: 1
 
@@ -81,7 +81,7 @@ animations:
     frames: 1
     ms: 500
     channels: {}
-  hit:             # empurrado para trás e volta balançando
+  hit:             # knocked back, then sways back
     loop: false
     keys:
       - {ms: 50, set: {tilt: -0.30, squash: 0.94}}

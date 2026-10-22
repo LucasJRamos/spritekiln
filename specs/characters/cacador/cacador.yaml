@@ -7,11 +7,11 @@ palette: ../../palettes/gothic.yaml
 camera: {pitch: 38, scale: 0.040, center: [0, 0.95, 0]}
 shadow: {rx: 10, ry: 3.5, alpha: 120}
 
-# Template humanoide (proporção chibi leve: cabeça 1.25x). Copie com `pxforge new NOME`.
-# Para um personagem vindo de splash art: preencha brief:, troque materiais/paleta e
-# reesculpa as partes; mantenha o esqueleto se a anatomia for humana.
+# Humanoid template (light chibi proportions: head 1.25x). Copy with `spritekiln new NAME`.
+# For a character from splash art: fill in brief:, swap materials/palette and
+# resculpt the parts; keep the skeleton if the anatomy is human.
 brief:
-  summary: humanoide genérico de teste (caçador com espada)
+  summary: generic test humanoid (hunter with a sword)
   must_keep: []
   simplify: []
 
@@ -38,7 +38,7 @@ channels:
   hand_L: [0.33, 0.06, 0.06]
   foot_L: [0.13, 0, 0.02]
   pitch_foot_L: 0
-  coat: 0           # balanço da barra do casaco (-1..1)
+  coat: 0           # coat hem sway (-1..1)
   smear_w: 0
   smear_a0: 0
   smear_a1: 0
@@ -76,14 +76,14 @@ parts:
       - ellipsoid: {c: [0, 0.04, 0], r: [0.19, 0.13, 0.14]}
       - ellipsoid: {c: [0, 0.25, 0.0], r: [0.18, 0.16, 0.13]}
       - ellipsoid: {c: [0, 0.45, 0.0], r: [0.25, 0.16, 0.15]}
-  coat:            # barra do casaco: cone aberto do quadril para baixo
+  coat:            # coat hem: open cone from the hip down
     material: cloth
     space: coatbase
     blend: 0.03
     prims:
       - cone: {a: [0, 0.05, -0.01], b: [0, -0.32, -0.04], r: [0.20, 0.25]}
     cut:
-      - cone: {a: [0, -0.10, 0.20], b: [0, -0.45, 0.30], r: [0.06, 0.16]}   # abertura frontal
+      - cone: {a: [0, -0.10, 0.20], b: [0, -0.45, 0.30], r: [0.06, 0.16]}   # front opening
   belt:
     material: leather
     space: pelvis
@@ -109,7 +109,7 @@ parts:
     prims:
       - ellipsoid: {c: [0, 0.225, -0.03], r: [0.162, 0.10, 0.160]}
       - ellipsoid: {c: [0, 0.14, -0.09], r: [0.152, 0.12, 0.09]}
-      - ellipsoid: {c: [0, 0.24, 0.09], r: [0.13, 0.05, 0.07]}     # franja
+      - ellipsoid: {c: [0, 0.24, 0.09], r: [0.13, 0.05, 0.07]}     # bangs
   eye_L:
     material: ink
     space: head
@@ -140,11 +140,11 @@ parts:
     prims:
       - cone: {a: [0, 0.10, 0], b: [0, -0.02, 0.0], r: [0.065, 0.065]}
       - ellipsoid: {c: [0, -0.04, 0.05], r: [0.065, 0.045, 0.11]}
-  sword:           # só na mão direita (sem _L => não espelha)
+  sword:           # right hand only (no _L => not mirrored)
     material: steel
     space: wrist_R
     prims:
-      - box: {c: [0, 0.26, 0.19], half: [0.022, 0.24, 0.007], rot: [0.52, 0, 0]}   # lâmina inclinada
+      - box: {c: [0, 0.26, 0.19], half: [0.022, 0.24, 0.007], rot: [0.52, 0, 0]}   # tilted blade
       - box: {c: [0, 0.048, 0.068], half: [0.065, 0.013, 0.02], rot: [0.52, 0, 0]}
   grip:
     material: leather

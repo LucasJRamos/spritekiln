@@ -1,5 +1,5 @@
-# Paleta gótica da Torre dos Caçadores. Índice 0 = contorno/mais escuro.
-# Hue shift: sombras puxam para violeta/azul frio, luzes para tons quentes.
+# Gothic palette of Hunt Tower. Index 0 = outline/darkest.
+# Hue shift: shadows lean toward cool violet/blue, highlights toward warm tones.
 ramps:
   stone: ["#0f0b17", "#2a2038", "#41344f", "#5d4f6c", "#82748e", "#b2a5b4"]
   wing:  ["#14060e", "#2e0a1b", "#4c1226", "#6e1c31", "#92303f"]

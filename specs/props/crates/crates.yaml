@@ -8,7 +8,7 @@ camera: {pitch: 38, scale: 0.040, center: [0, 0.55, 0]}
 shadow: {rx: 14, ry: 5, alpha: 110}
 
 brief:
-  summary: pilha de dois caixotes de madeira com reforços de ferro (cobertura e escala na zona de treino)
+  summary: stack of two wooden crates with iron bands (cover and scale reference in the training area)
 
 materials:
   wood:  {ramp: wood}

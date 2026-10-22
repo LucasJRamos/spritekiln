@@ -1,38 +1,38 @@
 pxforge: 1
 name: templar
 kind: character
-size: 96                 # quadro maior: o Templário é gigante e ergue o martelo acima da cabeça
+size: 96                 # larger frame: the Templar is huge and raises the hammer above his head
 directions: 8
 palette: [../../palettes/gothic.yaml, ../../palettes/templar.yaml]
-camera: {pitch: 38, scale: 0.040, center: [0, 1.10, 0]}   # mesma densidade dos humanoides (0.040)
+camera: {pitch: 38, scale: 0.040, center: [0, 1.10, 0]}   # same density as the humanoids (0.040)
 shadow: {rx: 15, ry: 5, alpha: 120}
 
 brief:
-  summary: cavaleiro sagrado gigantesco e robusto; autoridade, brutalidade e fanatismo religioso
-  reference: splash.png / splash_alpha.png (vista ~se, câmera baixa)
-  proportions: "≈2,4 de altura (humano ≈1,75); ombros 2,2× o quadril com ombreiras enormes; elmo pequeno
-    para o corpo (vende o tamanho); pernas longas e grossas"
+  summary: huge, sturdy holy knight; authority, brutality and religious fanaticism
+  reference: splash.png / splash_alpha.png (~se view, low camera)
+  proportions: "≈2.4 tall (human ≈1.75); shoulders 2.2× the hips with huge pauldrons; helm small
+    for the body (sells the size); long, thick legs"
   must_keep:
-    - elmo retangular (balde) escuro com faixas douradas em cruz, sob capuz branco
-    - manto branco envelhecido com capuz + tabardo com grande cruz preta no peito
-    - armadura de ferro cinza-escuro com ombreiras enormes e manoplas grandes
-    - martelo de guerra colossal na mão direita (cabeça em bloco com faixas douradas)
-    - luz sagrada dourada (emissiva) na mão esquerda
+    - dark rectangular (bucket) helm with gold bands in a cross, under a white hood
+    - aged white hooded cloak + tabard with a large black cross on the chest
+    - dark gray iron armor with huge pauldrons and large gauntlets
+    - colossal war hammer in the right hand (block head with gold bands)
+    - golden holy light (emissive) in the left hand
   simplify:
-    - cota de malha, rebites, corda, medalhões e pingentes somem
-    - rasgos do manto viram 3-4 entalhes na barra
-    - forro vermelho do manto vira uma faixa na abertura
-    - raios da magia viram brilho + núcleo (a luz real vem do PointLight2D na Godot)
-  palette_notes: [ferro neutro escuro, linho creme, cruz quase preta, ouro (gothic), forro sangue (gothic), couro (bone), sagrado emissivo]
+    - chain mail, rivets, rope, medallions and pendants are dropped
+    - cloak tears become 3-4 notches in the hem
+    - the cloak's red lining becomes a strip at the opening
+    - magic rays become glow + core (the real light comes from the PointLight2D in Godot)
+  palette_notes: [dark neutral iron, cream linen, near-black cross, gold (gothic), blood lining (gothic), leather (bone), emissive holy]
   decisions:
-    - cruz preta também nas costas do manto (a arte só mostra a frente; ajuda a leitura nas direções n)
-    - golpes leves com uma mão; pesado com as duas (a luz some da mão e reaparece no fim)
+    - black cross on the back of the cloak too (the art only shows the front; helps readability in the n directions)
+    - light swings one-handed; heavy two-handed (the light leaves the hand and returns at the end)
 
 materials:
   iron:    {ramp: iron}
   iron_dk: {ramp: iron, bands: [0, 2]}
   linen:   {ramp: linen, bands: [2, 5]}
-  cape_linen: {ramp: linen, bands: [1, 4]}   # manto um tom abaixo do capuz/tabardo
+  cape_linen: {ramp: linen, bands: [1, 4]}   # cloak one tone below the hood/tabard
   lining:  {ramp: blood, bands: [1, 3]}
   cross:   {ramp: crossk, line: false}
   gold:    {ramp: gold, bands: [2, 5]}
@@ -52,17 +52,17 @@ channels:
   squash: 1
   head_pitch: 0
   head_yaw: 0
-  hand_L: [0.58, 0.46, 0.30]   # IK no espaço torso_rot; _R espelhado (x>0 = para fora)
+  hand_L: [0.58, 0.46, 0.30]   # IK in torso_rot space; _R mirrored (x>0 = outward)
   foot_L: [0.18, 0, 0.03]
   pitch_foot_L: 0
-  coat: 0          # manto: + = esvoaça para trás
-  flap: 0          # aba do tabardo: + = para frente
-  ham_pitch: -0.30 # martelo: cabo aponta para baixo (-y) com 0; negativo inclina a cabeça para frente
+  coat: 0          # cloak: + = billows backward
+  flap: 0          # tabard flap: + = forward
+  ham_pitch: -0.30 # hammer: haft points down (-y) at 0; negative tilts the head forward
   ham_yaw: 0
   ham_roll: 0
-  orb: 1           # luz sagrada na mão esquerda (0 = some)
-  smite: 0         # brilho sagrado na cabeça do martelo
-  holy: 0          # aura da investida
+  orb: 1           # holy light in the left hand (0 = hidden)
+  smite: 0         # holy glow on the hammer head
+  holy: 0          # charge aura
   smear_w: 0
   smear_a0: 0
   smear_a1: 0
@@ -70,7 +70,7 @@ channels:
   smear_y: 1.15
   smear_z: 0.05
   smear_fade: 1
-  vsm_w: 0         # smear vertical (martelada descendente)
+  vsm_w: 0         # vertical smear (downward hammer blow)
   vsm_a0: 0
   vsm_a1: 0
   vsm_r: 1.15
@@ -87,11 +87,11 @@ bones:
   legyaw:     {parent: root, rot: "[0, twist*0.5, 0]"}
   footyaw:    {parent: root, rot: "[0, twist*0.4, 0]"}
   sole_L:     {parent: footyaw, at: ankle_L, rot: "[pitch_foot_L, 0.08, 0]"}
-  capebase:   {parent: pelvis, pos: [0, 0.68, -0.08], rot: "[0.05 + coat*0.40 - lean*0.85, -twist*0.4, 0]"}   # pano cai por gravidade
+  capebase:   {parent: pelvis, pos: [0, 0.68, -0.08], rot: "[0.05 + coat*0.40 - lean*0.85, -twist*0.4, 0]"}   # cloth hangs by gravity
   flapbase:   {parent: pelvis, pos: [0, 0.04, 0.17], rot: "[-flap - lean*0.8, 0, 0]"}
   hammer:     {parent: torso_rot, pos: "hand_R*[-1, 1, 1]", rot: "[ham_pitch, ham_yaw, ham_roll]"}
   fxspace:    {parent: root, rot: "[0, twist*0.3, 0]"}
-  fxv:        {parent: root, rot: [0, 0, 1.5708]}   # arco no plano vertical (x local = cima)
+  fxv:        {parent: root, rot: [0, 0, 1.5708]}   # arc in the vertical plane (local x = up)
 
 ik:
   arm_L: {start: shoulder_L, space: torso_rot, target: hand_L, lengths: [0.42, 0.40],
@@ -149,7 +149,7 @@ parts:
     space: pelvis
     prims:
       - torus: {c: [0, 0.095, 0.29], R: 0.045, r: 0.016, rot: [1.5708, 0, 0]}
-  cape:            # casca fina em V (cone externo - interno), aberta na frente, sem cúpula no topo
+  cape:            # thin V shell (outer - inner cone), open at the front, no dome on top
     material: cape_linen
     space: capebase
     prims:
@@ -162,7 +162,7 @@ parts:
       - sphere: {c: [0.20, -1.13, -0.36], r: 0.07}
       - sphere: {c: [-0.17, -1.13, -0.37], r: 0.065}
       - sphere: {c: [0.31, -1.13, -0.23], r: 0.06}
-  cape_lining:     # forro vermelho por dentro da casca (2 px)
+  cape_lining:     # red lining inside the shell (2 px)
     material: lining
     space: capebase
     prims:
@@ -172,7 +172,7 @@ parts:
       - cone: {a: [0, 0.02, 0.0], b: [0, -1.22, -0.06], r: [0.21, 0.29]}
       - box: {c: [0, -0.8, 0.30], half: [0.9, 1.2, 0.36]}
       - box: {c: [0, -1.52, 0], half: [1, 0.48, 1]}
-  cross_back:      # camada fina sobre a casca, recortada no formato da cruz
+  cross_back:      # thin layer over the shell, cut to the cross shape
     material: cross
     space: capebase
     prims:
@@ -189,7 +189,7 @@ parts:
       - box: {c: [-0.1575, -0.23, 0], half: [0.0825, 0.08, 1]}
       - box: {c: [0.1575, -0.705, 0], half: [0.0825, 0.255, 1]}
       - box: {c: [-0.1575, -0.705, 0], half: [0.0825, 0.255, 1]}
-  capelet:         # manta curta por cima do manto (borda na altura das escápulas)
+  capelet:         # short mantle over the cloak (edge at shoulder-blade height)
     material: linen
     space: pelvis
     blend: 0.05
@@ -252,12 +252,12 @@ parts:
     prims:
       - box: {c: [0, 0.15, 0.158], half: [0.022, 0.135, 0.01]}
       - box: {c: [0, 0.215, 0.158], half: [0.125, 0.02, 0.01]}
-  hood:            # capuz arredondado caído sobre o elmo (sem ponta)
+  hood:            # rounded hood draped over the helm (no point)
     material: linen
     space: head
     blend: 0.05
     prims:
-      - cone: {a: [0, 0.22, -0.05], b: [0, 0.03, -0.08], r: [0.175, 0.22]}   # sino: topo redondo, base nos ombros
+      - cone: {a: [0, 0.22, -0.05], b: [0, 0.03, -0.08], r: [0.175, 0.22]}   # bell: round top, base on the shoulders
     cut:
       - box: {c: [0, 0.10, 0.22], half: [0.15, 0.30, 0.20]}
   haft:
@@ -283,7 +283,7 @@ parts:
       - box: {c: [0, -0.95, 0], half: [0.20, 0.18, 0.03]}
       - box: {c: [0, -0.95, 0], half: [0.20, 0.03, 0.29]}
       - box: {c: [0, -0.95, 0], half: [0.03, 0.18, 0.29]}
-  hammer_smite:     # faixas douradas acendem com luz sagrada + face de impacto
+  hammer_smite:     # gold bands light up with holy light + striking face
     when: "smite > 0.01"
     material: holy
     space: hammer
@@ -304,7 +304,7 @@ parts:
     space: torso_rot
     prims:
       - sphere: {c: "hand_L + [0.02, 0.21, 0.15]", r: "0.06*orb"}
-  holy_ring:        # anel de luz sagrada à frente da mão (investida)
+  holy_ring:        # ring of holy light in front of the hand (charge)
     when: "holy > 0.01"
     material: holy
     space: torso_rot
@@ -323,14 +323,14 @@ parts:
     prims:
       - arc: {c: "[1.25, 0, 0.15]", r: vsm_r, a0: vsm_a0, a1: vsm_a1, width: vsm_w, fade: vsm_fade, dip: -0.18}
 
-timing:                    # alvos de tempo que o jogo testa (validate e QA reprovam acima de +-1 quadro a 60 fps)
+timing:                    # timing targets the game tests (validate and QA fail beyond +-1 frame at 60 fps)
   attack_light_a: {hit: 150ms, total: 483ms}
   attack_light_b: {hit: 150ms, total: 483ms}
   attack_heavy: {hit: 500ms, total: 1000ms}
 
 animations:
-  # Tempos-alvo (vel. de ataque x1) em D:\GameProjects\tower-hunt\docs\design\personagens.md (Animações exigidas).
-  # O martelo é um bone próprio na mão direita: ham_pitch/ham_yaw giram o cabo (0 = para baixo).
+  # Target timings (attack speed x1) in D:\GameProjects\tower-hunt\docs\design\personagens.md (required animations).
+  # The hammer is its own bone in the right hand: ham_pitch/ham_yaw rotate the haft (0 = down).
   idle:
     frames: 8
     ms: 160
@@ -345,7 +345,7 @@ animations:
       coat: "0.12*sin(p - 1.0)"
       orb: "1 + 0.12*sin(2*p)"
 
-  run:                     # corrida pesada; martelo arrastado atrás
+  run:                     # heavy run; hammer dragged behind
     frames: 8
     ms: 85
     events: {0: step_l, 4: step_r}
@@ -387,7 +387,7 @@ animations:
           hand_L: [0.48, 0.34, 0.18], coat: -0.15, orb: 0.8}}
       - {ms: 90, set: {lean: -0.02, head_pitch: -0.04, hand_R: [0.50, 0.10, 0.08], ham_pitch: -0.2}}
 
-  death:                   # cai de joelhos apoiado no martelo; a luz se apaga
+  death:                   # falls to his knees leaning on the hammer; the light goes out
     loop: false
     keys:
       - {ms: 110, set: {lean: -0.25, head_pitch: -0.30, squash: 0.93, hand_R: [0.58, 0.12, -0.08], ham_pitch: 0.3,
@@ -401,7 +401,7 @@ animations:
       - {ms: 600, event: land, set: {bob: -0.48, lean: 0.40, head_pitch: 0.55, foot_L: [0.20, 0, 0.36], foot_R: [0.18, 0, -0.50],
           pitch_foot_R: 1.1, hand_R: [0.10, 0.75, 0.36], ham_pitch: -0.40, hand_L: [0.02, 0.83, 0.36], orb: 0, coat: 0.3, flap: 0.2}}
 
-  attack_light_a:          # martelada da direita para a esquerda (uma mão). hit em 150 ms, total 483 ms
+  attack_light_a:          # right-to-left hammer swing (one hand). hit at 150 ms, total 483 ms
     loop: false
     keys:
       - {ms: 40, set: {twist: -0.20, lean: 0.05, squash: 0.97, bob: -0.02, hand_R: [0.56, 0.20, -0.05], ham_pitch: -1.0, ham_yaw: -1.5,
@@ -421,7 +421,7 @@ animations:
           foot_L: [0.18, 0, 0.20], foot_R: [0.18, 0, -0.08], head_yaw: -0.15, coat: 0.3}}
       - {ms: 93, set: {twist: 0.08, lean: 0.06, hand_R: [0.45, 0.10, 0.15], ham_pitch: -0.40, ham_yaw: 0.25, coat: 0.1}}
 
-  attack_light_b:          # martelada de volta, da esquerda para a direita. hit em 150 ms, total 483 ms
+  attack_light_b:          # return swing, left to right. hit at 150 ms, total 483 ms
     loop: false
     keys:
       - {ms: 40, set: {twist: 0.25, lean: 0.06, squash: 0.97, bob: -0.02, hand_R: [0.10, 0.26, 0.40], ham_pitch: -1.1, ham_yaw: 1.0,
@@ -441,7 +441,7 @@ animations:
           foot_L: [0.18, 0, 0.10], foot_R: [0.18, 0, 0.16], head_yaw: 0.15, coat: 0.3}}
       - {ms: 93, set: {twist: -0.08, lean: 0.05, hand_R: [0.52, 0.10, 0.12], ham_pitch: -0.40, ham_yaw: -0.15, coat: 0.1}}
 
-  attack_heavy:            # martelada descendente com as duas mãos. hit em 500 ms, total 1000 ms
+  attack_heavy:            # two-handed downward hammer blow. hit at 500 ms, total 1000 ms
     loop: false
     keys:
       - {ms: 60, set: {lean: 0.05, squash: 0.96, bob: -0.03, hand_R: [0.05, 0.32, 0.38], ham_pitch: 3.3,
@@ -465,7 +465,7 @@ animations:
       - {ms: 180, set: {lean: 0.08, squash: 0.99, hand_R: [0.45, 0.10, 0.14], ham_pitch: 5.9, orb: 0.7,
           foot_L: [0.18, 0, 0.10], foot_R: [0.18, 0, -0.04], coat: 0.05}}
 
-  special_loop:            # investida sagrada: corre com a luz à frente, martelo arrastado
+  special_loop:            # holy charge: runs with the light in front, hammer dragged
     frames: 4
     ms: 75
     events: {0: step_l, 2: step_r}
