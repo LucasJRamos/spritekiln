@@ -64,16 +64,56 @@ pipx install "spritekiln[mcp]"
 
 ## 快速开始
 
-在所有系统上都一样：
+所有系统上的命令都一样。
+
+### 1. 配置文件夹（只需一次）
+
+在游戏文件夹中（如果只想要精灵图，在一个空文件夹中）打开终端，告诉SpriteKiln精灵图用于哪个引擎、由哪个AI助手来制作：
 
 ```
-spritekiln new knight                                   # 从模板创建 specs/characters/knight/knight.yaml
-spritekiln render specs/characters/knight/knight.yaml   # 图集、JSON、贴图、GIF -> .../out/knight/
+spritekiln init --engine godot --ai claude
 ```
 
-然后交给你的助手：*"把这个骑士改成一个戴兜帽、拿短剑的哥布林斥候。渲染之前检查全部8个方向。"* 要配置游戏项目，
-在项目文件夹中运行 `spritekiln init --engine godot --ai claude`；详情请参阅
+| `--engine` | 用于 | 导出位置 |
+|---|---|---|
+| `godot` | Godot 4 | `assets/spritekiln/`，附带SpriteFrames和可直接使用的场景 |
+| `unity` | Unity 2022.3+ | `Assets/SpriteKiln/` |
+| `monogame` | MonoGame | `Content/sprites/` |
+| `generic` | 其他引擎，或还没有游戏 | `sprites/`：PNG图集和兼容Aseprite的JSON |
+
+| `--ai` | 助手 |
+|---|---|
+| `claude` | Claude Code |
+| `codex` | Codex |
+| `gemini` | Gemini CLI |
+| `copilot` | GitHub Copilot |
+| `cursor` | Cursor |
+| `generic` | 其他会读取 `AGENTS.md` 的智能体 |
+
+多个助手用逗号分隔：`--ai claude,cursor`。`init` 会写入 `spritekiln.toml`（规格文件放在 `art/specs/`，导出到
+上表中的文件夹）、助手开始工作前读取的说明，以及助手调用SpriteKiln所用的MCP服务器配置。详情请参阅
 [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)（英文）。
+
+### 2. 让助手制作精灵图
+
+在助手中打开该文件夹，描述角色：
+
+> 做一个戴兜帽、拿短剑的哥布林斥候。从模板开始，检查全部8个方向，然后渲染idle、walk和attack并导出。
+
+助手会编写规格文件、渲染、查看图像并修正问题。你只需查看 `art/specs/characters/<名称>/out/<名称>/preview/`
+中的GIF并提出修改（"帽子再大一点"、"挥砍再快一点"）。有原画？交给它：[从你的原画开始](docs/tutorials/splash-art.md)（英文）。
+
+### 3. 或者手动操作
+
+与助手运行的命令相同：
+
+```
+spritekiln new knight                                                # art/specs/characters/knight/knight.yaml
+spritekiln pose art/specs/characters/knight/knight.yaml --dirs all   # 一个姿势的8个方向，每个方向约1秒
+spritekiln render art/specs/characters/knight/knight.yaml --export   # 渲染全部动画并导出到引擎
+```
+
+在两次 `pose` 之间编辑YAML，[第一个角色](docs/tutorials/first-character.md)（英文）教程会带你一步步完成。
 
 ## 工作原理
 

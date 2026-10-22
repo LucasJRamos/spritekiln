@@ -21,8 +21,9 @@ cd my-game
 spritekiln init --engine godot --ai claude,codex
 ```
 
-`--engine` is `godot`, `unity`, `monogame` or `generic`; `--ai` takes any of the names below, separated by
-commas. `init` writes:
+`--engine` is `godot`, `unity`, `monogame` or `generic` (any other engine, or no game yet: exports go to
+`sprites/`); `--ai` takes any of the names below, separated by commas, or `generic` for any other agent that
+reads `AGENTS.md`. Without options, `init` uses `generic` for both. It writes:
 
 | File | For |
 |---|---|

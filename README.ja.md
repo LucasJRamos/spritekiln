@@ -70,16 +70,61 @@ pipx install "spritekiln[mcp]"
 
 ## クイックスタート
 
-どのOSでも同じです：
+コマンドはどのOSでも同じです。
+
+### 1. フォルダの準備（最初に一度だけ）
+
+ゲームのフォルダ（スプライトだけが欲しい場合は空のフォルダ）でターミナルを開き、スプライトを使うエンジンと、
+スプライトを作るAIアシスタントをSpriteKilnに伝えます：
 
 ```
-spritekiln new knight                                   # テンプレートから specs/characters/knight/knight.yaml を作成
-spritekiln render specs/characters/knight/knight.yaml   # アトラス、JSON、マップ、GIF -> .../out/knight/
+spritekiln init --engine godot --ai claude
 ```
 
-あとはアシスタントに任せましょう：*「この騎士を、短剣を持ったフード姿のゴブリン斥候に変えて。レンダリングの前に
-8方向すべてを確認して。」* ゲームプロジェクトを準備するには、そのフォルダで `spritekiln init --engine godot --ai claude`
-を実行します。詳しくは [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)（英語）を参照してください。
+| `--engine` | 対象 | エクスポート先 |
+|---|---|---|
+| `godot` | Godot 4 | `assets/spritekiln/`（SpriteFramesとすぐ使えるシーン付き） |
+| `unity` | Unity 2022.3+ | `Assets/SpriteKiln/` |
+| `monogame` | MonoGame | `Content/sprites/` |
+| `generic` | その他のエンジン、またはゲームがまだない場合 | `sprites/`：PNGアトラスとAseprite互換JSON |
+
+| `--ai` | アシスタント |
+|---|---|
+| `claude` | Claude Code |
+| `codex` | Codex |
+| `gemini` | Gemini CLI |
+| `copilot` | GitHub Copilot |
+| `cursor` | Cursor |
+| `generic` | `AGENTS.md` を読むその他のエージェント |
+
+複数のアシスタントはカンマで区切ります：`--ai claude,cursor`。`init` は `spritekiln.toml`（スペックは
+`art/specs/`、エクスポートは上のフォルダ）、アシスタントが作業前に読む指示、そしてアシスタントがSpriteKilnを
+呼び出すMCPサーバーの設定を書き出します。詳しくは [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)
+（英語）を参照してください。
+
+### 2. アシスタントにスプライトを頼む
+
+アシスタントでフォルダを開き、キャラクターを説明します：
+
+> 短剣を持ったフード姿のゴブリン斥候を作って。テンプレートから始めて、8方向すべてを確認してから、idle、walk、
+> attackをレンダリングしてエクスポートして。
+
+アシスタントがスペックを書き、レンダリングし、画像を見て直します。あなたは
+`art/specs/characters/<名前>/out/<名前>/preview/` のGIFを確認して、変更を頼むだけです（「帽子を大きく」
+「振りを速く」）。スプラッシュアートがあれば渡しましょう：[スプラッシュアートから](docs/tutorials/splash-art.md)（英語）。
+
+### 3. 手作業で行う場合
+
+アシスタントが実行するのと同じコマンドです：
+
+```
+spritekiln new knight                                                # art/specs/characters/knight/knight.yaml
+spritekiln pose art/specs/characters/knight/knight.yaml --dirs all   # 1つのポーズを8方向で、各方向およそ1秒
+spritekiln render art/specs/characters/knight/knight.yaml --export   # 全アニメーションを描画し、エンジンへエクスポート
+```
+
+`pose` の合間にYAMLを編集します。[最初のキャラクター](docs/tutorials/first-character.md)（英語）で手順を
+たどれます。
 
 ## しくみ
 

@@ -15,7 +15,8 @@ spritekiln new knight
 spritekiln pose specs/characters/knight/knight.yaml --dirs all
 ```
 
-`new` copies the humanoid template to `specs/characters/knight/knight.yaml`. `pose` renders one pose in
+`new` copies the humanoid template to `specs/characters/knight/knight.yaml` (in a folder set up with
+`spritekiln init`, specs go to `art/specs/` instead). `pose` renders one pose in
 all 8 directions (about a second each) to `specs/characters/knight/out/pose_rest_0.png`:
 
 ![The template: a hunter with a sword, in 8 directions](../images/tutorials/first-character-template.png)

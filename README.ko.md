@@ -69,16 +69,61 @@ pipx install "spritekiln[mcp]"
 
 ## 빠른 시작
 
-모든 OS에서 동일합니다:
+명령은 모든 OS에서 동일합니다.
+
+### 1. 폴더 설정 (한 번만)
+
+게임 폴더에서, 또는 스프라이트만 필요하다면 빈 폴더에서 터미널을 열고, 스프라이트를 사용할 엔진과 스프라이트를
+만들 AI 어시스턴트를 SpriteKiln에 알려 주세요:
 
 ```
-spritekiln new knight                                   # 템플릿에서 specs/characters/knight/knight.yaml 생성
-spritekiln render specs/characters/knight/knight.yaml   # 아틀라스, JSON, 맵, GIF -> .../out/knight/
+spritekiln init --engine godot --ai claude
 ```
 
-그다음 어시스턴트에게 맡기세요: *"이 기사를 짧은 검을 든 두건 쓴 고블린 정찰병으로 바꿔 줘. 렌더링 전에
-8방향을 모두 확인해."* 게임 프로젝트를 설정하려면 프로젝트 폴더에서 `spritekiln init --engine godot --ai claude`를
-실행하세요. 자세한 내용은 [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)(영어)를 참고하세요.
+| `--engine` | 대상 | 내보내기 위치 |
+|---|---|---|
+| `godot` | Godot 4 | `assets/spritekiln/` (SpriteFrames와 바로 쓸 수 있는 씬 포함) |
+| `unity` | Unity 2022.3+ | `Assets/SpriteKiln/` |
+| `monogame` | MonoGame | `Content/sprites/` |
+| `generic` | 그 밖의 엔진, 또는 아직 게임이 없을 때 | `sprites/`: PNG 아틀라스와 Aseprite 호환 JSON |
+
+| `--ai` | 어시스턴트 |
+|---|---|
+| `claude` | Claude Code |
+| `codex` | Codex |
+| `gemini` | Gemini CLI |
+| `copilot` | GitHub Copilot |
+| `cursor` | Cursor |
+| `generic` | `AGENTS.md`를 읽는 그 밖의 에이전트 |
+
+여러 어시스턴트는 쉼표로 구분합니다: `--ai claude,cursor`. `init`은 `spritekiln.toml`(스펙은 `art/specs/`,
+내보내기는 위 폴더), 어시스턴트가 작업 전에 읽는 지침, 그리고 어시스턴트가 SpriteKiln을 호출하는 MCP 서버
+설정을 만듭니다. 자세한 내용: [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)(영어).
+
+### 2. 어시스턴트에게 스프라이트 요청
+
+어시스턴트에서 폴더를 열고 캐릭터를 설명하세요:
+
+> 짧은 검을 든 두건 쓴 고블린 정찰병을 만들어 줘. 템플릿에서 시작하고, 8방향을 모두 확인한 다음 idle, walk,
+> attack을 렌더링해서 내보내.
+
+어시스턴트가 스펙을 작성하고, 렌더링하고, 이미지를 보고 문제를 고칩니다. 여러분은
+`art/specs/characters/<이름>/out/<이름>/preview/`의 GIF를 검토하고 수정을 요청하면 됩니다("모자를 더 크게",
+"휘두르기를 더 빠르게"). 스플래시 아트가 있다면 넘겨주세요:
+[From your splash art, with an AI](docs/tutorials/splash-art.md)(영어).
+
+### 3. 또는 직접 하기
+
+어시스턴트가 실행하는 것과 같은 명령입니다:
+
+```
+spritekiln new knight                                                # art/specs/characters/knight/knight.yaml
+spritekiln pose art/specs/characters/knight/knight.yaml --dirs all   # 한 포즈를 8방향으로, 방향당 약 1초
+spritekiln render art/specs/characters/knight/knight.yaml --export   # 모든 애니메이션을 렌더링해 엔진으로 내보내기
+```
+
+`pose` 사이에 YAML을 수정하세요. [첫 캐릭터](docs/tutorials/first-character.md)(영어) 튜토리얼에서 과정을
+따라 할 수 있습니다.
 
 ## 작동 방식
 

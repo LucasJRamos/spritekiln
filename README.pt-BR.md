@@ -72,17 +72,61 @@ atualização e solução de problemas: [Install SpriteKiln](docs/tutorials/inst
 
 ## Início rápido
 
-Igual em todos os sistemas:
+Os comandos são iguais em todos os sistemas.
+
+### 1. Prepare a pasta (uma vez)
+
+Abra um terminal na pasta do seu jogo, ou numa pasta vazia se você só quer os sprites, e diga ao SpriteKiln
+para qual engine são os sprites e qual assistente de IA vai fazê-los:
 
 ```
-spritekiln new cavaleiro                                       # specs/characters/cavaleiro/cavaleiro.yaml, do template
-spritekiln render specs/characters/cavaleiro/cavaleiro.yaml   # atlas, JSON, mapas, GIFs -> .../out/cavaleiro/
+spritekiln init --engine godot --ai claude
 ```
 
-Depois passe para o seu assistente: *"Transforme este cavaleiro num goblin batedor encapuzado com uma
-espada curta. Confira as 8 direções antes de renderizar."* Para preparar um projeto de jogo, rode
-`spritekiln init --engine godot --ai claude` na pasta dele; veja
+| `--engine` | Para | Os exports vão para |
+|---|---|---|
+| `godot` | Godot 4 | `assets/spritekiln/`, com SpriteFrames e uma cena pronta |
+| `unity` | Unity 2022.3+ | `Assets/SpriteKiln/` |
+| `monogame` | MonoGame | `Content/sprites/` |
+| `generic` | qualquer outra engine, ou ainda sem jogo | `sprites/`: atlas PNG e JSON compatível com Aseprite |
+
+| `--ai` | Assistente |
+|---|---|
+| `claude` | Claude Code |
+| `codex` | Codex |
+| `gemini` | Gemini CLI |
+| `copilot` | GitHub Copilot |
+| `cursor` | Cursor |
+| `generic` | qualquer outro agente que leia o `AGENTS.md` |
+
+Vários assistentes de uma vez, separados por vírgula: `--ai claude,cursor`. O `init` grava o
+`spritekiln.toml` (as specs ficam em `art/specs/`, os exports na pasta acima), as instruções que o seu
+assistente lê antes de começar e a configuração do servidor MCP pelo qual ele chama o SpriteKiln. Detalhes:
 [Use o SpriteKiln com a sua IA](docs/tutorials/use-with-your-ai.md) (em inglês).
+
+### 2. Peça um sprite ao seu assistente
+
+Abra a pasta no seu assistente e descreva o personagem:
+
+> Faça um goblin batedor encapuzado com uma espada curta. Comece pelo template, confira as 8 direções,
+> depois renderize idle, walk e attack e exporte.
+
+Ele escreve a spec, renderiza, olha as imagens e corrige o que vê. Você revisa os GIFs em
+`art/specs/characters/<nome>/out/<nome>/preview/` e pede mudanças ("chapéu maior", "golpe mais rápido").
+Tem uma splash art? Entregue a ele: [a partir da sua splash art](docs/tutorials/splash-art.md) (em inglês).
+
+### 3. Ou faça à mão
+
+Os mesmos comandos que o assistente roda:
+
+```
+spritekiln new cavaleiro                                                   # art/specs/characters/cavaleiro/cavaleiro.yaml
+spritekiln pose art/specs/characters/cavaleiro/cavaleiro.yaml --dirs all   # uma pose nas 8 direções, ~1 s cada
+spritekiln render art/specs/characters/cavaleiro/cavaleiro.yaml --export   # todas as animações, exportadas para a engine
+```
+
+Edite o YAML entre um `pose` e outro: o tutorial
+[primeiro personagem em 10 minutos](docs/tutorials/first-character.md) (em inglês) mostra como.
 
 ## Como funciona
 
