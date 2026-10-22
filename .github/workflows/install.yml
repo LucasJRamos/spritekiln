@@ -10,6 +10,7 @@ name: Install
 # which catches a dependency that stops shipping wheels for a platform. Run it by hand to pick either.
 on:
   push:
+    branches: ['**']  # not tags: a release tag is checked from PyPI once Release finishes
     paths:
       - pyproject.toml
       - .github/workflows/install.yml
