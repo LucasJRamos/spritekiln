@@ -1,0 +1,178 @@
+name: Install
+
+# Follows the install steps of the README and docs/tutorials/install.md on clean machines, the way a user
+# would: Homebrew's pipx on macOS (Apple Silicon and Intel), a python.org-style Python and pipx on a Mac without
+# a compiler, the distribution's pipx on Linux, the py launcher on Windows. Then checks that a new terminal
+# finds `spritekiln` (what `pipx ensurepath` promises) and runs tools/install_smoke.py.
+#
+# Pushes and pull requests that touch packaging install the wheel built from the checkout, so the dependencies
+# come from PyPI exactly as for users. After a release and every week it installs "spritekiln[mcp]" from PyPI,
+# which catches a dependency that stops shipping wheels for a platform. Run it by hand to pick either.
+on:
+  push:
+    paths:
+      - pyproject.toml
+      - .github/workflows/install.yml
+      - tools/install_smoke.py
+      - docs/tutorials/install.md
+  pull_request:
+    paths:
+      - pyproject.toml
+      - .github/workflows/install.yml
+      - tools/install_smoke.py
+      - docs/tutorials/install.md
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'wheel = built from this commit; pypi = the published "spritekiln[mcp]"'
+        type: choice
+        options: [wheel, pypi]
+        default: wheel
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      source: ${{ steps.plan.outputs.source }}
+    steps:
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT: ${{ inputs.source }}
+          RELEASE: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          case "$EVENT" in
+            schedule) source=pypi ;;
+            workflow_run) if [ "$RELEASE" = success ]; then source=pypi; else source=none; fi ;;
+            workflow_dispatch) source="$INPUT" ;;
+            *) source=wheel ;;
+          esac
+          if [ "$source" = pypi ] && ! curl -sf https://pypi.org/pypi/spritekiln/json > /dev/null; then
+            echo "::notice::spritekiln is not on PyPI yet: nothing to check"
+            source=none
+          fi
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+
+  wheel:
+    needs: plan
+    if: needs.plan.outputs.source == 'wheel'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install build && python -m build --wheel
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel
+          path: dist/*.whl
+
+  install:
+    needs: [plan, wheel]
+    if: >-
+      always() && needs.plan.result == 'success' && needs.plan.outputs.source != 'none'
+      && needs.wheel.result != 'failure'
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: macOS Apple Silicon (Homebrew), os: macos-latest, route: brew}
+          - {name: macOS Intel (Homebrew), os: macos-15-intel, route: brew}
+          - {name: macOS without a compiler (python.org Python), os: macos-latest, route: python-org}
+          - {name: Linux (apt), os: ubuntu-latest, route: apt}
+          - {name: Windows (py launcher), os: windows-latest, route: py}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        if: needs.plan.outputs.source == 'wheel'
+        with:
+          name: wheel
+          path: dist
+      - name: What to install
+        shell: bash
+        run: |
+          if [ "${{ needs.plan.outputs.source }}" = wheel ]; then
+            dir="$PWD/dist"
+            if [ "$RUNNER_OS" = Windows ]; then dir="$(cygpath -m "$dir")"; fi
+            echo "PKG=$dir/$(ls dist | grep '\.whl$')[mcp]" >> "$GITHUB_ENV"
+          else
+            echo "PKG=spritekiln[mcp]" >> "$GITHUB_ENV"
+          fi
+
+      # The runner images preset PIPX_HOME and PIPX_BIN_DIR; a user's machine does not. The macOS steps run in
+      # zsh, the Terminal's shell, so that `ensurepath` edits ~/.zshrc as it does for a user.
+      - name: macOS with Homebrew (README)
+        if: matrix.route == 'brew'
+        shell: zsh -e {0}
+        env:
+          SHELL: /bin/zsh
+        run: |
+          unset PIPX_HOME PIPX_BIN_DIR PIPX_DEFAULT_PYTHON
+          brew update --quiet
+          brew install pipx
+          pipx="$(brew --prefix)/bin/pipx"
+          echo "pipx $("$pipx" --version) on $("$("$pipx" environment --value PIPX_DEFAULT_PYTHON)" --version)"
+          "$pipx" ensurepath
+          "$pipx" install "$PKG"
+          zsh -ic 'spritekiln --version'  # a new terminal
+
+      - uses: actions/setup-python@v5
+        if: matrix.route == 'python-org'
+        with:
+          python-version: '3.15'
+      - name: macOS with python.org Python and no compiler (docs/tutorials/install.md)
+        if: matrix.route == 'python-org'
+        shell: zsh -e {0}
+        env:
+          SHELL: /bin/zsh
+          CC: /usr/bin/false  # no Xcode command-line tools: anything that needs compiling fails
+          CXX: /usr/bin/false
+        run: |
+          unset PIPX_HOME PIPX_BIN_DIR PIPX_DEFAULT_PYTHON
+          python3 --version
+          python3 -m pip install --user pipx
+          python3 -m pipx ensurepath
+          python3 -m pipx install "$PKG"
+          zsh -ic 'spritekiln --version'  # a new terminal
+
+      - name: Linux with the distribution's pipx (README)
+        if: matrix.route == 'apt'
+        run: |
+          unset PIPX_HOME PIPX_BIN_DIR PIPX_DEFAULT_PYTHON
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq pipx
+          echo "pipx $(/usr/bin/pipx --version) on $(/usr/bin/python3 --version)"
+          /usr/bin/pipx ensurepath
+          /usr/bin/pipx install "$PKG"
+          bash -ic 'spritekiln --version'  # a new terminal
+
+      - name: Windows with the py launcher (README)
+        if: matrix.route == 'py'
+        shell: powershell
+        run: |
+          Remove-Item Env:PIPX_HOME, Env:PIPX_BIN_DIR, Env:PIPX_DEFAULT_PYTHON -ErrorAction SilentlyContinue
+          py --version
+          py -m pip install --user pipx
+          py -m pipx ensurepath
+          py -m pipx install $env:PKG
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          # A new terminal reads the user PATH that ensurepath changed.
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + [Environment]::GetEnvironmentVariable('Path', 'Machine')
+          spritekiln --version
+
+      - name: Smoke test (new, validate, pose, init, MCP tools)
+        shell: bash
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          if [ "$RUNNER_OS" = Windows ]; then python tools/install_smoke.py; else python3 tools/install_smoke.py; fi

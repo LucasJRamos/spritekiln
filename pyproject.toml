@@ -30,8 +30,10 @@ dependencies = ["numpy>=1.24", "pillow>=10.0", "pyyaml>=6.0", "tomli>=1.1; pytho
 
 [project.optional-dependencies]
 splash = ["rembg[cpu]"]          # better background removal for splash arts (`ref prep`)
-mcp = ["mcp>=2.3,<3"]            # `spritekiln mcp`: the tools for any MCP client
-dev = ["pytest>=8", "ruff>=0.6", "jsonschema>=4.18", "mcp>=2.3,<3"]
+# `spritekiln mcp`: the tools for any MCP client. mcp needs cryptography (through pyjwt[crypto]), which ships no
+# Intel macOS wheels from 49 on: without the cap an Intel Mac would have to compile it with Rust.
+mcp = ["mcp>=2.3,<3", "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'"]
+dev = ["pytest>=8", "ruff>=0.6", "jsonschema>=4.18", "spritekiln[mcp]"]
 
 [project.urls]
 Homepage = "https://github.com/LucasJRamos/spritekiln"
