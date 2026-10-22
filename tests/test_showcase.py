@@ -47,8 +47,9 @@ def hashes_of(out_dir, name=None):
         r = fr['frame']
         frames[key] = [_sha(a[r['y'] : r['y'] + r['h'], r['x'] : r['x'] + r['w']].tobytes()) for a in atlases]
     anims = {}
-    for a, A in px['animations'].items():  # atlas rows depend on which animations were rendered
-        dirs = {d: {k: v for k, v in D.items() if k != 'row'} for d, D in A['directions'].items()}
+    for a, A in px['animations'].items():
+        # atlas rows depend on which animations were rendered; sockets came after the baseline (Phase 2)
+        dirs = {d: {k: v for k, v in D.items() if k not in ('row', 'sockets')} for d, D in A['directions'].items()}
         anims[a] = _sha(json.dumps(dict(A, directions=dirs), sort_keys=True).encode())
     # the fields pxforge 0.1 wrote; later additions (format, generator, camera) do not change the frames
     head = {
