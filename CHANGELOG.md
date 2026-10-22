@@ -43,5 +43,7 @@ First public release. SpriteKiln started as `pxforge`, the sprite toolkit of the
   events, a platformer character, use with your AI; engine guides.
 
 ### Compatibility
+- Windows, macOS (Apple Silicon and Intel) and Linux, Python 3.10 to 3.15. CI installs it with the README's
+  commands on clean machines of each, and checks the published package every week.
 - `python -m pxforge`, the `pxforge` command, `pxforge: 1` spec headers and the `PxSprite2D` Godot addon
   keep working for projects made with pxforge.
