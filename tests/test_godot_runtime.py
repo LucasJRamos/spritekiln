@@ -1,6 +1,7 @@
 """The Godot addon running inside Godot (headless). Set SPRITEKILN_GODOT_BIN to a Godot 4 binary to run it."""
 
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -22,6 +23,7 @@ extends SceneTree
 var r := {}
 var early
 var t := 0
+var tk := 0
 var early_events := []
 
 
@@ -50,7 +52,22 @@ func _initialize() -> void:
 	r["mirror_socket_x"] = [east.x, west.x, east.y == west.y]
 	m.face(Vector2(-1, 0))
 	r["face_left"] = m.facing
-	# 4. a side-view sprite starts in its own direction
+	# 4. timing contract: stepped by hand at 60 fps, an event lands on the first tick that reaches its frame
+	var timed = (load("res://assets/spritekiln/minimal/minimal.tscn") as PackedScene).instantiate()
+	root.add_child(timed)
+	timed.set_process(false)
+	var ticks := []
+	timed.anim_event.connect(func(a, e): ticks.append("%s@%d" % [e, tk]))
+	timed.anim_finished.connect(func(a): ticks.append("finished@%d" % tk))
+	timed.play_anim(&"attack", true)
+	for i in 60:
+		tk += 1
+		timed.advance(1.0 / 60.0)
+	r["ticks"] = ticks
+	r["after_finish"] = [timed.is_playing(), timed.frame]
+	timed.set_facing(&"nope")
+	r["bad_facing"] = timed.facing
+	# 5. a side-view sprite starts in its own direction
 	var side = (load("res://assets/spritekiln/minimal_side/minimal_side.tscn") as PackedScene).instantiate()
 	root.add_child(side)
 	r["side"] = [side.facing, side.animation, side.direction_names()]
@@ -115,6 +132,17 @@ def test_addon_in_godot(tmp_path):
     assert west == pytest.approx(-east) and same_y
     assert r['face_left'] == 'w'
     assert r['side'][0] == 'e' and r['side'][1] == 'idle_e' and r['side'][2] == ['e', 'w']
+    clip = json.loads((game / 'assets' / 'spritekiln' / 'minimal' / 'minimal.json').read_text(encoding='utf-8'))
+    clip = clip['spritekiln']['animations']['attack']['directions']['s']
+    expected, start = [], 0
+    for i, ms in enumerate(clip['durations']):
+        tick = 0 if i == 0 else math.ceil(start * 60 / 1000 - 1e-6)
+        expected += [f'{e}@{tick}' for e in clip['events'].get(str(i), [])]
+        start += ms
+    expected.append(f'finished@{math.ceil(start * 60 / 1000 - 1e-6)}')
+    assert r['ticks'] == expected
+    assert r['after_finish'] == [False, len(clip['durations']) - 1]  # stopped on the last frame
+    assert r['bad_facing'] == 's'  # an unknown direction is ignored
 
 
 EXAMPLE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'examples', 'godot')

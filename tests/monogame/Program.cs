@@ -6,7 +6,7 @@ using System.Text.Json;
 using Microsoft.Xna.Framework;
 using SpriteKiln;
 
-var sheet = KilnSheet.Parse(File.ReadAllText(args[0]), _ => null);
+var sheet = KilnSheet.Parse(File.ReadAllText(args[0]), (_, _) => null);
 var r = new Dictionary<string, object>();
 var a = new KilnAnimator(sheet);
 var log = new List<string>();

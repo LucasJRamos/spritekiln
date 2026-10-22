@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Rendering;
 
 namespace SpriteKiln
 {
@@ -56,6 +58,7 @@ namespace SpriteKiln
         bool _playing;
         int _serial;
         static Material s_unlit;
+        const float TieDegrees = 0.5f; // directions this close to the nearest one count as a tie
 
         public string CurrentAnimation => _animName ?? startAnimation;
         public string Facing => _facing ?? startFacing;
@@ -67,6 +70,7 @@ namespace SpriteKiln
         void Awake()
         {
             _renderer = GetComponent<SpriteRenderer>();
+            _renderer.spriteSortPoint = SpriteSortPoint.Pivot; // sort by the ground point under the character
         }
 
         void OnEnable()
@@ -96,7 +100,9 @@ namespace SpriteKiln
             bool changed = animation != _animName || !_playing;
             _animName = animation;
             _anim = anim;
-            _facing ??= startFacing;
+            _facing ??= sheet.FindDirection(startFacing) != null || sheet.directions.Count == 0
+                ? startFacing
+                : sheet.directions[0].name; // e.g. a side view, which has no "s"
             if (!changed && !restart)
                 return;
             _serial++;
@@ -130,8 +136,9 @@ namespace SpriteKiln
                 {
                     _playing = false;
                     _ms = 0;
-                    Finished?.Invoke(_animName);
-                    onFinished.Invoke(_animName);
+                    string done = _animName; // a listener may start another clip
+                    Finished?.Invoke(done);
+                    onFinished.Invoke(done);
                     break;
                 }
                 Show();
@@ -145,16 +152,17 @@ namespace SpriteKiln
             if (sheet == null || direction.sqrMagnitude < 1e-12f)
                 return;
             float yaw = Mathf.Atan2(direction.x, -direction.y) * Mathf.Rad2Deg;
-            string best = null;
             float bestDiff = float.MaxValue;
             foreach (var d in sheet.directions)
+                bestDiff = Mathf.Min(bestDiff, Mathf.Abs(Mathf.DeltaAngle(yaw, d.yaw)));
+            string best = null;
+            foreach (var d in sheet.directions)
             {
-                float diff = Mathf.Abs(Mathf.DeltaAngle(yaw, d.yaw));
-                if (diff < bestDiff)
-                {
-                    bestDiff = diff;
-                    best = d.name;
-                }
+                if (Mathf.Abs(Mathf.DeltaAngle(yaw, d.yaw)) > bestDiff + TieDegrees)
+                    continue;
+                if (d.name == Facing)
+                    return; // a tie (straight up in a side view) keeps the current direction
+                best ??= d.name;
             }
             if (best != null)
                 SetFacing(best);
@@ -199,7 +207,8 @@ namespace SpriteKiln
             return true;
         }
 
-        public bool HasSocket(string socket) => sheet != null && sheet.socketNames.Contains(socket);
+        /// <summary>True when the socket exists and is visible in the current frame.</summary>
+        public bool HasSocket(string socket) => TryGetSocket(socket, out _, out _);
 
         void Resolve()
         {
@@ -226,12 +235,13 @@ namespace SpriteKiln
 
         void Fire(int frame)
         {
-            foreach (var e in _clip.events)
+            string anim = _animName; // a listener may start another clip
+            foreach (var e in _clip.events.ToArray())
             {
                 if (e.frame != frame)
                     continue;
-                EventFired?.Invoke(_animName, e.name);
-                onEvent.Invoke(_animName, e.name);
+                EventFired?.Invoke(anim, e.name);
+                onEvent.Invoke(anim, e.name);
             }
         }
 
@@ -239,6 +249,13 @@ namespace SpriteKiln
         {
             if (_emissive != null)
                 return _emissive;
+            // a sorting group keeps the glow with its sprite: it sorts against other objects as one, by the pivot
+            if (!TryGetComponent<SortingGroup>(out var group))
+            {
+                group = gameObject.AddComponent<SortingGroup>();
+                group.sortingLayerID = _renderer.sortingLayerID;
+                group.sortingOrder = _renderer.sortingOrder;
+            }
             var go = new GameObject("Emissive");
             go.transform.SetParent(transform, false);
             _emissive = go.AddComponent<SpriteRenderer>();

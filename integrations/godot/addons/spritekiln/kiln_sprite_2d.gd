@@ -5,8 +5,9 @@ extends AnimatedSprite2D
 ## Plays a sprite exported by SpriteKiln: animations in up to 8 directions with exact per-frame
 ## durations, gameplay events (hit, step_l, windup...), sockets (muzzles, hands...) and an emissive layer.
 ##
-## The node's origin is the ground point under the character (SpriteKiln's pivot), which makes
-## y-sorting work. Typical use:
+## The node keeps its own clock from the durations in the JSON (AnimatedSprite2D only shows the frame),
+## so events land on the same tick as in SpriteKiln's other runtimes. The node's origin is the ground
+## point under the character (SpriteKiln's pivot), which makes y-sorting work. Typical use:
 ## [codeblock]
 ## $Sprite.play_anim(&"walk")
 ## $Sprite.face(velocity)                 # picks the nearest exported (or mirrored) direction
@@ -26,7 +27,7 @@ signal anim_finished(anim: StringName)
 		sheet = v
 		_parse_sheet()
 		_refresh_clip()
-## SpriteFrames over the emissive atlas (<name>_emissive.tres). Optional; drawn with additive blending.
+## SpriteFrames over the emissive atlas (<name>_emissive.tres). Optional; drawn additively and unshaded.
 @export var emissive_frames: SpriteFrames:
 	set(v):
 		emissive_frames = v
@@ -41,19 +42,28 @@ signal anim_finished(anim: StringName)
 	set(v):
 		if v == facing:
 			return
+		if not _dirs.is_empty() and not direction_names().has(v):
+			push_warning("KilnSprite2D: no direction '%s' in %s" % [v, _sheet_name()])
+			return
 		facing = v
 		_switch_direction()
 ## Start playing `anim` when the node enters the scene (the built-in `autoplay` is ignored).
 @export var auto_play: bool = true
 
+const _TIE := 0.0087  # 0.5 degree: directions this close to the nearest one count as a tie
+
+static var _emissive_material: CanvasItemMaterial
+
 var _dirs: Array = []  # [{name: StringName, yaw: float (rad)}], mirrored directions included
 var _mirrors: Dictionary = {}  # direction -> rendered direction it flips (from `mirror: true` specs)
-var _anims: Dictionary = {}  # anim -> {loop, events: {dir: {frame: [StringName]}}, sockets: {dir: {name: [..]}}}
+var _anims: Dictionary = {}  # anim -> {loop, durations/events/sockets: {dir: ...}}
 var _pivot := Vector2.ZERO
 var _frame_size := 0
 var _emissive: AnimatedSprite2D
-var _suppress_events := false
 var _started := false
+var _running := false  # our clock runs (AnimatedSprite2D is kept "playing" at speed 0)
+var _ms := 0.0
+var _serial := 0
 
 
 func _ready() -> void:
@@ -62,49 +72,84 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		_refresh_clip()
 		return
-	frame_changed.connect(_on_frame_changed)
-	animation_changed.connect(_sync_emissive)
-	animation_finished.connect(_on_animation_finished)
 	if auto_play and not _started:  # play_anim() before _ready() already started a clip
 		play_anim(anim, true)
 	else:
 		_refresh_clip()
 
 
+func _process(delta: float) -> void:
+	if not Engine.is_editor_hint():
+		advance(delta)
+
+
 # ---------------------------------------------------------------- API
 
-## Plays a logical animation (no direction suffix). Restarts only when `restart` or when it changed.
-## Events of frame 0 fire right away, in this call.
+## Plays a logical animation (no direction suffix). Restarts only when `restart`, when it changed or when
+## it had stopped. Events of frame 0 fire right away, in this call.
 func play_anim(name: StringName, restart: bool = false) -> void:
 	if not _anims.has(name):
 		push_warning("KilnSprite2D: no animation '%s' in %s" % [name, _sheet_name()])
 		return
-	var changed := name != anim or not is_playing()
-	anim = name  # the setter points `animation` at the clip without playing it
+	var changed := name != anim or not _running
+	anim = name  # the setter points `animation` at the clip
 	_started = true
-	if changed or restart:
-		var clip := clip_name()
-		_suppress_events = true
-		if sprite_frames and sprite_frames.has_animation(clip):
-			stop()
-			play(clip)
-		_suppress_events = false
-		_sync_emissive()
-		_fire_events(0)
+	if not (changed or restart):
+		return
+	_serial += 1
+	_ms = 0.0
+	_running = true
+	_show(0)
+	if sprite_frames and sprite_frames.has_animation(animation):
+		play(animation, 0.0)  # "playing" for is_playing(), but the engine never advances it
+	_fire_events(0)
 
 
-## Picks the exported direction nearest to a screen vector (x right, y down).
+## Advances the clock by `seconds` (times speed_scale). _process calls it; call it yourself for a fixed step
+## (with process_mode disabled).
+func advance(seconds: float) -> void:
+	if not _running:
+		return
+	var durs: Array = _durations()
+	if durs.is_empty():
+		return
+	_ms += seconds * 1000.0 * speed_scale
+	var serial := _serial
+	while _running and serial == _serial:
+		var d := maxf(1.0, float(durs[mini(frame, durs.size() - 1)]))
+		if _ms < d:
+			break
+		_ms -= d
+		if frame + 1 < durs.size():
+			_show(frame + 1)
+		elif is_loop():
+			_show(0)
+		else:
+			_running = false
+			_ms = 0.0
+			pause()  # keeps the last frame
+			var current := anim  # a copy: Godot hands the member itself to every listener
+			anim_finished.emit(current)
+			break
+		_fire_events(frame)
+
+
+## Picks the exported direction nearest to a screen vector (x right, y down). On a tie (straight up in a
+## side view, a diagonal on a 4-direction sheet) the current direction stays.
 func face(dir: Vector2) -> void:
 	if dir.length_squared() < 1e-6 or _dirs.is_empty():
 		return
 	var yaw := atan2(dir.x, dir.y)  # s = 0, e = +90 deg, n = 180, w = -90 (SpriteKiln convention)
-	var best: StringName = facing
 	var best_d := INF
 	for d in _dirs:
-		var diff: float = absf(wrapf(yaw - d.yaw, -PI, PI))
-		if diff < best_d:
-			best_d = diff
-			best = d.name
+		best_d = minf(best_d, absf(wrapf(yaw - d.yaw, -PI, PI)))
+	var best: StringName = &""
+	for d in _dirs:
+		if absf(wrapf(yaw - d.yaw, -PI, PI)) <= best_d + _TIE:
+			if d.name == facing:
+				return
+			if best == &"":
+				best = d.name
 	facing = best
 
 
@@ -207,9 +252,11 @@ func _parse_sheet() -> void:
 		var A: Dictionary = px["animations"][a]
 		var evs := {}
 		var socks := {}
+		var durs := {}
 		for d in A.get("directions", {}):
 			var D: Dictionary = A["directions"][d]
 			socks[StringName(d)] = D.get("sockets", {})
+			durs[StringName(d)] = D.get("durations", [])
 			var per := {}
 			for f in D.get("events", {}):
 				var list := []
@@ -217,7 +264,7 @@ func _parse_sheet() -> void:
 					list.append(StringName(e))
 				per[int(f)] = list
 			evs[StringName(d)] = per
-		_anims[StringName(a)] = {"loop": bool(A.get("loop", true)), "events": evs, "sockets": socks}
+		_anims[StringName(a)] = {"loop": bool(A.get("loop", true)), "events": evs, "sockets": socks, "durations": durs}
 	var pv: Dictionary = px.get("pivot", {})
 	_pivot = Vector2(float(pv.get("x", 0)), float(pv.get("y", 0)))
 	_frame_size = int(px.get("frame_size", 0))
@@ -238,6 +285,10 @@ static func _default_yaw(d: String) -> float:
 	return 0.0
 
 
+func _durations() -> Array:
+	return _anims.get(anim, {}).get("durations", {}).get(_mirrors.get(facing, facing), [])
+
+
 func _is_mirrored() -> bool:
 	return _mirrors.has(facing)
 
@@ -254,21 +305,16 @@ func _apply_flip() -> void:
 		_emissive.flip_h = flip_h
 
 
-## Points `animation` at the current clip without playing it (editor, auto_play off).
-func _refresh_clip() -> void:
-	_apply_flip()
-	if sprite_frames == null:
+## Shows frame `f` of the current clip.
+func _show(f: int) -> void:
+	if sprite_frames == null or not sprite_frames.has_animation(animation):
 		return
-	var clip := clip_name()
-	if sprite_frames.has_animation(clip) and animation != clip:
-		_suppress_events = true
-		animation = clip
-		_suppress_events = false
-		_sync_emissive()
+	set_frame_and_progress(clampi(f, 0, sprite_frames.get_frame_count(animation) - 1), 0.0)
+	_sync_emissive()
 
 
-## Changes direction keeping frame and progress (the animation continues where it was).
-func _switch_direction() -> void:
+## Points `animation` at the current clip (editor, a new animation, a new direction), keeping the frame.
+func _refresh_clip() -> void:
 	_apply_flip()
 	if sprite_frames == null:
 		return
@@ -276,15 +322,17 @@ func _switch_direction() -> void:
 	if not sprite_frames.has_animation(clip) or animation == clip:
 		return
 	var f := frame
-	var p := frame_progress
 	var was_playing := is_playing()
-	_suppress_events = true
 	animation = clip
-	set_frame_and_progress(f, p)
-	if was_playing and not Engine.is_editor_hint():
-		play()
-	_suppress_events = false
+	if was_playing:
+		play(clip, 0.0)
+	set_frame_and_progress(clampi(f, 0, sprite_frames.get_frame_count(clip) - 1), 0.0)
 	_sync_emissive()
+
+
+## Changes direction keeping the frame and the time into it (the animation continues where it was).
+func _switch_direction() -> void:
+	_refresh_clip()
 
 
 func _socket_data(socket: StringName):
@@ -304,18 +352,6 @@ func _fire_events(f: int) -> void:
 			anim_event.emit(current, e)
 
 
-func _on_frame_changed() -> void:
-	_sync_emissive()
-	if _suppress_events:
-		return
-	_fire_events(frame)
-
-
-func _on_animation_finished() -> void:
-	var current := anim  # a copy (see _fire_events)
-	anim_finished.emit(current)
-
-
 func _setup_emissive() -> void:
 	if not is_inside_tree():
 		return
@@ -325,11 +361,13 @@ func _setup_emissive() -> void:
 			_emissive = null
 		return
 	if _emissive == null:
+		if _emissive_material == null:  # one material for every sprite, so they batch
+			_emissive_material = CanvasItemMaterial.new()
+			_emissive_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+			_emissive_material.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED  # ignores lights and CanvasModulate
 		_emissive = AnimatedSprite2D.new()
 		_emissive.name = "Emissive"
-		var mat := CanvasItemMaterial.new()
-		mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-		_emissive.material = mat
+		_emissive.material = _emissive_material
 		_emissive.centered = false
 		_emissive.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_emissive.light_mask = 0

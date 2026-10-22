@@ -105,14 +105,19 @@ public class GargoyleDemo : MonoBehaviour
     class Spark : MonoBehaviour
     {
         const float Life = 0.2f;
+        static Sprite s_dot; // one sprite shared by every spark
         float _t;
         SpriteRenderer _r;
 
         void Start()
         {
             _r = GetComponent<SpriteRenderer>();
-            var tex = Texture2D.whiteTexture;
-            _r.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 32);
+            if (s_dot == null)
+            {
+                var tex = Texture2D.whiteTexture;
+                s_dot = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 32);
+            }
+            _r.sprite = s_dot;
             _r.sortingOrder = 100;
         }
 

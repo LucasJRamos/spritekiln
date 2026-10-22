@@ -82,8 +82,28 @@ public static class KilnChecks
         var side = AssetDatabase.LoadAssetAtPath<KilnSheet>("Assets/SpriteKiln/minimal_side/minimal_side.kiln");
         R["side"] = side.directions.Select(d => d.name).ToArray();
         R["side_view"] = side.view;
+        var sgo = new GameObject("side", typeof(SpriteRenderer));
+        var sk = sgo.AddComponent<KilnAnimator>();
+        sk.sheet = side;
+        sk.Play("idle");
+        var startFacing = sk.Facing;              // a side sheet has no "s": starts on its first direction
+        sk.SetFacing("w");
+        sk.Face(new Vector2(0, 1));               // straight up is a tie between e and w: keep w
+        R["side_facing"] = new[] { startFacing, sk.Facing };
+        sgo.SetActive(false);
 
-        // 5. a picture of idle frame 0 facing s, e, n and w (w is e flipped), one 32 px cell each
+        // 5. a listener that starts another clip does not change the name the UnityEvents get
+        var ngo = new GameObject("names", typeof(SpriteRenderer));
+        var nk = ngo.AddComponent<KilnAnimator>();
+        nk.sheet = sheet;
+        var names = new List<string>();
+        nk.EventFired += (a, e) => { if (e == "windup") nk.Play("idle"); };
+        nk.onEvent.AddListener((a, e) => names.Add(a + ":" + e));
+        nk.Play("attack");
+        R["unity_event_names"] = names.ToArray();
+        ngo.SetActive(false);
+
+        // 6. a picture of idle frame 0 facing s, e, n and w (w is e flipped), one 32 px cell each
         if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null)
             return;
         go.SetActive(false);

@@ -168,8 +168,11 @@ public class KilnDemo : Game
         _sb.Begin(blendState: BlendState.Additive, samplerState: SamplerState.PointClamp);
         foreach (var (pos, age) in _sparks)
         {
-            float k = 1 - age / 0.2f, r = 1.5f + 5 * (1 - k);
-            _sb.Draw(_white, new Rectangle((int)(pos.X - r), (int)(pos.Y - r), (int)(2 * r), (int)(2 * r)), new Color(1f, 0.8f, 0.4f) * k);
+            float k = 1 - age / 0.2f;
+            int r = 2 + (int)(5 * (1 - k)), x = (int)pos.X, y = (int)pos.Y;
+            var c = new Color(1f, 0.8f, 0.4f) * k;
+            _sb.Draw(_white, new Rectangle(x - r, y, 2 * r + 1, 1), c);   // a small cross that grows and fades
+            _sb.Draw(_white, new Rectangle(x, y - r, 1, 2 * r + 1), c);
         }
         _sb.End();
 

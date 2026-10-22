@@ -54,17 +54,20 @@ namespace SpriteKiln
         public static KilnSheet Load(GraphicsDevice gd, string jsonPath)
         {
             string dir = Path.GetDirectoryName(jsonPath) ?? ".";
-            return Parse(File.ReadAllText(jsonPath), file =>
+            return Parse(File.ReadAllText(jsonPath), (file, normalMap) =>
             {
                 string path = Path.Combine(dir, file);
                 if (!File.Exists(path)) return null;
                 using var fs = File.OpenRead(path);
-                return Texture2D.FromStream(gd, fs);
+                // SpriteBatch blends premultiplied colour; a normal map keeps its raw values
+                return normalMap ? Texture2D.FromStream(gd, fs)
+                                 : Texture2D.FromStream(gd, fs, DefaultColorProcessors.PremultiplyAlpha);
             });
         }
 
-        /// Reads a render JSON; `loadTexture` turns an atlas file name into a texture (null when missing).
-        public static KilnSheet Parse(string json, Func<string, Texture2D?> loadTexture)
+        /// Reads a render JSON; `loadTexture(file, isNormalMap)` turns an atlas file name into a texture (null when
+        /// missing).
+        public static KilnSheet Parse(string json, Func<string, bool, Texture2D?> loadTexture)
         {
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
@@ -73,15 +76,15 @@ namespace SpriteKiln
             var px = root.TryGetProperty("spritekiln", out var block) ? block : root.GetProperty("pxforge");
             var sheet = new KilnSheet
             {
-                Texture = loadTexture(meta.GetProperty("image").GetString()!)!,
+                Texture = loadTexture(meta.GetProperty("image").GetString()!, false)!,
                 FrameSize = px.GetProperty("frame_size").GetInt32(),
             };
             var pv = px.GetProperty("pivot");
             sheet.Pivot = new Vector2(pv.GetProperty("x").GetSingle(), pv.GetProperty("y").GetSingle());
             if (px.TryGetProperty("normal_map", out var nm))
-                sheet.NormalMap = loadTexture(nm.GetString()!);
+                sheet.NormalMap = loadTexture(nm.GetString()!, true);
             if (px.TryGetProperty("emissive_map", out var em))
-                sheet.EmissiveMap = loadTexture(em.GetString()!);
+                sheet.EmissiveMap = loadTexture(em.GetString()!, false);
 
             var yaws = px.TryGetProperty("direction_yaw", out var dy) ? dy : default;
             float Yaw(string n) => yaws.ValueKind == JsonValueKind.Object && yaws.TryGetProperty(n, out var y)
@@ -147,18 +150,23 @@ namespace SpriteKiln
             "s" => 0, "se" => 45, "e" => 90, "ne" => 135, "n" => 180, "nw" => -135, "w" => -90, "sw" => -45, _ => 0
         };
 
-        /// Screen-space vector (x right, y down) -> nearest direction (mirrored ones included).
-        public string DirectionFor(Vector2 v, string fallback)
+        /// Screen-space vector (x right, y down) -> nearest direction (mirrored ones included). On a tie (straight
+        /// up in a side view, a diagonal on a 4-direction sheet) `current` stays.
+        public string DirectionFor(Vector2 v, string current)
         {
-            if (v.LengthSquared() < 1e-6f) return fallback;
+            if (v.LengthSquared() < 1e-6f) return current;
             float yaw = MathHelper.ToDegrees(MathF.Atan2(v.X, v.Y));   // s = 0, e = 90, n = 180, w = -90
-            string best = fallback; float bestD = float.MaxValue;
+            float Diff(float y) => MathF.Abs(MathHelper.ToDegrees(MathHelper.WrapAngle(MathHelper.ToRadians(yaw - y))));
+            float bestD = float.MaxValue;
+            foreach (var (_, y) in Directions) bestD = MathF.Min(bestD, Diff(y));
+            string? best = null;
             foreach (var (name, y) in Directions)
             {
-                float d = MathF.Abs(MathHelper.WrapAngle(MathHelper.ToRadians(yaw - y)));
-                if (d < bestD) { bestD = d; best = name; }
+                if (Diff(y) > bestD + 0.5f) continue;   // within half a degree of the nearest: a tie
+                if (name == current) return current;
+                best ??= name;
             }
-            return best;
+            return best ?? current;
         }
     }
 

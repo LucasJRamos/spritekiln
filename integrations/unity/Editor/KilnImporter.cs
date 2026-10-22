@@ -29,7 +29,16 @@ namespace SpriteKiln.Editor
 
         public override void OnImportAsset(AssetImportContext ctx)
         {
-            var data = Json.Parse(File.ReadAllText(ctx.assetPath)) as Dictionary<string, object>;
+            Dictionary<string, object> data;
+            try
+            {
+                data = Json.Parse(File.ReadAllText(ctx.assetPath)) as Dictionary<string, object>;
+            }
+            catch (Exception e) when (e is FormatException || e is IndexOutOfRangeException || e is ArgumentException)
+            {
+                ctx.LogImportError($"{ctx.assetPath}: not valid JSON ({e.Message}); export the render again");
+                return;
+            }
             var block = Block(data);
             if (block == null)
             {
@@ -51,7 +60,10 @@ namespace SpriteKiln.Editor
 
             sheet.atlas = LoadTexture(ctx, dir, (string)meta["image"], false);
             if (sheet.atlas == null)
+            {
+                DestroyImmediate(sheet);
                 return;
+            }
             sheet.atlas.name = name;
             ctx.AddObjectToAsset("atlas", sheet.atlas);
             sheet.normalMap = LoadTexture(ctx, dir, Get<string>(block, "normal_map", null), true);
@@ -67,6 +79,8 @@ namespace SpriteKiln.Editor
                 sheet.emissiveMap = emissive;
                 ctx.AddObjectToAsset("emissive", emissive);
             }
+            else if (emissive != null)
+                DestroyImmediate(emissive); // fully transparent: the asset has no emissive material
 
             var yaws = (Dictionary<string, object>)block["direction_yaw"];
             var mirrors = block.TryGetValue("mirrors", out var m) && m != null
@@ -179,6 +193,9 @@ namespace SpriteKiln.Editor
                 AnimationUtility.SetObjectReferenceCurve(ac, EditorCurveBinding.PPtrCurve("Emissive", typeof(SpriteRenderer), "m_Sprite"), emissive);
             AnimationUtility.SetEditorCurve(ac, EditorCurveBinding.FloatCurve("", typeof(SpriteRenderer), "m_FlipX"),
                 AnimationCurve.Constant(0, t, flipped ? 1 : 0));
+            if (emissive != null) // the glow flips with the sprite
+                AnimationUtility.SetEditorCurve(ac, EditorCurveBinding.FloatCurve("Emissive", typeof(SpriteRenderer), "m_FlipX"),
+                    AnimationCurve.Constant(0, t, flipped ? 1 : 0));
             AnimationUtility.SetAnimationEvents(ac, events.ToArray());
             var settings = AnimationUtility.GetAnimationClipSettings(ac);
             settings.loopTime = loop;

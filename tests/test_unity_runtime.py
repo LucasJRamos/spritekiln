@@ -119,6 +119,9 @@ def test_package_in_unity(tmp_path):
     assert r['face'] == ['w', 'n', 's', 'e']
     assert r['emissive_child']
     assert r['side'] == ['e', 'w'] and r['side_view'] == 'side'
+    assert r['side_facing'] == ['e', 'w']
+    # the listener's nested Play fires idle's frame 0 first; the windup still reports its own clip
+    assert sorted(r['unity_event_names']) == ['attack:windup', 'idle:step_l']
     shot = game / 'kiln_shot.png'
     if shot.exists():  # the editor had a GPU: mirrored w is exactly e flipped around the pivot
         img = np.asarray(Image.open(shot).convert('RGBA'))

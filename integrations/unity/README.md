@@ -50,6 +50,7 @@ if (kiln.TryGetSocket("strike", out var local, out var depth))
   they glow in dark scenes. Set **Emissive Material** to use your own (an additive one, for example).
 
 For depth sorting in a top-down game, set **Project Settings > Graphics > Transparency Sort Mode** to
-Custom Axis (0, 1, 0) (or the same on the URP 2D Renderer): the sprites' pivot is the ground point.
+Custom Axis (0, 1, 0) (or the same on the URP 2D Renderer). `KilnAnimator` sorts its renderer by the pivot
+(the ground point) and groups the emissive child with it in a Sorting Group.
 
 MIT licensed.

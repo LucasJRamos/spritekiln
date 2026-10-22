@@ -31,10 +31,22 @@ func build_all() -> void:
 	EditorInterface.get_resource_filesystem().scan()
 
 
+## Godot imports the atlases (PNG) but not the JSON: a reimported <name>.png, _normal.png or _emissive.png
+## next to a render JSON (a new drop or a re-render) rebuilds that sprite once.
 func _on_reimported(paths: PackedStringArray) -> void:
+	var sheets := {}
 	for path in paths:
-		if path.ends_with(".json") and KilnBuilder.is_sheet(path):
-			KilnBuilder.build(path)
+		var base := path.get_basename()
+		if path.ends_with(".png"):
+			for suffix in ["_normal", "_emissive"]:
+				if base.ends_with(suffix):
+					base = base.left(base.length() - suffix.length())
+		var json := base + ".json"
+		if (path.ends_with(".png") or path.ends_with(".json")) and FileAccess.file_exists(json):
+			sheets[json] = true
+	for json in sheets:
+		if KilnBuilder.is_sheet(json):
+			KilnBuilder.build(json)
 
 
 func _find_json(dir: String) -> PackedStringArray:
