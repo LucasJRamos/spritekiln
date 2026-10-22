@@ -319,9 +319,10 @@ Next, in the phases below (marked **[side]**):
       the runtimes flip the other (ADR-025).
 - [x] **Generic:** `docs/engines/generic.md` (Phaser, LÖVE, Defold, GameMaker), marked as untested sketches.
 - [x] Tutorials: `docs/engines/godot.md`, `unity.md`, `monogame.md`, `generic.md`.
-- Engine tests are opt-in (`SPRITEKILN_GODOT_BIN`, `SPRITEKILN_UNITY_BIN`, `SPRITEKILN_MONOGAME=1`) and
-  not in CI yet; a Godot job in CI is a candidate for Phase 5.
-- Still to do for the Asset Library listing (Phase 5): a PNG icon and screenshots.
+- Engine tests are opt-in (`SPRITEKILN_GODOT_BIN`, `SPRITEKILN_UNITY_BIN`, `SPRITEKILN_MONOGAME=1`). CI runs
+  the Godot ones headless on Linux (job `godot`, added in Phase 5); Unity needs a license and MonoGame a
+  window, so they stay local.
+- Asset Library listing: icon, screenshots and form text in `integrations/godot/assetlib/` (Phase 5).
 
 **Done when:** each integration has a minimal example that runs and a tutorial.
 

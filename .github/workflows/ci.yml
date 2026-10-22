@@ -79,3 +79,24 @@ jobs:
         with:
           name: dist
           path: dist/
+
+  godot:
+    # the Godot addon and the example project, run headless inside Godot (tests/test_godot_runtime.py)
+    runs-on: ubuntu-latest
+    env:
+      GODOT_VERSION: 4.7.2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+      - name: Download Godot
+        run: |
+          curl -sSLo godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip -d "$RUNNER_TEMP/godot"
+          bin="$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          "$bin" --headless --version   # fails here rather than skipping the tests below
+          echo "SPRITEKILN_GODOT_BIN=$bin" >> "$GITHUB_ENV"
+      - run: python -m pytest tests/test_godot_runtime.py tests/test_godot.py -rs
