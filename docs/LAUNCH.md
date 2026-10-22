@@ -267,8 +267,15 @@ Results (2026-10-21):
   --engine godot --ai codex`, then a real MCP client over stdio calls guide → new (template) → validate →
   pose (image) → render (QA ok) → export, ending with `assets/spritekiln/hero/hero.tscn` and the addon.
 - The MCP server worked on the first run against the SDK 2.3 client; tests pass on Python 3.10 too.
-- The Codex CLI is installed on the dev machine; a run with the real Codex is pending the maintainer's OK
-  (it uses the maintainer's account).
+- Real Codex run (2026-10-21, Codex CLI 0.163, `codex exec -s workspace-write`, maintainer's OK): in an empty
+  Godot project set up with `init --engine godot --ai codex`, the one-line request "a hooded goblin scout,
+  64 px, top-down" ended with an original goblin (hood, ears, pack, blade) in 8 directions, idle/walk/attack
+  rendered (176 frames, QA clean) and exported with the addon, ~64k tokens. Codex read AGENTS.md and the
+  knowledge files and followed the loop (validate, pose in all directions, contact sheets). Findings, both
+  addressed: it regenerated the spec with `yaml.safe_dump` (comments and flow style lost; `workflow.md` now
+  says to edit in place), and the Microsoft Store Python of the test venv cannot be started from Codex's
+  sandbox (it built its own venv with uv; the AI tutorial now says so). Earlier attempts failed only because
+  the project lived under `AppData\Local\Temp`, which the sandbox denies.
 
 ## Side-scroller (`view: side`), added 2026-10-21 at the maintainer's request
 Users choose top-down 3/4 (default) or side-scroller with the same engine and workflow. The evaluation

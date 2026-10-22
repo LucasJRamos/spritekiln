@@ -1,41 +1,45 @@
-# Roadmap do pxforge
+# Roadmap
 
-Estado atual (v0.1): personagens e props por spec YAML → 8 direções, animação por expressão e pose a pose,
-VFX de smear, normal map + emissive, export Aseprite/MonoGame, QA automático, fluxo splash art → modelo,
-skills e agents (Opus), export para Godot 4 (`pxforge godot`: SpriteFrames + CanvasTexture + cena com PxSprite2D).
+**v0.1 (now):** characters and props from YAML specs in 8 directions (top-down 3/4) or a side view;
+animation by expressions and by keys, with events, timing targets and smears; sockets; normal and emissive
+maps; Aseprite-compatible JSON; automatic QA and an art-direction review; splash art → model workflow;
+instructions for coding AIs and an MCP server; Godot, Unity and MonoGame runtimes.
 
-## 1. Cenários e tiles (próxima prioridade)
-Mesmo motor, mesma câmera (pitch 38°, mesma luz), para que chão/paredes casem com os personagens.
-- `kind: tile` com `grid: {w: 1.0, d: 1.0}`: a câmera é travada no tamanho do tile (ex. 32 px de largura
-  = 1 unidade); render de 1 direção.
-- **Tileset de chão por dual-grid (15/16 peças)**: o spec descreve o material A e B (ex. pedra / terra) e
-  uma função de borda; o gerador renderiza as 16 combinações de cantos (máscara 4-bit) e monta a folha.
-  Variações (3–4 por peça) com `noise(seed)` nas expressões para quebrar repetição.
-- **Paredes modulares** (top-down 3/4 mostra topo + face): peças reta, canto interno, canto externo, fim,
-  porta, com altura em unidades; face recebe a mesma luz.
-- **Seamless**: renderizar com margem e recortar ao centro para que as bordas emendem; QA de emenda
-  comparando bordas opostas.
-- Export: atlas + JSON com regras de autotile para o MonoGame (Tiled .tsx opcional).
+Ideas for later versions, roughly in order. Open an issue to discuss one before working on it.
 
-## 2. Props de cenário
-Já funciona com `kind: prop` + `directions: 1` (ou 4/8 para props giráveis). Próximo: biblioteca de
-specs base (tocha, caixão, estátua, porta, grade, lápide, candelabro, baú) e animações simples
-(chama tremulando com `noise`, porta abrindo).
+## 1. Environments and tiles (v0.2)
+Same renderer, same camera and light, so floors and walls match the characters.
+- `kind: tile` with `grid: {w: 1.0, d: 1.0}`: the camera is locked to the tile size (e.g. 32 px wide =
+  1 unit), rendered in one direction.
+- **Dual-grid floor tilesets (15/16 pieces):** the spec describes materials A and B (stone / dirt) and a
+  border function; the generator renders the 16 corner combinations (4-bit mask) and lays out the sheet,
+  with 3–4 variations per piece from `noise(seed)` to break repetition.
+- **Modular walls** (top-down 3/4 shows top and face): straight, inner corner, outer corner, end, door,
+  with a height in units; faces get the same light.
+- **Seamless edges:** render with a margin and crop the centre; a QA check compares opposite edges.
+- **Side view:** platforms, slopes and parallax backgrounds for side-scrollers.
+- Export: atlas + JSON with autotile rules (optional Tiled `.tsx`, Godot TileSet).
 
-## 3. Efeitos (VFX)
-- Primitivas de partícula: `burst` (n esferas emissivas com sementes), `ring` (torus que cresce),
-  `trail` (cone ao longo de uma curva), `beam`.
-- Animações de VFX independentes (impacto, magia, sangue, poeira dos passos) exportadas como atlas
-  próprio com pivô, para o jogo instanciar em eventos (`hit`, `step_l`).
-- Dithering ordenado opcional só para VFX translúcidos (fumaça, névoa).
+## 2. Environment props
+Already works with `kind: prop` and `directions: 1` (or 4/8 for props that turn). Next: a library of base
+specs (torch, coffin, statue, door, gate, gravestone, candelabra, chest) and simple animations (a flame
+flickering with `noise`, a door opening).
 
-## 4. Iluminação
-- O normal map exportado (espaço de câmera) permite luz dinâmica 2D no MonoGame: shader simples
-  `N·L` por luz pontual + emissive aditivo. Feito: `integrations/monogame/KilnLit.fx` + `examples/monogame`.
-- Opção de render "albedo plano" (sem luz assada) para jogos com iluminação totalmente dinâmica.
-- Luzes locais no spec (tocha do próprio personagem) via `light.points`.
+## 3. Effects (VFX)
+- Particle primitives: `burst` (n seeded emissive spheres), `ring` (a growing torus), `trail` (a cone along
+  a curve), `beam`.
+- Stand-alone VFX animations (impact, magic, blood, footstep dust) exported as their own atlas with a pivot,
+  for the game to spawn on events (`hit`, `step_l`) at sockets.
+- Optional ordered dithering for translucent VFX only (smoke, fog).
 
-## 5. Ferramenta / UX
-- `pxforge watch`: re-renderiza o `pose` ao salvar o YAML (loop rápido para editar à mão).
-- Visualizador HTML local (animação, direção, zoom, fundo, onion skin) lendo o JSON exportado.
-- Velocidade: cache por parte e numba opcional (5–10×) para personagens de 128 px.
+## 4. Lighting
+- Done in v0.1: dynamic 2D light through the normal map in MonoGame (`integrations/monogame/KilnLit.fx`),
+  Godot (`CanvasTexture`) and Unity (`_NormalMap`).
+- A "flat albedo" render (no baked light) for games lit entirely at run time.
+- Local lights in the spec (a character's own torch) through `light.points`.
+
+## 5. Tool and workflow
+- `spritekiln watch`: re-render `pose` when the YAML is saved (a fast loop for hand editing).
+- A local HTML viewer (animation, direction, zoom, background, onion skin) reading the exported JSON.
+- Speed: per-part caching and optional numba (5–10×) for 128 px characters.
+- More engines with ready runtimes (Phaser, Defold, Bevy) on top of the generic guide.

@@ -1,0 +1,76 @@
+name: Release
+
+# Push a tag like v0.1.0 to publish: the version in spritekiln/__init__.py (and the Godot plugin.cfg, Unity
+# package.json) must match it. PyPI publishing uses trusted publishing: the "pypi" environment of this
+# repository must be registered as a publisher of the spritekiln project on pypi.org.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Versions match the tag
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          python - "$tag" <<'PY'
+          import json, re, sys
+          tag = sys.argv[1]
+          found = {
+              'spritekiln/__init__.py': re.search(r"__version__ = '([^']+)'", open('spritekiln/__init__.py').read())[1],
+              'plugin.cfg': re.search(r'^version="([^"]+)"', open('integrations/godot/addons/spritekiln/plugin.cfg').read(), re.M)[1],
+              'package.json': json.load(open('integrations/unity/package.json'))['version'],
+          }
+          bad = {k: v for k, v in found.items() if v != tag}
+          sys.exit(f'versions do not match tag {tag}: {bad}' if bad else 0)
+          PY
+      - run: python -m pip install build
+      - run: python -m build
+      - run: python tools/package_godot_addon.py --out dist-addon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: godot-addon
+          path: dist-addon/
+
+  pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+      - name: Release with the wheel, sdist and the Godot addon zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=$(awk '/^## /{n++} n==1' CHANGELOG.md | tail -n +2)
+          gh release create "$GITHUB_REF_NAME" artifacts/dist/* artifacts/godot-addon/* \
+            --title "SpriteKiln $GITHUB_REF_NAME" --notes "$notes"

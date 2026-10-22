@@ -1,60 +1,120 @@
-# pxforge
+<p align="center">
+  <img src="showcase/huntress/from_this_to_this.png" alt="A splash art of a gunslinger next to her pixel-art sprite in 8 directions" width="100%">
+</p>
 
-Modelos 3D procedurais (SDF) descritos em YAML → **pixel art animada em 8 direções** (top-down 3/4),
-com paleta limitada com hue shift, contorno seletivo, linhas internas e limpeza de pixels. Feito para
-ser operado por agentes do Claude (Opus) — veja `CLAUDE.md` e `.claude/`.
+# SpriteKiln
 
-## Instalar
+**Animated pixel-art sprites from procedural 3D models, made to be driven by coding AIs.**
+
+A character is a small YAML file: a skeleton, smooth 3D shapes, materials and animations. SpriteKiln renders
+it into pixel art in 8 directions (top-down 3/4) or in profile (side view), with exact frame timing,
+gameplay events, attachment points, a normal map for dynamic light and an emissive layer, ready for Godot,
+Unity, MonoGame or any engine that reads Aseprite sheets.
+
+You do not have to write the YAML. Your coding assistant (Claude Code, Codex, Gemini, Copilot, Cursor) does,
+from a description or a splash art: it edits the spec, renders, **looks at the images** and fixes what it
+sees. You direct.
+
+<p align="center">
+  <img src="showcase/huntress/turnaround.gif" alt="The Huntress idling in 8 directions" height="220">
+  <img src="showcase/templar/turnaround.gif" alt="The Templar idling in 8 directions" height="220">
+</p>
+
+## Why
+- **Consistent by construction.** One camera, one light and one palette for every asset, in every
+  direction and frame. No drift between the north-east walk and the south-west attack.
+- **Cheap to change.** "Make the hat bigger" or "slow down the windup" is a one-line edit, not a redraw of
+  300 frames.
+- **Game-ready.** Per-frame durations, events (`hit`, `step_l`, `windup`) on the right frame, sockets
+  (muzzles, hands, impact points), the pivot on the ground for y-sorting, normal and emissive maps.
+- **Made for AIs.** One set of instructions for every assistant, an MCP server whose tools return images,
+  a JSON Schema for the spec, errors with `file:line:column`, and an art-direction review in numbers for
+  assistants that cannot see.
+- **Pure Python.** numpy, Pillow and PyYAML; no GPU, no Blender.
+
+## Quick start
+
 ```
-pip install -e .            # numpy, pillow, pyyaml; extras: .[splash] (rembg), .[dev] (pytest, ruff)
+pip install spritekiln
+spritekiln new knight                                   # specs/characters/knight/knight.yaml, from the template
+spritekiln render specs/characters/knight/knight.yaml   # atlas, JSON, maps, GIFs -> specs/characters/knight/out/knight/
 ```
 
-## Usar
-```
-python -m pxforge validate specs/characters/gargula/gargula.yaml
-python -m pxforge pose     specs/characters/gargula/gargula.yaml --dirs all
-python -m pxforge render   specs/characters/gargula/gargula.yaml            # 8 dir × idle/walk/attack
-python -m pxforge new      minha_heroina --ref caminho/splash.png
-python -m pxforge ref prep specs/characters/minha_heroina/splash.png
-python -m pxforge ref compare specs/characters/minha_heroina/minha_heroina.yaml specs/characters/minha_heroina/splash.png --dir se
-```
-Saídas em `specs/characters/<nome>/out/<nome>/`: atlas PNG, JSON (Aseprite + bloco pxforge), normal map,
-emissive, GIFs, contact sheets e `qa.json`.
+Then hand it to your assistant: *"Turn this knight into a hooded goblin scout with a short sword. Check
+all 8 directions before rendering."* See [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md)
+to set up a game project (`spritekiln init --engine godot --ai claude`).
 
-## Com o Claude Code (Opus)
-Abra esta pasta no Claude Code e peça, por exemplo:
-- "Crie o modelo desta splash art (anexo) e anime idle, walk e attack."
-- "A gárgula está muito magra na vista ne; corrija e renderize de novo."
-Skills: `pxforge`, `pxforge-splash-to-model`, `pxforge-animation`. Agentes: `character-modeler`, `animator`,
-`pixel-art-director` (todos `model: opus`).
+## How it works
 
-## Godot 4
 ```
-python -m pxforge godot specs/characters/gargula/gargula.yaml --project D:/GameProjects/tower-hunt   # ou render ... --godot
+spec.yaml ──► skeleton + IK ──► SDF shapes ──► raymarched render ──► pixelize ──► atlas + JSON
+ (bones,      (expressions per   (spheres,      (colour, normals,     (palette ramps,   + normal map
+  shapes,      frame: cycles,     capsules,      depth, materials;     outlines, clean   + emissive map
+  materials,   keys, events)      boxes, cones,  3x supersampled,      single pixels)    + GIFs, QA
+  animations)                     smooth unions) fixed world light)                      -> your engine
 ```
-Gera `assets/pxforge/<nome>/`: atlas + JSON, `<nome>.tres` (SpriteFrames, clips `<anim>_<dir>`, duração
-exata por frame), `<nome>_lit.tres` (CanvasTexture + normal map para Light2D), `<nome>_emissive.tres` e
-`<nome>.tscn` com o node `PxSprite2D` (`integrations/godot/addons/pxforge`, instalado automaticamente):
-`play_anim`, `face(velocity)`, sinais `px_event(anim, evento)` e `px_finished(anim)`.
 
-## MonoGame
-`integrations/monogame/KilnSprite.cs`: `KilnSheet.Load(...)` + `KilnAnimator` (8 direções a partir do vetor de
-movimento, durações por frame, eventos `hit`/`step_l`..., sockets, direções espelhadas) e `KilnLit.fx` (luz
-com normal map). Exemplo em `examples/monogame`; guia em `docs/engines/monogame.md`.
+The light is fixed in the world and the model turns, so shading stays coherent across directions. Every
+render writes a QA report (clipping, palette, silhouette stability) and contact sheets to review.
 
-## Estrutura
-```
-pxforge/        sdf · expr · spec · rig · anim · render · pixelize · palette · ref · qa · export · pipeline · cli
-specs/          palettes/ · templates/humanoid.yaml · characters/gargula · characters/cacador
-.claude/        skills/ (pxforge, pxforge-splash-to-model, pxforge-animation) · agents/
-docs/ROADMAP.md tiles, props, VFX, iluminação
-legacy/         primeira versão (scripts da gárgula 4 direções), só referência
-```
+## Features
+- **Modeling:** bones with expressions (`"0.045*sin(p)"`), 2-bone IK, smooth SDF primitives, mirrored
+  `_L`/`_R` parts, materials with palette ramps, emissive and glow, two-sided membranes, conditional parts.
+- **Animation:** cycles from expressions or keyframes with per-frame timing, tweens and easing, smears,
+  per-direction cheats, events, timing targets checked by `validate` (e.g. "impact at 300 ms").
+- **Views:** top-down 3/4 in 8 (or 4, or 1) directions, or a side view for platformers (`view: side`);
+  `mirror: true` renders half the directions for symmetric designs.
+- **From a splash art:** `ref prep` cuts the character out and extracts its palette; `ref compare` scores
+  the silhouette against the model (pitch-corrected IoU) and says what to change.
+- **Review:** `spritekiln review` measures value range, contrast, pixels per material and legibility, and
+  previews the sprite over your game's floor (`--bg`) under its light (`--tint`).
+- **Output:** atlas, normal and emissive maps, Aseprite-compatible JSON ([format](docs/format.md)), sockets
+  per frame, GIFs and contact sheets.
+
+## Engines
+
+| Engine | What you get | Guide |
+|---|---|---|
+| **Godot 4** | `KilnSprite2D` node, SpriteFrames and a ready scene; an editor plugin builds them from a dropped JSON | [godot.md](docs/engines/godot.md) · [example](examples/godot) |
+| **Unity 2022.3+** | UPM package: `.kiln` importer (sprites, normal map, AnimationClips) and `KilnAnimator` | [unity.md](docs/engines/unity.md) |
+| **MonoGame** | `KilnSprite.cs` runtime and the `KilnLit.fx` normal-mapped light shader | [monogame.md](docs/engines/monogame.md) · [example](examples/monogame) |
+| **Anything else** | Aseprite-compatible JSON: Phaser, LÖVE, Defold, GameMaker... | [generic.md](docs/engines/generic.md) |
+
+All runtimes play the same way: exact durations, events on the frame they belong to, sockets, the direction
+nearest to a velocity, mirrored directions.
+
+## AI assistants
+
+| Assistant | Instructions | MCP tools |
+|---|---|---|
+| Claude Code | `CLAUDE.md`, skills, and modeler / animator / art-director agents | `.mcp.json` |
+| Codex | `AGENTS.md` | `~/.codex/config.toml` |
+| Gemini CLI | `GEMINI.md` | `.gemini/settings.json` |
+| GitHub Copilot | `.github/copilot-instructions.md` | `.vscode/mcp.json` |
+| Cursor | `.cursor/rules/spritekiln.mdc` | `.cursor/mcp.json` |
+
+`spritekiln init --ai claude,codex,...` writes them from one source ([`docs/agent/`](docs/agent)). The
+recipe for a new character from a splash art: a modeler builds the shape, an art director reviews it
+against the art, the modeler fixes, an animator animates, the director reviews again
+([recipe.md](docs/agent/recipe.md)).
+
+## Showcase
+The Templar and the Huntress were made with SpriteKiln for the game **Hunt Tower**, from their splash arts,
+by Claude Code following the recipe above. Their specs are in `specs/characters/`; more images, animations
+and in-game captures are in [`showcase/`](showcase).
+
+## Learn more
+- [Your first character in 10 minutes](docs/tutorials/first-character.md)
+- [From your splash art, with an AI](docs/tutorials/splash-art.md)
+- [Animations and events](docs/tutorials/animations.md)
+- [A platformer character (side view)](docs/tutorials/platformer.md)
+- [Spec reference](docs/agent/spec.md) · [Output format](docs/format.md) · [Roadmap](docs/ROADMAP.md)
+- [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Leia em português](README.pt-BR.md)
 
 ## License
-Code, docs and integrations: [MIT](LICENSE). Example assets (gargoyle, cacador, the crates/gas lamp/
-training dummy props, the humanoid template, the gothic/props palettes): [CC0 1.0](LICENSES/CC0-1.0.txt).
-Showcase assets (Templar and Huntress from Hunt Tower, with the Huntress's mine: specs, splash arts,
-palettes, renders): © 2026 Lucas Ramos / PlayRPG, all rights reserved, included for demonstration only
-([terms](LICENSES/LicenseRef-Showcase.txt)).
+Code, docs and integrations: [MIT](LICENSE). Example assets (the gargoyle, the hunter, the crates, gas lamp
+and training dummy props, the templates, the gothic and props palettes, the examples' sprites):
+[CC0 1.0](LICENSES/CC0-1.0.txt). Showcase assets (Templar and Huntress from Hunt Tower, with the Huntress's
+mine: specs, splash arts, palettes, renders and game captures): © 2026 Lucas Ramos / PlayRPG, all rights
+reserved, included for demonstration only ([terms](LICENSES/LicenseRef-Showcase.txt)).
 [`REUSE.toml`](REUSE.toml) maps every path to its license.

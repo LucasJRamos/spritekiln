@@ -27,7 +27,9 @@ If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or t
 ## The loop (always)
 1. **Read** the spec and its `brief:`. No spec yet: `spritekiln new <name>` (humanoid template), or start
    from a similar spec (the gargoyle in this repository is a good base for creatures).
-2. **Edit** a little at a time: one part or one key.
+2. **Edit** a little at a time: one part or one key. Edit the YAML as text, in place: its comments explain
+   the model and the compact `{...}` style keeps it readable. Never regenerate a spec with a YAML dumper
+   or a script.
 3. **`validate`** and fix until OK. Warnings matter too: an unknown key ("did you mean pitch?") is ignored
    by the renderer, so a typo silently does nothing.
 4. **`pose --dirs all` and look at the image.** Check the silhouette in s, e, n and a diagonal. If you

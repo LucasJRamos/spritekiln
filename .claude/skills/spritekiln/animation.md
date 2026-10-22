@@ -45,8 +45,8 @@ missing (a cape that should sway), add a channel, use it in the bone or part exp
 
 ## Events, timing and sockets (gameplay contract)
 - Mark events: `windup` on the anticipation, `hit` on the impact, `release` when a projectile or item
-  leaves, `step_l`/`step_r` on contacts. They go to the JSON; engines emit them (`px_event` in Godot,
-  `OnEvent` in MonoGame).
+  leaves, `step_l`/`step_r` on contacts. They go to the JSON; the runtimes emit them (`anim_event` in
+  Godot, or `px_event` in the older `PxSprite2D`; `EventFired` in Unity; `OnEvent` in MonoGame).
 - **When an event fires:** at the start of its frame, i.e. the sum of the durations before it. An event on
   frame 0 fires when the clip starts.
 - **Timing targets:** when the game expects a moment (`release` at 2 frames, total 7 frames at 60 fps),

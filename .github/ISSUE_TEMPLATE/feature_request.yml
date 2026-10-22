@@ -1,0 +1,16 @@
+name: Feature request
+description: An idea for SpriteKiln
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to make, and what gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: How it could work. Images of the effect you want help a lot.
