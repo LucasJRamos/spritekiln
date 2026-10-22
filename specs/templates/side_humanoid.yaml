@@ -1,0 +1,339 @@
+spritekiln: 1
+name: TEMPLATE
+kind: character
+view: side                      # profile camera (pitch 0), directions e and w, no ground shadow
+mirror: false                   # true renders only e (engines flip it): the sword swaps hands, the light flips
+size: 64
+palette: gothic                 # built-in palette (or a path, or a list)
+camera: {scale: 0.040, center: [0, 0.95, 0]}
+
+# Side-scroller humanoid template (light chibi proportions: head 1.25x) with a platformer clip set.
+# Copy with `spritekiln new NAME --template side_humanoid`. Same skeleton as `humanoid`; in profile the
+# silhouette is what reads, so the sword blade, the coat hem and the smear are set up for it (see comments).
+# In `e` the sword arm is the near one, in `w` the far one. Jumps are in place: the game moves the
+# character, `root` only nudges the body inside the frame. Swap materials/palette and resculpt the parts.
+brief:
+  summary: generic side-scroller humanoid (hunter with a sword)
+  must_keep: []
+  simplify: []
+
+materials:
+  skin:  {ramp: skin}
+  cloth: {ramp: cloth}
+  hair:  {ramp: bone, bands: [1, 2]}
+  steel: {ramp: steel}
+  leather: {ramp: bone, bands: [1, 3]}
+  ink:   {ramp: cloth, emissive: true, band: 0, outline: false}
+  fx_tail: {ramp: fx_tail, emissive: true}
+  fx_mid:  {ramp: fx_mid, emissive: true}
+  fx_core: {ramp: fx_core, emissive: true}
+
+channels:
+  root: [0, 0, 0]
+  bob: 0
+  lean: 0.05
+  twist: 0
+  roll: 0
+  squash: 1
+  head_pitch: 0
+  head_yaw: 0
+  hand_L: [0.33, 0.06, 0.06]
+  foot_L: [0.13, 0, 0.02]
+  pitch_foot_L: 0
+  coat: 0           # coat hem sway (+ forward, - trailing back)
+  sword_pitch: 0    # blade rotation at the wrist, in the profile plane (+ = tip toward the forearm)
+  smear_w: 0
+  smear_a0: 0       # smear angles in the profile plane: 0 = forward, pi/2 = up, -pi/2 = down
+  smear_a1: 0
+  smear_r: 0.80
+  smear_y: 1.15     # arc centre, about the shoulder (root space)
+  smear_z: 0.10
+  smear_fade: 1
+
+bones:
+  torso_rot: {parent: root, pos: "[0, 0.84 + bob, 0]", rot: "[lean, twist, roll]"}
+  pelvis:    {parent: torso_rot, scale: "[1/sqrt(squash), squash, 1/sqrt(squash)]"}
+  headbase:  {parent: pelvis, pos: [0, 0.70, 0.02], inherit_rot: false, inherit_scale: false,
+              rot: "[lean*0.5, twist, roll]"}
+  head:      {parent: headbase, rot: "[head_pitch, head_yaw, 0]", scale: 1.25}
+  shoulder_L: {parent: pelvis, pos: [0.27, 0.55, 0.0]}
+  hip_L:      {parent: pelvis, pos: [0.12, -0.02, 0.0]}
+  legyaw:     {parent: root, rot: "[0, twist*0.5, 0]"}
+  footyaw:    {parent: root, rot: "[0, twist*0.4, 0]"}
+  sole_L:     {parent: footyaw, at: ankle_L, rot: "[pitch_foot_L, 0.08, 0]"}
+  coatbase:   {parent: pelvis, rot: "[-coat*0.25, 0, 0]"}
+  swordgrip:  {parent: wrist_R, rot: "[sword_pitch, 0, 0]"}   # lets a windup cock the blade back
+  # side view: the smear arc turned into the profile plane (vertical slashes read; flat ones are edge-on)
+  fxspace:    {parent: root, pos: "[-0.20, smear_y, smear_z]", rot: "[0, 0, pi/2]"}   # x: sword side
+
+ik:
+  arm_L: {start: shoulder_L, space: torso_rot, target: hand_L, lengths: [0.29, 0.27],
+          pole: [0.3, 0.0, -1.0], pole_space: torso_rot, up: [0, 0, 1], joint: elbow_L, end: wrist_L}
+  leg_L: {start: hip_L, space: root, target: "foot_L + [0, 0.08, -0.02]", lengths: [0.42, 0.40],
+          pole: [0.1, 0, 1.0], pole_space: legyaw, joint: knee_L, end: ankle_L}
+
+parts:
+  torso:
+    material: cloth
+    space: pelvis
+    blend: 0.06
+    prims:
+      - ellipsoid: {c: [0, 0.04, 0], r: [0.19, 0.13, 0.14]}
+      - ellipsoid: {c: [0, 0.25, 0.0], r: [0.18, 0.16, 0.13]}
+      - ellipsoid: {c: [0, 0.45, 0.0], r: [0.25, 0.16, 0.15]}
+  coat:            # coat hem: open cone from the hip down
+    material: cloth
+    space: coatbase
+    blend: 0.03
+    prims:
+      - cone: {a: [0, 0.05, -0.01], b: [0, -0.32, -0.04], r: [0.20, 0.23]}
+    cut:
+      - cone: {a: [0, -0.10, 0.20], b: [0, -0.45, 0.30], r: [0.06, 0.16]}   # front opening
+      - box: {c: [0, -0.56, 0], half: [0.4, 0.16, 0.4]}   # side view: flat hem at knee height (round reads as a sack)
+  belt:
+    material: leather
+    space: pelvis
+    prims:
+      - cylinder: {a: [0, 0.10, 0], b: [0, 0.155, 0], r: 0.195}
+  neck:
+    material: skin
+    space: pelvis
+    prims:
+      - cone: {a: [0, 0.56, 0], b: [0, 0.70, 0.02], r: [0.07, 0.065]}
+  head:
+    material: skin
+    space: head
+    blend: 0.05
+    prims:
+      - ellipsoid: {c: [0, 0.14, 0.0], r: [0.15, 0.16, 0.15]}
+      - ellipsoid: {c: [0, 0.07, 0.04], r: [0.11, 0.09, 0.11]}
+      - sphere: {c: [0, 0.11, 0.15], r: 0.025}
+  hair:
+    material: hair
+    space: head
+    blend: 0.04
+    prims:
+      - ellipsoid: {c: [0, 0.225, -0.03], r: [0.162, 0.10, 0.160]}
+      - ellipsoid: {c: [0, 0.14, -0.09], r: [0.152, 0.12, 0.09]}
+      - ellipsoid: {c: [0, 0.24, 0.09], r: [0.13, 0.05, 0.07]}     # bangs
+  eye_L:
+    material: ink
+    space: head
+    prims:
+      - sphere: {c: [0.058, 0.12, 0.14], r: 0.032}
+  arm_L:
+    material: cloth
+    blend: 0.03
+    prims:
+      - sphere: {c: "@shoulder_L", r: 0.085}
+      - cone: {a: "@shoulder_L", b: "@elbow_L", r: [0.075, 0.06]}
+      - cone: {a: "@elbow_L", b: "@wrist_L", r: [0.06, 0.05]}
+  hand_L:
+    material: skin
+    space: wrist_L
+    prims:
+      - sphere: {c: [0, 0, 0.04], r: 0.055}
+  leg_L:
+    material: cloth
+    blend: 0.03
+    prims:
+      - cone: {a: "@hip_L", b: "@knee_L", r: [0.095, 0.07]}
+      - cone: {a: "@knee_L", b: "@ankle_L", r: [0.07, 0.055]}
+  boot_L:
+    material: leather
+    space: sole_L
+    blend: 0.03
+    prims:
+      - cone: {a: [0, 0.10, 0], b: [0, -0.02, 0.0], r: [0.065, 0.065]}
+      - ellipsoid: {c: [0, -0.04, 0.05], r: [0.065, 0.045, 0.11]}
+  sword:           # right hand only (no _L => not mirrored)
+    material: steel
+    space: swordgrip
+    prims:         # side view: blade flat and guard turned into the profile plane (edge-on they break up)
+      - box: {c: [0, 0.26, 0.19], half: [0.010, 0.24, 0.026], rot: [0.52, 0, 0]}   # tilted blade
+      - box: {c: [0, 0.048, 0.068], half: [0.02, 0.013, 0.065], rot: [0.52, 0, 0]}
+  grip:
+    material: leather
+    space: swordgrip
+    prims:
+      - cylinder: {a: [0, -0.05, 0.01], b: [0, 0.04, 0.06], r: 0.021}
+  smear:
+    when: "smear_w > 0"
+    materials: [fx_tail, fx_mid, fx_core]
+    space: fxspace
+    prims:
+      - arc: {c: [0, 0, 0], r: smear_r, a0: smear_a0, a1: smear_a1, width: smear_w, fade: smear_fade, dip: 0.10}
+
+animations:
+  idle:            # ready stance, feet apart so both read in profile
+    frames: 6
+    ms: 150
+    channels:
+      bob: "-0.02 + 0.025*sin(p)"
+      squash: "1 + 0.015*sin(p)"
+      head_pitch: "-0.04*sin(p - 0.5)"
+      foot_L: [0.13, 0, 0.12]
+      foot_R: [0.13, 0, -0.08]
+      hand_L: "[0.33, 0.06 + 0.02*sin(p - 0.6), 0.06]"
+      hand_R: "[0.30, 0.10 + 0.02*sin(p - 0.6), 0.16]"
+      coat: "0.15*sin(p - 1.0)"
+  run:             # in place; phase warp p + 0.4*(1 - cos p): short stance (~3 frames), long swing
+    frames: 8
+    ms: 80
+    events: {0: step_l, 4: step_r}
+    channels:
+      lean: "0.30 + 0.03*sin(2*p)"
+      bob: "-0.05 - 0.04*sin(2*p)"
+      twist: "0.08*cos(p)"
+      foot_L: "[0.13, 0.28*pos(-sin(p + 0.4 - 0.4*cos(p))), 0.04 + 0.31*cos(p + 0.4 - 0.4*cos(p))]"
+      foot_R: "[0.13, 0.28*pos(sin(p + 0.4 + 0.4*cos(p))), 0.04 - 0.31*cos(p + 0.4 + 0.4*cos(p))]"
+      pitch_foot_L: "0.9*pos(-sin(p + 1.0 - 0.4*cos(p)))"
+      pitch_foot_R: "0.9*pos(sin(p + 1.0 + 0.4*cos(p)))"
+      hand_L: "[0.30, 0.31 - 0.08*cos(p - 0.3), 0.07 - 0.20*cos(p - 0.3)]"
+      hand_R: "[0.28, 0.24 + 0.06*cos(p - 0.3), 0.12 + 0.16*cos(p - 0.3)]"
+      head_pitch: "-0.18 + 0.03*sin(2*p)"
+      coat: "-1.0 + 0.3*sin(2*p - 1.0)"
+  jump:            # take-off: anticipation crouch (longest key), stretch as the feet leave
+    loop: false
+    keys:
+      - {ms: 70, set: {bob: -0.10, squash: 0.93, lean: 0.22, head_pitch: 0.05, coat: 0.2,
+                       foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08],
+                       hand_L: [0.30, 0.10, -0.12], hand_R: [0.28, 0.12, -0.02]}}
+      - {ms: 110, set: {bob: -0.18, squash: 0.86, lean: 0.35, head_pitch: 0.12, coat: 0.4,
+                        foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08],
+                        hand_L: [0.30, 0.12, -0.28], hand_R: [0.28, 0.14, -0.20]}}
+      - ms: 80
+        event: takeoff
+        set: {root: [0, 0.06, 0], bob: 0.04, squash: 1.08, lean: 0.0, head_pitch: -0.15, coat: -0.6,
+              foot_L: [0.13, 0.0, 0.06], foot_R: [0.13, 0.0, -0.06], pitch_foot_L: 0.8, pitch_foot_R: 0.8,
+              hand_L: [0.30, 0.52, 0.36], hand_R: [0.28, 0.46, 0.36]}
+      - {ms: 100, set: {root: [0, 0.06, 0], bob: 0.04, squash: 1.05, lean: 0.10, head_pitch: -0.12, coat: -0.8,
+                        foot_L: [0.13, 0.30, 0.12], foot_R: [0.13, 0.12, -0.10], pitch_foot_L: 0.4, pitch_foot_R: 0.7,
+                        hand_L: [0.30, 0.62, 0.16], hand_R: [0.28, 0.46, 0.26]}}
+  rise:            # going up: front knee high, arms up (the game picks it while moving up)
+    frames: 2
+    ms: 100
+    channels:
+      root: [0, 0.06, 0]
+      bob: 0.04
+      squash: "1.05 + 0.02*cos(p)"
+      lean: 0.10
+      head_pitch: -0.12
+      foot_L: "[0.13, 0.31 + 0.03*cos(p), 0.13]"
+      foot_R: [0.13, 0.12, -0.10]
+      pitch_foot_L: 0.4
+      pitch_foot_R: "0.7 + 0.1*cos(p)"
+      hand_L: "[0.30, 0.62 + 0.04*cos(p), 0.16]"
+      hand_R: "[0.28, 0.46 + 0.04*cos(p), 0.26]"
+      coat: "-0.8 + 0.4*cos(p)"
+  fall:            # going down: arms and the back leg trail up, front leg reaches for the ground
+    frames: 2
+    ms: 100
+    channels:
+      root: [0, 0.06, 0]
+      bob: 0.02
+      squash: 1.0
+      lean: 0.08
+      head_pitch: 0.10
+      foot_L: "[0.13, 0.06 + 0.02*cos(p), 0.16]"
+      foot_R: "[0.13, 0.30 + 0.03*cos(p), -0.20]"
+      pitch_foot_L: 0.3
+      pitch_foot_R: 0.6
+      hand_L: "[0.34, 0.66 + 0.04*cos(p), 0.36]"
+      hand_R: "[0.34, 0.62 + 0.04*cos(p), -0.38]"
+      sword_pitch: 1.8
+      coat: "-0.4 + 0.5*cos(p)"
+  land:            # squash on contact (event on frame 0), settle back to the idle stance
+    loop: false
+    keys:
+      - ms: 70
+        event: land
+        set: {bob: -0.20, squash: 0.84, lean: 0.35, head_pitch: 0.15, coat: 0.8,
+              foot_L: [0.13, 0, 0.16], foot_R: [0.13, 0, -0.12],
+              hand_L: [0.32, 0.25, 0.30], hand_R: [0.30, 0.22, 0.32]}
+      - {ms: 90, set: {bob: -0.14, squash: 0.90, lean: 0.28, head_pitch: 0.08, coat: 0.4,
+                       foot_L: [0.13, 0, 0.15], foot_R: [0.13, 0, -0.11],
+                       hand_L: [0.32, 0.15, 0.20], hand_R: [0.30, 0.15, 0.25]}}
+      - {ms: 100, set: {bob: -0.04, squash: 1.02, lean: 0.10, coat: -0.1,
+                        foot_L: [0.13, 0, 0.13], foot_R: [0.13, 0, -0.09],
+                        hand_L: [0.33, 0.08, 0.08], hand_R: [0.30, 0.10, 0.18]}}
+      - {ms: 110, set: {bob: -0.02, foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08], hand_R: [0.30, 0.10, 0.16]}}
+  crouch:          # duck; the game holds the last frame
+    loop: false
+    keys:
+      - {ms: 60, set: {bob: -0.12, squash: 0.94, lean: 0.18, coat: 0.2,
+                       foot_L: [0.13, 0, 0.14], foot_R: [0.13, 0.02, -0.12], pitch_foot_R: 0.3,
+                       hand_L: [0.33, 0.10, 0.10], hand_R: [0.30, 0.12, 0.20]}}
+      - {ms: 80, set: {bob: -0.31, squash: 0.88, lean: 0.32, head_pitch: 0.05, coat: 0.3,
+                       foot_L: [0.13, 0, 0.14], foot_R: [0.13, 0.06, -0.14], pitch_foot_R: 0.6,
+                       hand_L: [0.30, 0.02, 0.26], hand_R: [0.28, 0.06, 0.30]}}
+      - {ms: 150, set: {bob: -0.28, squash: 0.91, lean: 0.28, coat: 0.2,
+                        foot_L: [0.13, 0, 0.14], foot_R: [0.13, 0.06, -0.14], pitch_foot_R: 0.6,
+                        hand_L: [0.30, 0.04, 0.24], hand_R: [0.28, 0.08, 0.28]}}
+  attack:          # overhead slash: cocked back (windup), smear over the top, follow-through low
+    loop: false
+    keys:
+      - {ms: 90, set: {lean: -0.05, bob: -0.04, squash: 0.96, head_pitch: -0.05, coat: -0.2,
+                       foot_L: [0.13, 0, 0.16], foot_R: [0.13, 0, -0.12],
+                       hand_L: [0.30, 0.30, 0.22], hand_R: [0.30, 0.42, -0.24], sword_pitch: 2.5}}
+      - ms: 150
+        event: windup
+        set: {lean: -0.12, bob: -0.06, squash: 0.94, head_pitch: -0.08, coat: -0.35,
+              foot_L: [0.13, 0, 0.16], foot_R: [0.13, 0, -0.12],
+              hand_L: [0.30, 0.32, 0.26], hand_R: [0.26, 0.76, -0.24], sword_pitch: 2.0}
+      - ms: 50
+        set: {root: [0, 0, 0.10], lean: 0.30, bob: -0.03, squash: 1.06, coat: 0.5,
+              foot_L: [0.13, 0, 0.26], foot_R: [0.13, 0, -0.14],
+              hand_L: [0.30, 0.10, -0.10], hand_R: [0.18, 0.90, 0.36], sword_pitch: 1.7,
+              smear_a0: 2.4, smear_a1: 0.7, smear_w: 0.09}
+      - ms: 80
+        event: hit
+        set: {root: [0, 0, 0.14], lean: 0.42, bob: -0.07, coat: 0.7,
+              foot_L: [0.13, 0, 0.28], foot_R: [0.13, 0, -0.14],
+              hand_L: [0.30, 0.06, -0.16], hand_R: [0.14, 0.28, 0.48], sword_pitch: 0.6,
+              smear_a0: 1.8, smear_a1: -0.4, smear_w: 0.10}
+      - ms: 100
+        set: {root: [0, 0, 0.13], lean: 0.48, bob: -0.09, squash: 0.97, coat: 0.4,
+              foot_L: [0.13, 0, 0.28], foot_R: [0.13, 0, -0.14],
+              hand_L: [0.30, 0.06, -0.14], hand_R: [0.16, -0.04, 0.32], sword_pitch: 0.4,
+              smear_a0: 0.6, smear_a1: -1.0, smear_w: 0.06, smear_fade: 0.7}
+      - {ms: 120, set: {root: [0, 0, 0.07], lean: 0.25, bob: -0.05, coat: 0.1,
+                        foot_L: [0.13, 0, 0.20], foot_R: [0.13, 0, -0.10],
+                        hand_L: [0.32, 0.06, 0.0], hand_R: [0.26, 0.06, 0.20], sword_pitch: 0.1}}
+      - {ms: 130, set: {bob: -0.02, foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08], hand_R: [0.30, 0.10, 0.16]}}
+  hurt:            # knocked back, recoil, recover
+    loop: false
+    keys:
+      - {ms: 70, set: {root: [0, 0, -0.08], lean: -0.25, bob: -0.03, squash: 0.94, head_pitch: -0.25, coat: 0.6,
+                       foot_L: [0.13, 0.04, 0.16], foot_R: [0.13, 0, -0.10],
+                       hand_L: [0.36, 0.40, 0.20], hand_R: [0.34, 0.36, 0.28]}}
+      - {ms: 90, set: {root: [0, 0, -0.10], lean: -0.15, bob: -0.08, squash: 0.92, head_pitch: 0.05, coat: 0.3,
+                       foot_L: [0.13, 0, 0.14], foot_R: [0.13, 0, -0.10],
+                       hand_L: [0.34, 0.20, 0.16], hand_R: [0.32, 0.18, 0.24]}}
+      - {ms: 90, set: {root: [0, 0, -0.05], lean: 0.0, bob: -0.04, squash: 0.98,
+                       foot_L: [0.13, 0, 0.13], foot_R: [0.13, 0, -0.09], hand_R: [0.30, 0.12, 0.18]}}
+      - {ms: 90, set: {bob: -0.02, foot_L: [0.13, 0, 0.12], foot_R: [0.13, 0, -0.08], hand_R: [0.30, 0.10, 0.16]}}
+  death:           # hit, stagger, knees buckle, fall on the back; the last frame is held
+    loop: false
+    keys:
+      - {ms: 90, set: {root: [0, 0, -0.06], lean: -0.30, squash: 0.95, head_pitch: -0.30, coat: 0.6,
+                       foot_L: [0.13, 0.04, 0.16], foot_R: [0.13, 0, -0.10],
+                       hand_L: [0.36, 0.42, 0.22], hand_R: [0.34, 0.38, 0.28]}}
+      - {ms: 110, set: {root: [0, 0, -0.10], lean: -0.40, bob: -0.08, head_pitch: -0.20, coat: 0.5,
+                        foot_L: [0.13, 0.08, 0.20], foot_R: [0.13, 0, -0.12],
+                        hand_L: [0.38, 0.30, 0.10], hand_R: [0.36, 0.20, 0.15]}}
+      - {ms: 110, set: {root: [0, 0, -0.04], lean: -0.55, bob: -0.25, squash: 0.92, head_pitch: 0.15, coat: 0.5,
+                        foot_L: [0.13, 0.04, 0.28], foot_R: [0.13, 0, 0.08],
+                        hand_L: [0.36, 0.10, 0.12], hand_R: [0.34, 0.06, 0.20], sword_pitch: 0.6}}
+      - {ms: 120, set: {lean: -0.9, bob: -0.45, head_pitch: -0.20, coat: 0.8,
+                        foot_L: [0.13, 0.10, 0.40], foot_R: [0.13, 0.04, 0.30],
+                        hand_L: [0.40, 0.45, 0.20], hand_R: [0.38, 0.40, 0.25]}}
+      - {ms: 100, set: {root: [0, 0, 0.18], lean: -1.45, bob: -0.66, squash: 0.94, head_pitch: -0.55, coat: 0.6,
+                        foot_L: [0.13, 0.12, 0.78], foot_R: [0.13, 0.08, 0.70], pitch_foot_L: -1.2, pitch_foot_R: -1.2,
+                        hand_L: [0.36, 0.20, 0.14], hand_R: [0.34, 0.20, 0.18], sword_pitch: 1.4}}
+      - {ms: 110, set: {root: [0, 0, 0.18], lean: -1.52, bob: -0.62, head_pitch: -0.65, coat: 0.4,
+                        foot_L: [0.13, 0.02, 0.80], foot_R: [0.13, 0, 0.72], pitch_foot_L: -1.4, pitch_foot_R: -1.4,
+                        hand_L: [0.34, 0.12, 0.10], hand_R: [0.32, 0.12, 0.14], sword_pitch: 2.0}}
+      - {ms: 600, set: {root: [0, 0, 0.18], lean: -1.57, bob: -0.66, squash: 0.96, head_pitch: -0.78, coat: 0.3,
+                        foot_L: [0.13, 0, 0.82], foot_R: [0.13, 0, 0.74], pitch_foot_L: -1.5, pitch_foot_R: -1.5,
+                        hand_L: [0.34, 0.10, 0.08], hand_R: [0.32, 0.10, 0.12], sword_pitch: 2.2}}

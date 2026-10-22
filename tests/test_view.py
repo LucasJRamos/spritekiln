@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-from spritekiln import config
+from spritekiln import config, resources
 from spritekiln import spec as S
 from spritekiln.cli import main
 
@@ -68,9 +68,14 @@ def test_side_project(tmp_path, monkeypatch):
     assert config.load(str(game))['defaults']['view'] == 'side'
     monkeypatch.chdir(game)
     main(['new', 'runner'])
-    sp = S.load(str(game / 'art' / 'specs' / 'characters' / 'runner' / 'runner.yaml'))
+    path = game / 'art' / 'specs' / 'characters' / 'runner' / 'runner.yaml'
+    sp = S.load(str(path))
     assert sp['view'] == 'side' and sp['camera']['pitch'] == 0 and [d for d, _ in sp['directions']] == ['e', 'w']
     assert sp['shadow'] is None and S.validate(sp) == []
+    assert {'jump', 'fall', 'land'} <= set(sp['animations'])  # the side template, not the top-down one
+    text = path.read_text(encoding='utf-8')
+    template = open(resources.template('side_humanoid'), encoding='utf-8').read()
+    assert text == template.replace('name: TEMPLATE', 'name: runner')  # nothing to change: copied as written
     main(['new', 'boss', '--view', 'topdown'])
     sp = S.load(str(game / 'art' / 'specs' / 'characters' / 'boss' / 'boss.yaml'))
     assert sp['view'] == 'topdown' and len(sp['directions']) == 8

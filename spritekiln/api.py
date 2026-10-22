@@ -34,6 +34,9 @@ def new(name, template=None, folder=None, ref=None, start=None, view=None):
         raise SpriteKilnError(f'already exists: {dst}')
     with open(tpl, encoding='utf-8') as fh:
         txt = fh.read().replace('name: TEMPLATE', f'name: {name}')
+    import yaml
+
+    base = yaml.safe_load(txt) or {}  # what the template already says: keys it satisfies stay as written
     defaults = dict(cfg.get('defaults') or {})
     project_view = defaults.pop('view', None)
     if view and view != (project_view or 'topdown') and isinstance(defaults.get('camera'), dict):
@@ -43,18 +46,31 @@ def new(name, template=None, folder=None, ref=None, start=None, view=None):
         if view not in specmod.VIEWS:
             raise SpriteKilnError(f'view {view!r}: use one of {", ".join(specmod.VIEWS)}')
         preset = specmod.VIEWS[view]
-        txt = _set_top_level(txt, 'view', view)
-        txt = _set_top_level(txt, 'directions', preset['directions'])
-        txt = _set_top_level(txt, 'camera', {'pitch': preset['pitch']})
-        txt = _set_top_level(txt, 'shadow', None)
+        if base.get('view') != view:  # a template made for this view has its camera and directions already
+            txt = _set_top_level(txt, 'view', view)
+            txt = _set_top_level(txt, 'directions', preset['directions'])
+            txt = _set_top_level(txt, 'camera', {'pitch': preset['pitch']})
+            txt = _set_top_level(txt, 'shadow', None)
     for key, value in defaults.items():
-        txt = _set_top_level(txt, key, value)
+        if not _satisfies(base, key, value):
+            txt = _set_top_level(txt, key, value)
     os.makedirs(dst_dir, exist_ok=True)
     with open(dst, 'w', encoding='utf-8') as fh:
         fh.write(txt)
     if ref:
         shutil.copy(ref, os.path.join(dst_dir, 'splash' + os.path.splitext(ref)[1]))
     return dst
+
+
+def _satisfies(base, key, value):
+    """True when the template's top-level `key` already gives `value` (a camera without a pitch takes its
+    view's)."""
+    have = base.get(key)
+    if key == 'camera' and isinstance(have, dict) and base.get('view') in specmod.VIEWS:
+        have = {'pitch': specmod.VIEWS[base['view']]['pitch'], **have}
+    if isinstance(value, dict) and isinstance(have, dict):
+        return {**have, **value} == have
+    return have == value
 
 
 def _set_top_level(text, key, value):
