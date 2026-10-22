@@ -13,16 +13,20 @@ from . import spec as specmod
 from .errors import SpriteKilnError
 
 
-def new(name, template='humanoid', folder=None, ref=None, start=None, view=None):
+def new(name, template=None, folder=None, ref=None, start=None, view=None):
     """Create <folder>/<name>/<name>.yaml from a template; `folder` defaults to spritekiln.toml's specs folder
     + /characters (or specs/characters). Project defaults (view, size, palette, camera, light) are applied;
-    `view` ('topdown' or 'side') overrides the project's."""
+    `view` ('topdown' or 'side') overrides the project's. Without a template, a side view starts from
+    `side_humanoid` and a top-down one from `humanoid`."""
     if not re.fullmatch(r'[A-Za-z0-9_-]+', name or ''):
         raise SpriteKilnError(f'name {name!r}: use letters, digits, - and _ only')
+    cfg = config.load(start or folder)  # the project around the target folder (or the current one)
+    if template is None:
+        side = (view or (cfg.get('defaults') or {}).get('view')) == 'side'
+        template = 'side_humanoid' if side and resources.template('side_humanoid') else 'humanoid'
     tpl = resources.template(template)
     if not tpl:
         raise SpriteKilnError(f'template not found: {template} (available: {", ".join(resources.templates())})')
-    cfg = config.load(start or folder)  # the project around the target folder (or the current one)
     folder = folder or (os.path.join(cfg['specs'], 'characters') if cfg else os.path.join('specs', 'characters'))
     dst_dir = os.path.join(folder, name)
     dst = os.path.join(dst_dir, f'{name}.yaml')

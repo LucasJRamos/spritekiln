@@ -456,7 +456,7 @@ def build_parser(prog='spritekiln'):
 
     s = sub.add_parser('new', help='create a spec from a template')
     s.add_argument('name')
-    s.add_argument('--template', default='humanoid')
+    s.add_argument('--template', help='humanoid or side_humanoid (default: side_humanoid for a side view)')
     s.add_argument('--dir', help='parent folder (default: <specs of spritekiln.toml>/characters or specs/characters)')
     s.add_argument('--ref', help='splash art to copy next to the spec')
     s.add_argument(

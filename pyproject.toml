@@ -1,12 +1,11 @@
 [build-system]
-requires = ["hatchling>=1.27"]
+requires = ["hatchling>=1.27", "hatch-fancy-pypi-readme>=24"]
 build-backend = "hatchling.build"
 
 [project]
 name = "spritekiln"
-dynamic = ["version"]
+dynamic = ["version", "readme"]
 description = "Animated 8-direction pixel-art sprites from procedural 3D models described in YAML, built to be driven by coding AIs"
-readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE", "LICENSES/*"]
@@ -44,6 +43,21 @@ pxforge = "pxforge:main"
 
 [tool.hatch.version]
 path = "spritekiln/__init__.py"
+
+# PyPI shows the README without the repository around it: relative links and images become GitHub URLs.
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = 'src="(?!https?://)([^"]+)"'
+replacement = 'src="https://raw.githubusercontent.com/LucasJRamos/spritekiln/main/\1"'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((?!https?://|#)([^)]+)\)'
+replacement = '](https://github.com/LucasJRamos/spritekiln/blob/main/\1)'
 
 [tool.hatch.build.targets.wheel]
 packages = ["spritekiln", "pxforge"]
