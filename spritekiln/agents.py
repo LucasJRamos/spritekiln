@@ -17,17 +17,27 @@ import sys
 
 from . import resources
 
-DOCS = ['workflow.md', 'spec.md', 'modeling.md', 'splash-to-model.md', 'animation.md', 'art-direction.md', 'recipe.md']
+DOCS = [
+    'workflow.md',
+    'style.md',
+    'spec.md',
+    'modeling.md',
+    'splash-to-model.md',
+    'animation.md',
+    'art-direction.md',
+    'recipe.md',
+]
 AIS = ('claude', 'codex', 'cursor', 'copilot', 'gemini', 'generic')
 BEGIN = '<!-- spritekiln:begin (generated from docs/agent by spritekiln; edit the sources, not this block) -->'
 END = '<!-- spritekiln:end -->'
-_COMMANDS = 'validate|pose|render|review|export|ref|palette|new|cache|init|mcp|godot'
+_COMMANDS = 'validate|pose|render|review|export|ref|palette|new|cache|init|mcp|godot|style|update'
 
 SKILLS = {
     'spritekiln': dict(
         description='Create and edit characters, monsters and props as animated 8-direction pixel art (top-down 3/4) '
         'with SpriteKiln (procedural SDF model in YAML -> render -> pixel art). Use for any request about a sprite, '
-        'animation, spritesheet, pose, direction, palette or visual fix of an asset made with it.',
+        'animation, spritesheet, pose, direction, palette or visual fix of an asset made with it. Before the first '
+        'asset of a project it interviews the user about the art style.',
         body=['workflow.md', 'modeling.md'],
     ),
     'spritekiln-splash-to-model': dict(
@@ -55,7 +65,7 @@ AGENT_ROLES = {
         'is faithful and legible in 8 directions. Use to create a model or change how an asset looks.',
         tools='Read, Write, Edit, Bash, Glob, Grep',
         role='You are the character modeler. You work only on the spec YAML of the requested asset.',
-        read=['SKILL.md', 'SPEC.md', '../spritekiln-splash-to-model/SKILL.md'],
+        read=['SKILL.md', 'SPEC.md', 'style.md', '../spritekiln-splash-to-model/SKILL.md'],
         skill='spritekiln',
         section=('modeling.md', '## Rules for a modeler'),
     ),
@@ -66,7 +76,7 @@ AGENT_ROLES = {
         tools='Read, Write, Edit, Bash, Glob, Grep',
         role='You are the animator. You change `animations:` (and, for a new degree of freedom, `channels:` and the '
         'expression that uses it).',
-        read=['SKILL.md', 'SPEC.md'],
+        read=['SKILL.md', 'SPEC.md', 'style.md'],
         skill='spritekiln-animation',
         section=('animation.md', '## Rules for an animator'),
     ),
@@ -77,7 +87,7 @@ AGENT_ROLES = {
         tools='Read, Bash, Glob, Grep',
         role='You are a demanding art director for top-down pixel art (64-96 px, 8 directions). You never edit '
         'files: you analyse and recommend.',
-        read=['SPEC.md'],
+        read=['SPEC.md', 'style.md'],
         skill='spritekiln',
         section=('art-direction.md', None),
     ),
@@ -133,11 +143,15 @@ def essentials(docs, cli='spritekiln', engine_note=True):
 Sprites in this project are made with SpriteKiln: a YAML spec (skeleton, SDF primitives, materials, palette,
 animations) is rendered into animated 8-direction pixel art (atlas + JSON + normal/emissive maps).
 
-Read before working on an asset: `{d}/workflow.md` (commands and the working loop) and `{d}/spec.md` (the spec
-format). Then, as needed: `{d}/modeling.md`, `{d}/splash-to-model.md`, `{d}/animation.md`,
-`{d}/art-direction.md` and `{d}/recipe.md` (the modeler → art director → animator recipe).
+Read before working on an asset: `{d}/workflow.md` (commands and the working loop), `{d}/style.md` (the
+project's art style) and `{d}/spec.md` (the spec format). Then, as needed: `{d}/modeling.md`,
+`{d}/splash-to-model.md`, `{d}/animation.md`, `{d}/art-direction.md` and `{d}/recipe.md` (the modeler → art
+director → animator recipe).
 
 Rules that matter:
+- Art style first: run `spritekiln style` before the first asset of a session. If no style is recorded,
+  interview the user with the questions of `{d}/style.md` and record the answers before generating
+  anything. Follow the recorded style in every asset; change it only when the user explicitly asks.
 - Run `spritekiln validate <spec>` after every edit; problems come with file:line:column.
 - Iterate with `spritekiln pose <spec> --dirs all` (about 1 s per direction); `spritekiln render` only at the end.
 - Never call something visual good without looking at the PNG. If you cannot see images, use the numbers of
@@ -183,7 +197,7 @@ def write_docs(target):
         _write(os.path.join(target, name), source(name))
 
 
-def _skill_files(base):
+def skill_files(base):
     """Reference files copied next to a skill's SKILL.md: every doc its body does not already contain, so the
     folder is self-contained (projects may link to the folder alone)."""
     return [('SPEC.md' if n == 'spec.md' else n, n) for n in DOCS if n not in SKILLS[base]['body']]
@@ -198,13 +212,13 @@ def write_claude(root, docs, cli='spritekiln', names=None, extra_note='', agents
         body = '\n\n'.join(_drop_title(source(n)).strip() for n in meta['body'])
         title = source(meta['body'][0]).splitlines()[0]
         desc = meta['description'] + extra_note
-        others = ', '.join(f'[{t}]({t})' for t, _ in _skill_files(base))
+        others = ', '.join(f'[{t}]({t})' for t, _ in skill_files(base))
         skill = (
             f'---\nname: {out_name}\ndescription: {desc}\n---\n\n{title}\n\n{body}\n\n'
             f'## More\nReference files in this folder: {others}.\n'
         )
         _write(os.path.join(folder, 'SKILL.md'), with_cli(_skill_links(skill, base), cli))
-        for target, n in _skill_files(base):
+        for target, n in skill_files(base):
             _write(os.path.join(folder, target), with_cli(_skill_links(source(n), base), cli))
     if not agents:
         return
@@ -252,14 +266,20 @@ def write_cursor(root, docs, cli='spritekiln', specs_glob='**/*.yaml'):
     _write(os.path.join(root, '.cursor', 'rules', 'spritekiln.mdc'), text)
 
 
-def install(root, ais, docs, cli='spritekiln', specs_glob='**/*.yaml'):
-    """Write the adapters for `ais` (any of AIS; 'all' for every one). AGENTS.md is always written."""
-    ais = list(AIS) if 'all' in ais else list(ais)
+def resolve_ais(ais):
+    """The assistants named by `ais` ('all' for every one), checked."""
+    ais = list(AIS) if 'all' in ais else list(dict.fromkeys(ais))
     unknown = [a for a in ais if a not in AIS]
     if unknown:
         from .errors import SpriteKilnError
 
         raise SpriteKilnError(f'unknown AI {unknown} (use {", ".join(AIS)} or all)')
+    return ais
+
+
+def install(root, ais, docs, cli='spritekiln', specs_glob='**/*.yaml'):
+    """Write the adapters for `ais` (any of AIS; 'all' for every one). AGENTS.md is always written."""
+    ais = resolve_ais(ais)
     write_agents_md(root, docs, cli)
     if 'claude' in ais:
         write_claude(root, docs, cli)
@@ -359,7 +379,7 @@ def _repo_files():
     for folder in list(SKILLS) + list(LEGACY_SKILLS):
         base = LEGACY_SKILLS.get(folder, folder)
         files.append(f'.claude/skills/{folder}/SKILL.md')
-        files += [f'.claude/skills/{folder}/{t}' for t, _ in _skill_files(base)]
+        files += [f'.claude/skills/{folder}/{t}' for t, _ in skill_files(base)]
     return files
 
 

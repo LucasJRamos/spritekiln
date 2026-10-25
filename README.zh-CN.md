@@ -62,6 +62,10 @@ pipx install "spritekiln[mcp]"
 然后打开新的终端，用 `spritekiln --version` 检查。`[mcp]` 为AI助手添加工具；只用命令行的话，
 `pipx install spritekiln` 就够了。uv、虚拟环境、升级和常见问题，请参阅 [Install SpriteKiln](docs/tutorials/install.md)（英文）。
 
+**升级：** `spritekiln update` 会按照你当初的安装方式（pipx、uv 或虚拟环境）安装新版本，并刷新你运行它的
+游戏文件夹中供AI读取的说明。0.1.0 还没有这个命令：先运行一次 `pipx upgrade spritekiln`
+（或 `uv tool upgrade spritekiln`），然后在游戏文件夹中运行 `spritekiln update`。
+
 ## 快速开始
 
 所有系统上的命令都一样。
@@ -100,7 +104,11 @@ spritekiln init --engine godot --ai claude
 
 > 做一个戴兜帽、拿短剑的哥布林斥候。从模板开始，检查全部8个方向，然后渲染idle、walk和attack并导出。
 
-助手会编写规格文件、渲染、查看图像并修正问题。你只需查看 `art/specs/characters/<名称>/out/<名称>/preview/`
+第一次使用时，助手在制作任何东西之前会先就美术风格向你提问：俯视还是侧视、角色在屏幕上有多少像素高、方向数、
+颜色、描边和明暗、比例、动画的感觉以及参考。回答会记录在 `spritekiln.toml` 中（用 `spritekiln style` 查看）；
+之后的每个精灵图都遵循它，只有在你要求时才会改变（"从现在起不要描边"）。
+
+然后助手会编写规格文件、渲染、查看图像并修正问题。你只需查看 `art/specs/characters/<名称>/out/<名称>/preview/`
 中的GIF并提出修改（"帽子再大一点"、"挥砍再快一点"）。有原画？交给它：[从你的原画开始](docs/tutorials/splash-art.md)（英文）。
 
 ### 3. 或者手动操作
@@ -108,6 +116,7 @@ spritekiln init --engine godot --ai claude
 与助手运行的命令相同：
 
 ```
+spritekiln style set --height 48 --outline selective                 # 美术风格，只需一次（全部选项：-h）
 spritekiln new knight                                                # art/specs/characters/knight/knight.yaml
 spritekiln pose art/specs/characters/knight/knight.yaml --dirs all   # 一个姿势的8个方向，每个方向约1秒
 spritekiln render art/specs/characters/knight/knight.yaml --export   # 渲染全部动画并导出到引擎

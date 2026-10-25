@@ -7,6 +7,7 @@ relative to the folder the client starts the server in (the project root). Needs
 
 import functools
 import io
+from typing import Any
 
 from PIL import Image as PILImage
 
@@ -14,8 +15,11 @@ from . import __version__, api
 from .errors import SpriteKilnError
 
 INSTRUCTIONS = """SpriteKiln makes animated 8-direction pixel-art sprites from YAML specs.
-Start with guide('workflow') and guide('spec'). Loop: edit the spec file -> validate -> pose (look at the
-image) -> repeat; render only at the end, then export. If you cannot see images, use review numbers."""
+First call style(): if no art style is recorded for the project, interview the user with the questions of
+guide('style') and record the answers with style(answers=...) before generating anything; every asset
+follows the recorded style. Then guide('workflow') and guide('spec'). Loop: edit the spec file -> validate
+-> pose (look at the image) -> repeat; render only at the end, then export. If you cannot see images, use
+review numbers."""
 
 MAX_SIDE = 1600  # images larger than this are scaled down before they are sent
 
@@ -63,14 +67,33 @@ def build():
 
     @tool
     def guide(topic: str = 'workflow') -> str:
-        """Read SpriteKiln's instructions. Topics: workflow (commands and loop), spec (the YAML format),
-        modeling, splash-to-model, animation, art-direction, recipe (modeler -> director -> animator)."""
+        """Read SpriteKiln's instructions. Topics: workflow (commands and loop), style (the art-style interview),
+        spec (the YAML format), modeling, splash-to-model, animation, art-direction, recipe (modeler -> director
+        -> animator)."""
         from .agents import DOCS, source
 
         name = topic if topic.endswith('.md') else f'{topic}.md'
         if name not in DOCS:
             raise SpriteKilnError(f'unknown topic {topic!r} (use {", ".join(d[:-3] for d in DOCS)})')
         return source(name)
+
+    @tool
+    def style(answers: dict[str, Any] | None = None) -> dict:
+        """The project's art style (the [style] table of spritekiln.toml). Call it before the first asset of a
+        session. Without `answers`: the recorded style (follow it), or `recorded: false` with suggested answers;
+        then interview the user with the questions of guide('style') before generating anything, confirm a
+        summary, and call style(answers={...}) with view (topdown|side), height (px of a human-sized character
+        on screen), directions (8|4|2), mirror (yes|no), palette, colors, outline (selective|dark|none), shading
+        (soft|flat), proportions (stylized|chibi|realistic), animation (fluid|snappy), references (list), notes.
+        A recorded style changes only when the user explicitly asks: then pass only the changed answers."""
+        from . import style as S
+        from .update import stale_note
+
+        res = S.record(answers) if answers else S.status()
+        note = stale_note()
+        if note:
+            res['note'] = note
+        return res
 
     @tool
     def new(
@@ -84,7 +107,11 @@ def build():
         splash art copied next to the spec. `view`: topdown (3/4, 8 directions) or side (side-scroller profile,
         directions e and w); default from the project. `template`: humanoid or side_humanoid (the default for a
         side view). Returns the spec path."""
-        return {'spec': api.new(name, template, folder, ref, view=view)}
+        from .style import missing_note
+
+        path = api.new(name, template, folder, ref, view=view)
+        note = missing_note(path)
+        return {'spec': path, **({'note': note} if note else {})}
 
     @tool
     def validate(spec: str) -> dict:

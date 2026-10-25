@@ -27,8 +27,8 @@ reads `AGENTS.md`. Without options, `init` uses `generic` for both. It writes:
 
 | File | For |
 |---|---|
-| `spritekiln.toml` | project settings: specs folder, engine, export folder, defaults for new specs |
-| `.spritekiln/agent/` | the knowledge files: workflow, spec reference, modeling, splash to model, animation, art direction, recipe |
+| `spritekiln.toml` | project settings: specs folder, engine, assistants, export folder, defaults for new specs and, once recorded, the art style |
+| `.spritekiln/agent/` | the knowledge files: workflow, art style, spec reference, modeling, splash to model, animation, art direction, recipe |
 | `AGENTS.md` | the short version and pointers (read by Codex and most other agents) |
 | `CLAUDE.md`, `.claude/skills/`, `.claude/agents/` | `--ai claude`: skills and the modeler, animator and art-director agents |
 | `GEMINI.md` | `--ai gemini` |
@@ -37,8 +37,8 @@ reads `AGENTS.md`. Without options, `init` uses `generic` for both. It writes:
 | `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json`, `.gemini/settings.json` | the MCP server for clients that read a project config |
 
 Existing `AGENTS.md`/`CLAUDE.md` files keep their content: SpriteKiln only manages a marked block inside
-them. After upgrading SpriteKiln, `spritekiln init` with the same options and `--force` refreshes the
-knowledge files; it also rewrites `spritekiln.toml`, so keep a copy if you edited it.
+them. `spritekiln update` keeps these files current when SpriteKiln is upgraded, without touching
+`spritekiln.toml` ([Install SpriteKiln](install.md#upgrade)).
 
 Codex reads MCP servers from `~/.codex/config.toml` (on Windows, `%USERPROFILE%\.codex\config.toml`):
 
@@ -48,7 +48,35 @@ command = "spritekiln"
 args = ["mcp"]
 ```
 
-## 2. Ask for a sprite
+## 2. The art style interview
+
+The first time you ask for an asset, the assistant does not start right away: it runs `spritekiln style`,
+sees that the project has no art style yet, and asks you a few questions, at most four at a time:
+
+1. **View:** top-down 3/4 or side view.
+2. **Size on screen:** how many pixels tall a human-sized character is (24–32 retro, 40–48 classic,
+   56–72 detailed, 96+ hi-bit), or your tile size. This sets the density every asset shares.
+3. **Directions:** 8 or 4 (or 2 in a side view), and whether the engine mirrors the left-facing ones.
+4. **Colours:** the mood of the palette, or a palette or image you already have.
+5. **Outline and shading:** selective, dark or no outline; soft or flat shading.
+6. **Proportions:** stylized, chibi or realistic.
+7. **Animation:** fluid or snappy.
+8. **References** (optional): games, artists or images to match, and any rule ("no blood").
+
+It pushes back on vague answers ("retro" → how many pixels tall?), proposes answers from what it already
+knows (your request, a splash art, the specs the project already has), shows you a summary and records it
+with `spritekiln style set`. From then on:
+
+- `spritekiln new` gives every spec the recorded view, density, frame size, directions and palette; the
+  modeler, the animator and the art director follow the rest.
+- `spritekiln style` shows the style at any time and lists the specs that no longer match it.
+- The style changes only when you say so ("from now on characters are 32 px tall"). A request about one
+  asset ("make this boss twice as big") stays an exception for that asset, noted in its spec.
+
+Prefer to answer in the terminal? `spritekiln style set --view topdown --height 48 --outline dark ...`
+(`spritekiln style set -h` lists every answer).
+
+## 3. Ask for a sprite
 
 Plain language works. Name what matters for the game:
 
@@ -64,11 +92,12 @@ Plain language works. Name what matters for the game:
 A good assistant follows the loop in `workflow.md`: edit the spec, `validate`, `pose` in every direction,
 look at the image, fix, and only then `render`, `review` and `export`.
 
-## 3. What the MCP tools do
+## 4. What the MCP tools do
 
 | Tool | Returns |
 |---|---|
 | `guide` | a knowledge file (for clients that cannot read the project's files) |
+| `style` | the project's art style, or the questions to ask when none is recorded; records the answers |
 | `new` | a spec created from a template |
 | `validate` | errors and warnings with `file:line:column` |
 | `pose` | the pose sheet image in the chosen directions |
@@ -81,11 +110,11 @@ look at the image, fix, and only then `render`, `review` and `export`.
 Image tools return the picture next to the numbers, so an assistant that sees images can judge the art,
 and one that cannot still gets the measurements.
 
-## 4. Tips
+## 5. Tips
 
 - **Ask for the pose sheet before the render.** A render takes minutes; a pose takes seconds.
-- **Keep one camera.** `spritekiln.toml` holds the shared camera pitch, scale and palette; ask the assistant
-  not to change them per asset.
+- **Keep one style.** `spritekiln.toml` holds the art style and the shared camera pitch, scale and
+  palette; the assistant does not change them per asset unless you ask.
 - **Review with your own eyes.** Open `out/<name>/preview/contact_<anim>.png` and the GIFs before you call
   an asset done; ask for a `review` when something feels off but you cannot say what.
 - **Claude Code:** the recipe in `recipe.md` splits the work between the `character-modeler`,

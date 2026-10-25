@@ -8,11 +8,15 @@ alwaysApply: false
 Sprites in this project are made with SpriteKiln: a YAML spec (skeleton, SDF primitives, materials, palette,
 animations) is rendered into animated 8-direction pixel art (atlas + JSON + normal/emissive maps).
 
-Read before working on an asset: `docs/agent/workflow.md` (commands and the working loop) and `docs/agent/spec.md` (the spec
-format). Then, as needed: `docs/agent/modeling.md`, `docs/agent/splash-to-model.md`, `docs/agent/animation.md`,
-`docs/agent/art-direction.md` and `docs/agent/recipe.md` (the modeler → art director → animator recipe).
+Read before working on an asset: `docs/agent/workflow.md` (commands and the working loop), `docs/agent/style.md` (the
+project's art style) and `docs/agent/spec.md` (the spec format). Then, as needed: `docs/agent/modeling.md`,
+`docs/agent/splash-to-model.md`, `docs/agent/animation.md`, `docs/agent/art-direction.md` and `docs/agent/recipe.md` (the modeler → art
+director → animator recipe).
 
 Rules that matter:
+- Art style first: run `spritekiln style` before the first asset of a session. If no style is recorded,
+  interview the user with the questions of `docs/agent/style.md` and record the answers before generating
+  anything. Follow the recorded style in every asset; change it only when the user explicitly asks.
 - Run `spritekiln validate <spec>` after every edit; problems come with file:line:column.
 - Iterate with `spritekiln pose <spec> --dirs all` (about 1 s per direction); `spritekiln render` only at the end.
 - Never call something visual good without looking at the PNG. If you cannot see images, use the numbers of

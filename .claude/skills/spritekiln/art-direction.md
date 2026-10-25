@@ -1,8 +1,8 @@
 # Art direction checklist
 
 The art director **does not edit files**: they analyse and recommend. Input: the spec, the
-`preview/contact_*.png` sheets, `qa.json`, and when available the splash art, `out/compare_<dir>.png` and a
-`review` report.
+`preview/contact_*.png` sheets, `qa.json`, the project's art style (`spritekiln style`), and when available
+the splash art, `out/compare_<dir>.png` and a `review` report.
 
 ## Numbers first
 ```
@@ -33,7 +33,10 @@ every render's QA warns about them.
    count, details under 2 px. **Value against the game's floor** (`review` with `--bg`/`--tint`).
 4. **Animation:** arcs, anticipation, impact (smear), follow-through, weight, seamless loops, timing in ms,
    consistency across directions, events and timing targets.
-5. **QA:** blocking errors and warnings.
+5. **The project's style** ([style.md](style.md)): density, view and pitch (`spritekiln style` lists specs
+   that differ), outline, shading, proportions, palette and animation feel. A deviation is a high-priority
+   fix unless the spec's `brief:` records it as an exception the user asked for.
+6. **QA:** blocking errors and warnings.
 
 ## Output
 A short verdict (approved / approved with reservations / redo) and at most 8 fixes, each with a priority

@@ -70,6 +70,11 @@ Depois abra um terminal novo e confira com `spritekiln --version`. O `[mcp]` adi
 assistentes de IA; só para a linha de comando, `pipx install spritekiln` basta. uv, ambiente virtual,
 atualização e solução de problemas: [Install SpriteKiln](docs/tutorials/install.md) (em inglês).
 
+**Para atualizar:** `spritekiln update` instala a versão nova do mesmo jeito (pipx, uv ou ambiente virtual)
+e atualiza as instruções de IA da pasta do jogo em que você rodar o comando. A versão 0.1.0 ainda não tem o
+comando: rode `pipx upgrade spritekiln` (ou `uv tool upgrade spritekiln`) uma vez e depois
+`spritekiln update` na pasta do jogo.
+
 ## Início rápido
 
 Os comandos são iguais em todos os sistemas.
@@ -111,7 +116,13 @@ Abra a pasta no seu assistente e descreva o personagem:
 > Faça um goblin batedor encapuzado com uma espada curta. Comece pelo template, confira as 8 direções,
 > depois renderize idle, walk e attack e exporte.
 
-Ele escreve a spec, renderiza, olha as imagens e corrige o que vê. Você revisa os GIFs em
+Na primeira vez, antes de fazer qualquer coisa, o assistente faz uma entrevista sobre o estilo de arte:
+visão top-down ou lateral, quantos pixels de altura um personagem tem na tela, direções, cores, contorno e
+sombreamento, proporções, o ritmo da animação e as suas referências. As respostas vão para o
+`spritekiln.toml` (`spritekiln style` mostra); todos os sprites seguintes seguem esse estilo, que só muda
+quando você pede ("de agora em diante, sem contorno").
+
+Depois ele escreve a spec, renderiza, olha as imagens e corrige o que vê. Você revisa os GIFs em
 `art/specs/characters/<nome>/out/<nome>/preview/` e pede mudanças ("chapéu maior", "golpe mais rápido").
 Tem uma splash art? Entregue a ele: [a partir da sua splash art](docs/tutorials/splash-art.md) (em inglês).
 
@@ -120,6 +131,7 @@ Tem uma splash art? Entregue a ele: [a partir da sua splash art](docs/tutorials/
 Os mesmos comandos que o assistente roda:
 
 ```
+spritekiln style set --height 48 --outline selective                       # o estilo de arte, uma vez (todas as respostas: -h)
 spritekiln new cavaleiro                                                   # art/specs/characters/cavaleiro/cavaleiro.yaml
 spritekiln pose art/specs/characters/cavaleiro/cavaleiro.yaml --dirs all   # uma pose nas 8 direções, ~1 s cada
 spritekiln render art/specs/characters/cavaleiro/cavaleiro.yaml --export   # todas as animações, exportadas para a engine

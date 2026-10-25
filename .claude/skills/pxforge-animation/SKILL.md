@@ -68,6 +68,9 @@ missing (a cape that should sway), add a channel, use it in the bone or part exp
    the smear arc must grow or the hand rise.
 
 ## Rules for an animator (human or AI)
+- Run `python -m pxforge style` first: its `animation` answer (fluid or snappy, [style.md](style.md)) sets the
+  frame counts and the feel. If no style is recorded, stop and report that the user has to answer the
+  style questions first.
 - Touch `animations:` (and, for a new degree of freedom, `channels:` plus the expression using it). Do not
   change the model's geometry beyond what the animation needs.
 - Look at the key frames before rendering; after rendering, fix QA errors (clipping, loop seams, identical
@@ -76,4 +79,4 @@ missing (a cape that should sway), add a channel, use it in the bone or part exp
   paths of the GIFs and contact sheets.
 
 ## More
-Reference files in this folder: [workflow.md](workflow.md), [SPEC.md](SPEC.md), [modeling.md](modeling.md), [splash-to-model.md](splash-to-model.md), [art-direction.md](art-direction.md), [recipe.md](recipe.md).
+Reference files in this folder: [workflow.md](workflow.md), [style.md](style.md), [SPEC.md](SPEC.md), [modeling.md](modeling.md), [splash-to-model.md](splash-to-model.md), [art-direction.md](art-direction.md), [recipe.md](recipe.md).

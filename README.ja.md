@@ -68,6 +68,11 @@ pipx install "spritekiln[mcp]"
 ツールを追加します。コマンドラインだけなら `pipx install spritekiln` で十分です。uv、仮想環境、アップグレード、
 トラブルシューティングは [Install SpriteKiln](docs/tutorials/install.md)（英語）を参照してください。
 
+**アップグレード：** `spritekiln update` は、インストールしたときと同じ方法（pipx、uv、仮想環境）で新しい
+バージョンを入れ、実行したゲームフォルダのAI向け指示を更新します。0.1.0 にはまだこのコマンドがないので、一度だけ
+`pipx upgrade spritekiln`（または `uv tool upgrade spritekiln`）を実行し、その後ゲームフォルダで
+`spritekiln update` を実行してください。
+
 ## クイックスタート
 
 コマンドはどのOSでも同じです。
@@ -109,7 +114,12 @@ spritekiln init --engine godot --ai claude
 > 短剣を持ったフード姿のゴブリン斥候を作って。テンプレートから始めて、8方向すべてを確認してから、idle、walk、
 > attackをレンダリングしてエクスポートして。
 
-アシスタントがスペックを書き、レンダリングし、画像を見て直します。あなたは
+最初の一回は、何かを作る前にアシスタントがアートスタイルについてインタビューします：トップダウンかサイドビューか、
+画面上でキャラクターの身長が何ピクセルか、方向数、色、輪郭線と陰影、プロポーション、アニメーションの感触、
+参考資料。回答は `spritekiln.toml` に記録され（`spritekiln style` で表示）、以降のスプライトはすべてそれに従い、
+あなたが頼んだときだけ変わります（「これからは輪郭線なしで」）。
+
+その後、アシスタントがスペックを書き、レンダリングし、画像を見て直します。あなたは
 `art/specs/characters/<名前>/out/<名前>/preview/` のGIFを確認して、変更を頼むだけです（「帽子を大きく」
 「振りを速く」）。スプラッシュアートがあれば渡しましょう：[スプラッシュアートから](docs/tutorials/splash-art.md)（英語）。
 
@@ -118,6 +128,7 @@ spritekiln init --engine godot --ai claude
 アシスタントが実行するのと同じコマンドです：
 
 ```
+spritekiln style set --height 48 --outline selective                 # アートスタイル（一度だけ。全項目は -h）
 spritekiln new knight                                                # art/specs/characters/knight/knight.yaml
 spritekiln pose art/specs/characters/knight/knight.yaml --dirs all   # 1つのポーズを8方向で、各方向およそ1秒
 spritekiln render art/specs/characters/knight/knight.yaml --export   # 全アニメーションを描画し、エンジンへエクスポート

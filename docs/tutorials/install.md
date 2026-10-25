@@ -113,15 +113,41 @@ line, `pipx install spritekiln` is enough; the instructions files that `spriteki
 without it. Keep the quotes around `"spritekiln[mcp]"`: zsh, the default shell on macOS, reads the brackets
 as a file pattern otherwise.
 
-## Upgrade and uninstall
+## Upgrade
 
-| | pipx | uv | virtual environment |
-|---|---|---|---|
-| Upgrade | `pipx upgrade spritekiln` | `uv tool upgrade spritekiln` | `pip install -U "spritekiln[mcp]"` |
-| Uninstall | `pipx uninstall spritekiln` | `uv tool uninstall spritekiln` | delete the `.venv` folder |
+In your game folder:
 
-After an upgrade, run `spritekiln init` again in your game project with the same options and `--force` to
-refresh the knowledge files your AI reads (it also rewrites `spritekiln.toml`: keep a copy if you edited it).
+```
+spritekiln update
+```
+
+It checks PyPI, installs the new version the way you installed this one (pipx, uv or a virtual environment,
+keeping the `[mcp]` extra) and then refreshes the files your AI reads in that folder: `.spritekiln/agent/`,
+the skills and agents, and SpriteKiln's block in `AGENTS.md`, `CLAUDE.md` and the like. `spritekiln.toml`
+(with the project's art style), your specs and renders are not touched.
+
+| | |
+|---|---|
+| `spritekiln update --check` | only says whether a new version is available |
+| `spritekiln update --files` | refreshes a game folder's AI files with the installed version, without downloading (run it in your other game folders after an upgrade; commands print a reminder when a folder needs it) |
+
+**Coming from 0.1.0**, which has no `update` command: upgrade once by hand, then refresh each game folder.
+
+```
+pipx upgrade spritekiln          # or: uv tool upgrade spritekiln / pip install -U "spritekiln[mcp]"
+spritekiln update --files        # in each game folder
+```
+
+In a virtual environment on Windows, run `python -m spritekiln update` with the environment active:
+Windows cannot replace `spritekiln.exe` while it runs, so `spritekiln update` only says so. A Python of the
+system (not pipx, uv or a virtual environment) is not upgraded automatically: `update` prints the command
+to use. A source checkout is updated with `git pull`.
+
+## Uninstall
+
+| pipx | uv | virtual environment |
+|---|---|---|
+| `pipx uninstall spritekiln` | `uv tool uninstall spritekiln` | delete the `.venv` folder |
 
 ## Troubleshooting
 

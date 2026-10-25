@@ -125,6 +125,14 @@ def _note(msg):
     print(msg, file=sys.stderr, flush=True)
 
 
+def _stale_note():
+    from .update import stale_note
+
+    note = stale_note()
+    if note:
+        _note('note: ' + note)
+
+
 def cmd_cache(a):
     from . import cache
 
@@ -218,7 +226,112 @@ def cmd_init(a):
         print('  ', os.path.relpath(p, res['root']))
     for n in res['notes']:
         print('note:', n)
-    print('next: spritekiln new <name>   (then validate, pose, render, export)')
+    if res['style']:
+        print('next: ask your AI assistant for a sprite (the recorded art style was kept: `spritekiln style`)')
+    else:
+        print(
+            'next: open this folder in your AI assistant and ask for a sprite; before the first one it asks you '
+            'a few questions\n      about the art style (by hand: spritekiln style set ..., then spritekiln new <name>)'
+        )
+
+
+def cmd_style(a):
+    from . import style as S
+
+    if a.action == 'set':
+        answers = {k: getattr(a, k) for k in S.FIELDS}
+        if all(v is None for v in answers.values()):
+            raise SpriteKilnError('style set: give at least one answer (options: spritekiln style set -h)')
+        res = S.record(answers)
+        print(f'art style recorded in {res["file"]}:')
+        for line in S.describe(res['style']):
+            print(line)
+        if res['defaulted']:
+            print('not answered, so suggested or recommended values were kept for: ' + ', '.join(res['defaulted']))
+        d = res['defaults']
+        cam = d.get('camera', {})
+        print(
+            f'new specs get: view {d.get("view")}, size {d.get("size")}, palette {d.get("palette")}, '
+            f'camera pitch {cam.get("pitch")} and scale {cam.get("scale")}'
+        )
+        _off_style(res)
+        return
+    res = S.status()
+    if not res['recorded']:
+        print(res['next'])
+        s = res['suggested']
+        print(f'Suggested from {s["source"]}: spritekiln style set {S.suggest_args(s)} (then the other answers)')
+        return
+    st = res['style']
+    print(f'Art style of {res["project"]}, recorded {st.get("recorded")}.')
+    print('Every asset follows it; it changes only when the user explicitly asks.')
+    for line in S.describe(st):
+        print(line)
+    if res['guide']:
+        print(f'what each answer means for a model or an animation: {res["guide"]}')
+    _off_style(res)
+
+
+def _off_style(res):
+    off = res.get('off_style') or []
+    if off:
+        print(f'{len(off)} spec(s) do not match the style (update and re-render them if the user wants):')
+        for o in off:
+            diffs = ', '.join(f'{k} {have} (style: {want})' for k, (have, want) in o['differs'].items())
+            print(f'  {o["spec"]}: {diffs}')
+
+
+def cmd_update(a):
+    import subprocess
+
+    from . import config
+    from . import update as U
+
+    if a.files:
+        _refreshed(U.refresh())
+        return
+    inst = U.installation()
+    newest = U.latest()
+    newer = U.version_key(newest) > U.version_key(__version__)
+    print(f'SpriteKiln {__version__} (installed with {inst["kind"]}); the latest on PyPI is {newest}')
+    if a.check:
+        print('a new version is available: run `spritekiln update`' if newer else 'up to date')
+        note = U.stale_note()
+        if note:
+            print('note:', note)
+        return
+    if newer:
+        if inst['command'] is None:
+            print(f'upgrade it with: {inst["display"]}')
+            return 0 if inst['kind'] == 'source' else 1
+        print('$ ' + ' '.join(inst['command']), flush=True)
+        rc, now = U.upgrade(inst)
+        if rc or not now or U.version_key(now) <= U.version_key(__version__):
+            raise SpriteKilnError(
+                f'the upgrade did not finish (exit code {rc}, installed: {now or "unknown"}); run it by hand: '
+                f'{inst["display"]}'
+            )
+        print(f'SpriteKiln {__version__} -> {now}', flush=True)
+    else:
+        print('SpriteKiln is up to date')
+    if not config.find():
+        print('not inside a game folder: run `spritekiln update --files` in each project to refresh its AI files')
+        return
+    if newer:  # the new version writes its own files
+        return subprocess.run([sys.executable, '-m', 'spritekiln', 'update', '--files']).returncode
+    if U.stale_note():
+        _refreshed(U.refresh())
+    else:
+        print("this project's AI files are up to date")
+
+
+def _refreshed(res):
+    print(f'AI files of {res["root"]} refreshed with SpriteKiln {__version__} (assistants: {", ".join(res["ais"])}):')
+    for p in res['written']:
+        print('  ', os.path.relpath(p, res['root']))
+    if res['addon']:
+        print(f'Godot addon {res["addon"]["was"]} -> {res["addon"]["now"]} in {res["addon"]["path"]}')
+    print('spritekiln.toml, specs and renders were not touched')
 
 
 def cmd_mcp(a):
@@ -343,8 +456,13 @@ def cmd_godot(a):
 
 def cmd_new(a):
     from . import api
+    from .style import missing_note
 
-    print('created', api.new(a.name, a.template, a.dir, a.ref, view=a.view))
+    path = api.new(a.name, a.template, a.dir, a.ref, view=a.view)
+    print('created', path)
+    note = missing_note(path)
+    if note:
+        _note('note: ' + note)
 
 
 DIRS = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw']
@@ -441,14 +559,41 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--export-dir', help='where exports go (default depends on the engine)')
     s.add_argument('--godot-project', help='folder with project.godot, relative to the project (default .)')
     s.add_argument('--no-mcp', action='store_true', help="do not register `spritekiln mcp` in the AI client's config")
-    s.add_argument('--force', action='store_true', help='rewrite an existing spritekiln.toml')
+    s.add_argument(
+        '--force', action='store_true', help='rewrite an existing spritekiln.toml (a recorded art style is kept)'
+    )
     s.add_argument(
         '--view',
-        default='topdown',
         choices=['topdown', 'side'],
-        help='default camera for new specs: top-down 3/4 or side-scroller',
+        help='default camera for new specs: top-down 3/4 (default) or side-scroller',
     )
     s.set_defaults(f=cmd_init)
+
+    s = sub.add_parser('style', help="show or record the project's art style (asked before the first asset)")
+    s.add_argument('action', nargs='?', default='show', choices=['show', 'set'])
+    g = s.add_argument_group('answers (set)')
+    g.add_argument('--view', choices=['topdown', 'side'], help='top-down 3/4 or side-scroller')
+    g.add_argument('--height', type=_positive, help='px on screen of a human-sized character (sets camera.scale)')
+    g.add_argument('--size', type=_positive, help='frame px for it (default: from --height)')
+    g.add_argument('--scale', type=float, help='camera.scale directly (default: from --height)')
+    g.add_argument('--directions', type=int, choices=[8, 4, 2], help='8 or 4 (top-down), 2 (side view)')
+    g.add_argument('--mirror', choices=['yes', 'no'], help='render only right-facing directions; engines flip')
+    g.add_argument('--palette', help='palette for new specs: built-in name, project palette or file')
+    g.add_argument('--colors', help='the colour mood in a few words (e.g. "dark, desaturated")')
+    g.add_argument('--outline', choices=['selective', 'dark', 'none'])
+    g.add_argument('--shading', choices=['soft', 'flat'])
+    g.add_argument('--proportions', choices=['stylized', 'chibi', 'realistic'])
+    g.add_argument('--animation', choices=['fluid', 'snappy'])
+    g.add_argument('--references', nargs='+', metavar='REF', help='games, artists or image paths to match')
+    g.add_argument('--notes', help='anything else the style must respect')
+    s.set_defaults(f=cmd_style)
+
+    s = sub.add_parser('update', help="upgrade SpriteKiln and refresh this project's AI files")
+    s.add_argument('--check', action='store_true', help='only say whether a new version is available')
+    s.add_argument(
+        '--files', action='store_true', help="only rewrite this project's AI files with the installed version"
+    )
+    s.set_defaults(f=cmd_update)
 
     s = sub.add_parser('mcp', help='serve SpriteKiln as MCP tools over stdio (needs the mcp extra)')
     s.set_defaults(f=cmd_mcp)
@@ -523,6 +668,8 @@ def main(argv=None, prog='spritekiln'):
                 p.error('ref compare SPEC IMAGE')
             a.spec, a.image = a.a1, a.a2
     try:
+        if a.cmd not in ('init', 'update', 'mcp'):
+            _stale_note()
         rc = a.f(a)
     except SpriteKilnError as e:
         print(f'error: {e}', file=sys.stderr)

@@ -2,6 +2,36 @@
 
 All notable changes to SpriteKiln. The output format has its own version (`docs/format.md`).
 
+## 0.2.0 (2026-10-25)
+
+### Upgrading from 0.1.0
+0.1.0 has no `update` command yet: upgrade once with `pipx upgrade spritekiln` (or `uv tool upgrade
+spritekiln`), then run `spritekiln update --files` in each game folder to refresh the instructions your AI
+reads. From 0.2.0 on, `spritekiln update` does both.
+
+### The art style, asked before the first asset
+- Before the first asset of a project, the assistant interviews you about the art style: view, how many
+  pixels tall a character is on screen, directions and mirroring, colours, outline and shading,
+  proportions, the feel of the animation and references. It pushes back on vague answers, proposes answers
+  from what it already knows (the request, a splash art, existing specs) and confirms a summary.
+- `spritekiln style set` records the answers in the `[style]` table of `spritekiln.toml` and turns the
+  numeric ones into defaults for `spritekiln new` (`camera.scale` and the frame `size` come from the
+  character height). Every later asset follows the style; it changes only when you ask, one answer at a
+  time.
+- `spritekiln style` shows the style, suggests answers from the specs a project already has, and lists the
+  specs that no longer match it. MCP tool `style`; knowledge file `style.md`, read by the modeler, animator
+  and art-director roles. `spritekiln new` reminds you when a project has no style yet.
+
+### Updating
+- `spritekiln update` upgrades SpriteKiln the way it was installed (pipx, uv or a virtual environment,
+  keeping its extras) and refreshes the current game folder's AI files (knowledge files, skills, agents,
+  marked blocks, the Godot addon when it is installed and older) without touching `spritekiln.toml`,
+  specs or renders. `--check` only looks; `--files` only refreshes. In a virtual environment on Windows,
+  run it as `python -m spritekiln update` (Windows cannot replace the running `spritekiln.exe`).
+- `spritekiln init` records the project's assistants (`ai` in `spritekiln.toml`) and stamps the version of
+  its AI files; commands note a project whose files come from another version. `init --force` keeps a
+  recorded art style.
+
 ## 0.1.0 (2026-10-22)
 
 First public release. SpriteKiln started as `pxforge`, the sprite toolkit of the game Hunt Tower.

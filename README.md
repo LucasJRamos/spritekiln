@@ -69,6 +69,11 @@ Then open a new terminal and check with `spritekiln --version`. `[mcp]` adds the
 `pipx install spritekiln` is enough for the command line alone. uv, a virtual environment, upgrading and
 troubleshooting: [Install SpriteKiln](docs/tutorials/install.md).
 
+**Upgrading:** `spritekiln update` installs the new version the same way (pipx, uv or a virtual
+environment) and refreshes the AI instructions of the game folder you run it in. Version 0.1.0 does not have
+the command yet: run `pipx upgrade spritekiln` (or `uv tool upgrade spritekiln`) once, then
+`spritekiln update` in your game folder.
+
 ## Quick start
 
 The commands are the same on every system.
@@ -110,7 +115,13 @@ Open the folder in your assistant and describe the character:
 > Make a hooded goblin scout with a short sword. Start from the template, check all 8 directions, then
 > render idle, walk and attack and export them.
 
-It writes the spec, renders, looks at the images and fixes what it sees. You review the GIFs in
+The first time, before it makes anything, the assistant interviews you about the art style: top-down or
+side view, how many pixels tall a character is on screen, directions, colours, outline and shading,
+proportions, the feel of the animation and your references. The answers go to `spritekiln.toml`
+(`spritekiln style` shows them); every later sprite follows them, and they change only when you ask ("from
+now on, no outlines").
+
+Then it writes the spec, renders, looks at the images and fixes what it sees. You review the GIFs in
 `art/specs/characters/<name>/out/<name>/preview/` and ask for changes ("bigger hat", "faster swing"). Have a
 splash art? Hand it over: [From your splash art, with an AI](docs/tutorials/splash-art.md).
 
@@ -119,6 +130,7 @@ splash art? Hand it over: [From your splash art, with an AI](docs/tutorials/spla
 The same commands your assistant runs:
 
 ```
+spritekiln style set --height 48 --outline selective                 # the art style, once (all answers: -h)
 spritekiln new knight                                                # art/specs/characters/knight/knight.yaml
 spritekiln pose art/specs/characters/knight/knight.yaml --dirs all   # one pose in 8 directions, ~1 s each
 spritekiln render art/specs/characters/knight/knight.yaml --export   # all animations, exported to the engine
@@ -141,6 +153,9 @@ The light is fixed in the world and the model turns, so shading stays coherent a
 render writes a QA report (clipping, palette, silhouette stability) and contact sheets to review.
 
 ## Features
+- **Art style:** before the first asset, the assistant asks about view, size on screen, directions,
+  colours, outline, shading, proportions and animation; the project keeps the answers and every asset
+  follows them.
 - **Modeling:** bones with expressions (`"0.045*sin(p)"`), 2-bone IK, smooth SDF primitives, mirrored
   `_L`/`_R` parts, materials with palette ramps, emissive and glow, two-sided membranes, conditional parts.
 - **Animation:** cycles from expressions or keyframes with per-frame timing, tweens and easing, smears,

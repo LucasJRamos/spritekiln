@@ -1,13 +1,14 @@
 # Roadmap
 
-**v0.1 (now):** characters and props from YAML specs in 8 directions (top-down 3/4) or a side view;
+**v0.2 (now):** characters and props from YAML specs in 8 directions (top-down 3/4) or a side view;
 animation by expressions and by keys, with events, timing targets and smears; sockets; normal and emissive
 maps; Aseprite-compatible JSON; automatic QA and an art-direction review; splash art → model workflow;
-instructions for coding AIs and an MCP server; Godot, Unity and MonoGame runtimes.
+instructions for coding AIs and an MCP server; an art-style interview before a project's first asset,
+recorded in `spritekiln.toml`; `spritekiln update`; Godot, Unity and MonoGame runtimes.
 
 Ideas for later versions, roughly in order. Open an issue to discuss one before working on it.
 
-## 1. Environments and tiles (v0.2)
+## 1. Environments and tiles (v0.3)
 Same renderer, same camera and light, so floors and walls match the characters.
 - `kind: tile` with `grid: {w: 1.0, d: 1.0}`: the camera is locked to the tile size (e.g. 32 px wide =
   1 unit), rendered in one direction.
@@ -40,6 +41,7 @@ flickering with `noise`, a door opening).
 - Local lights in the spec (a character's own torch) through `light.points`.
 
 ## 5. Tool and workflow
+- `spritekiln style ask`: the art-style questions in the terminal, for users who work without an AI.
 - `spritekiln watch`: re-render `pose` when the YAML is saved (a fast loop for hand editing).
 - A local HTML viewer (animation, direction, zoom, background, onion skin) reading the exported JSON.
 - Speed: per-part caching and optional numba (5–10×) for 128 px characters.

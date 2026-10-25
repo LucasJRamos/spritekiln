@@ -80,4 +80,4 @@ arrogant) must show in the idle and in the timing of the attack.
   QA.
 
 ## More
-Reference files in this folder: [workflow.md](workflow.md), [SPEC.md](SPEC.md), [modeling.md](modeling.md), [animation.md](animation.md), [art-direction.md](art-direction.md), [recipe.md](recipe.md).
+Reference files in this folder: [workflow.md](workflow.md), [style.md](style.md), [SPEC.md](SPEC.md), [modeling.md](modeling.md), [animation.md](animation.md), [art-direction.md](art-direction.md), [recipe.md](recipe.md).

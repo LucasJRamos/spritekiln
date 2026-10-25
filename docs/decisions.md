@@ -196,3 +196,33 @@ AnimatedSprite2D to show the frame (playing at speed 0 so `is_playing()` still w
 share the rules in `docs/format.md`: an event fires on the first tick whose accumulated time reaches its
 frame's start, a clip started from inside an event or finish handler starts fresh, and a direction tie
 keeps the current direction.
+
+## ADR-027: The art style is an interview recorded in spritekiln.toml (2026-10-25)
+Assets of one game must share a look, and the user knows it better than any default. Before the first asset
+of a project, the AI interviews the user with eight short questions (`docs/agent/style.md`) and records the
+answers with `spritekiln style set` in a `[style]` table of `spritekiln.toml`, next to the `[defaults]` that
+`spritekiln new` already applied, rather than in a separate document: one file, already found by every
+command, and the numeric answers (view, height on screen → `camera.scale` and `size`, directions, mirroring,
+palette) become defaults in code instead of relying on the AI's memory. The descriptive answers (outline,
+shading, proportions, animation, references, notes) map to concrete spec choices in `style.md`. The
+interview is driven by the AI instructions (the generated block, step 0 of the loop, the MCP server
+instructions) and `new` only warns when no style is recorded, so scripts and manual use are never blocked.
+The style changes only when the user explicitly asks; `init --force` keeps it. A project without
+`spritekiln.toml` (Hunt Tower until Phase 6) has no style and is not interviewed. A terminal questionnaire
+for users without an AI is left for later.
+
+## ADR-028: `spritekiln update` upgrades through the original installer (2026-10-25)
+The update command detects how SpriteKiln was installed (pipx and uv leave a receipt in the environment,
+a virtual environment differs from the base Python, a checkout or editable install has the sources) and
+runs that installer's upgrade, keeping the extras; it never upgrades a system Python or a checkout, it says
+how. Windows keeps the running `spritekiln.exe` locked, and its launchers hold their own file open, so it
+cannot even be renamed: `uv tool upgrade` then fails to copy the new launcher, and pip leaves a virtual
+environment half uninstalled. So on Windows uv upgrades only the package in the tool environment (`uv pip
+install --python`), a virtual environment is upgraded from `python -m spritekiln update` (no launcher
+running), and pipx, which copes, runs as everywhere; success is judged by the version installed
+afterwards, not by the installer's exit code alone. All routes were tested on Windows with a local index. The version check reads PyPI's JSON API with the standard library, only in `update`. Upgrading the
+package does not reach a project's copies of the AI instructions, so `update` then starts the new version
+(`python -m spritekiln update --files`) to rewrite them, leaving `spritekiln.toml`, specs, renders and MCP
+configs alone. `init` now records the assistants in `spritekiln.toml` and stamps `.spritekiln/version`;
+projects from 0.1.0 have their assistants detected from the files `init` wrote, and commands note a
+project whose files come from another version.

@@ -3,8 +3,10 @@
     python tools/install_smoke.py
 
 Runs the `spritekiln` found on the PATH (not this checkout) in an empty temporary folder: --version, new,
-validate, pose, init with an AI adapter (which writes .mcp.json only when the [mcp] extra is installed), then
-starts `spritekiln mcp` and lists its tools over stdio with plain JSON-RPC. Needs only the standard library.
+validate, pose, init with an AI adapter (which writes .mcp.json only when the [mcp] extra is installed), the
+art style, `update --files` and `update --check` (which reads PyPI and names the installer; EXPECT_INSTALLER
+says which one it must find), then starts `spritekiln mcp` and lists its tools over stdio with plain
+JSON-RPC. Needs only the standard library.
 """
 
 import json
@@ -14,7 +16,7 @@ import subprocess
 import sys
 import tempfile
 
-TOOLS = {'guide', 'new', 'validate', 'pose', 'render', 'review', 'ref_compare', 'export', 'schema'}
+TOOLS = {'guide', 'style', 'new', 'validate', 'pose', 'render', 'review', 'ref_compare', 'export', 'schema'}
 
 
 def run(exe, *args, cwd):
@@ -78,6 +80,14 @@ def main():
         run(exe, 'init', '--engine', 'generic', '--ai', 'claude', cwd=game)
         if not os.path.exists(os.path.join(game, '.mcp.json')):
             sys.exit('init wrote no .mcp.json: the [mcp] extra is missing')
+        run(exe, 'style', 'set', '--height', '48', '--outline', 'dark', cwd=game)
+        if 'scale = 0.03667' not in run(exe, 'style', cwd=game) + open(os.path.join(game, 'spritekiln.toml')).read():
+            sys.exit('style set did not record the density')
+        run(exe, 'update', '--files', cwd=game)
+        check = run(exe, 'update', '--check', cwd=game)
+        expected = os.environ.get('EXPECT_INSTALLER')
+        if expected and f'installed with {expected}' not in check:
+            sys.exit(f'update --check did not find the {expected} installation')
         missing = TOOLS - mcp_tools(exe, game)
         if missing:
             sys.exit(f'MCP tools missing: {sorted(missing)}')

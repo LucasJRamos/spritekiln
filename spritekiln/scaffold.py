@@ -3,10 +3,11 @@
 import importlib.util
 import os
 
-from . import agents, config
+from . import __version__, agents, config
 from .errors import SpriteKilnError
 
 DOCS_DIR = '.spritekiln/agent'
+STAMP = '.spritekiln/version'  # the SpriteKiln version that wrote the AI files (see update.py)
 
 
 def init(
@@ -18,14 +19,16 @@ def init(
     godot_project=None,
     mcp=True,
     force=False,
-    view='topdown',
+    view=None,
 ):
     """Write spritekiln.toml, the specs folder, the AI instructions and MCP client configs. Returns what was
-    written (paths) and notes for the user."""
+    written (paths) and notes for the user. Rewriting a project (`force`) keeps its recorded art style and
+    the defaults that come from it."""
     if engine not in config.ENGINES:
         raise SpriteKilnError(f'--engine {engine}: use one of {", ".join(config.ENGINES)}')
-    if view not in ('topdown', 'side'):
+    if view not in (None, 'topdown', 'side'):
         raise SpriteKilnError(f'--view {view}: use topdown or side')
+    ais = agents.resolve_ais(ais)
     specs = os.path.normpath(specs.replace('\\', '/')).replace(os.sep, '/')  # ./specs, art\specs -> art/specs
     root = os.path.abspath(root)
     os.makedirs(root, exist_ok=True)
@@ -33,6 +36,11 @@ def init(
     if os.path.exists(toml) and not force:
         raise SpriteKilnError(f'{toml} already exists (use --force to rewrite it; specs are never touched)')
     notes = []
+    try:
+        old = config.read(toml) if os.path.exists(toml) else {}
+    except SpriteKilnError:  # a broken file is what --force is for
+        old = {}
+    style = old.get('style') if isinstance(old.get('style'), dict) else None
     if engine == 'godot':
         godot_project = godot_project or '.'
         if not os.path.exists(os.path.join(root, godot_project, 'project.godot')):
@@ -40,14 +48,23 @@ def init(
                 f'no project.godot in {os.path.join(root, godot_project)} yet: set export.godot_project '
                 f'in {config.FILENAME} if the Godot project lives elsewhere'
             )
-    with open(toml, 'w', encoding='utf-8', newline='\n') as fh:
+    if style:
+        defaults = old.get('defaults', {})
+        if view and view != style.get('view'):
+            notes.append(
+                f'the recorded art style uses the {style.get("view")} view and was kept; change it with '
+                f'`spritekiln style set --view {view}`'
+            )
+    else:
+        view = view or 'topdown'
         defaults = {
             'view': view,
             'size': 64,
             'palette': 'gothic',
             'camera': {'pitch': 0 if view == 'side' else 38, 'scale': 0.04},
         }
-        fh.write(config.render(engine, specs, export_dir, godot_project or '.', defaults))
+    with open(toml, 'w', encoding='utf-8', newline='\n') as fh:
+        fh.write(config.render(engine, specs, export_dir, godot_project or '.', defaults, ais, style))
     written = [toml]
     for sub in ('characters', 'props', 'palettes'):
         os.makedirs(os.path.join(root, specs, sub), exist_ok=True)
@@ -58,8 +75,9 @@ def init(
         written.append(gd)
     agents.write_docs(os.path.join(root, DOCS_DIR))
     written.append(os.path.join(root, DOCS_DIR))
-    ais = agents.install(root, ais, DOCS_DIR, specs_glob=f'{specs.rstrip("/")}/**/*.yaml')
-    written += [os.path.join(root, f) for f in _adapter_files(ais) if os.path.exists(os.path.join(root, f))]
+    agents.install(root, ais, DOCS_DIR, specs_glob=f'{specs.rstrip("/")}/**/*.yaml')
+    written += [os.path.join(root, f) for f in adapter_files(ais) if os.path.exists(os.path.join(root, f))]
+    written.append(stamp(root))
     if mcp and importlib.util.find_spec('mcp') is None:
         mcp = False
         notes.append(
@@ -74,10 +92,19 @@ def init(
                 'command = "spritekiln" and args = ["mcp"]'
             )
     written.append(_gitignore(root, specs))
-    return dict(root=root, engine=engine, ais=ais, written=written, notes=notes)
+    return dict(root=root, engine=engine, ais=ais, written=written, notes=notes, style=bool(style))
 
 
-def _adapter_files(ais):
+def stamp(root):
+    """Record which SpriteKiln version wrote the project's AI files."""
+    path = os.path.join(root, STAMP)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8', newline='\n') as fh:
+        fh.write(__version__ + '\n')
+    return path
+
+
+def adapter_files(ais):
     files = ['AGENTS.md']
     if 'claude' in ais:
         files += ['CLAUDE.md', '.claude/skills', '.claude/agents']

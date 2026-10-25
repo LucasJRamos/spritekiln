@@ -14,6 +14,7 @@ project folder (the one with `project.godot`):
 
 ```
 spritekiln init --engine godot --view side --ai claude
+spritekiln style set --view side --height 50     # the art style (an assistant asks you this the first time)
 spritekiln new wren
 ```
 

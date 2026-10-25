@@ -29,6 +29,10 @@ vignetted background works too.
 > silhouette, review it as an art director, then animate idle, run and a pistol shot. Show me the pose
 > sheet before you animate.
 
+If this is the project's first asset, the assistant starts with the art style questions (size on screen,
+outline, shading...; see [Use SpriteKiln with your AI](use-with-your-ai.md#2-the-art-style-interview)),
+proposing answers from your splash art for you to confirm.
+
 What the assistant does, and what you can check at each step:
 
 1. **Prepare the reference:** `spritekiln new huntress --ref art/huntress.png` and

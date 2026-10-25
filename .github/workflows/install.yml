@@ -172,8 +172,10 @@ jobs:
           $env:Path = [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + [Environment]::GetEnvironmentVariable('Path', 'Machine')
           spritekiln --version
 
-      - name: Smoke test (new, validate, pose, init, MCP tools)
+      - name: Smoke test (new, validate, pose, init, style, update, MCP tools)
         shell: bash
+        env:
+          EXPECT_INSTALLER: pipx  # every route above installs with pipx
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           if [ "$RUNNER_OS" = Windows ]; then python tools/install_smoke.py; else python3 tools/install_smoke.py; fi

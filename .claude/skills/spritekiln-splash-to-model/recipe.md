@@ -6,6 +6,7 @@ saved and the next step reads it.
 
 | step | role | does | reads | done when |
 |---|---|---|---|---|
+| 0 | main session (first asset of a project) | interviews the user about the art style and records it | [style.md](style.md) | `spritekiln style` shows the recorded style |
 | 1 | modeler | brief, palette, blockout, striking shapes | [splash-to-model.md](SKILL.md), [modeling.md](modeling.md) | 8 directions look right; corrected IoU ≥ 0.65 |
 | 2 | art director (model round) | numbers + critique, ≤ 8 fixes | [art-direction.md](art-direction.md) | verdict written |
 | 3 | modeler | applies the high-priority fixes | the director's list | fixes visible in `pose` |
@@ -20,6 +21,8 @@ animation round caught the rifle and pistols vanishing in direction `s`, the wea
 shoulder, and the mine placement.
 
 ## Hand-offs
+- Subagents cannot ask the user anything: the main session runs the style interview (step 0) before it
+  delegates, and every role follows the recorded style.
 - The director never edits: they return a list of fixes with concrete spec changes.
 - Every step reports the paths of the images it produced, so the next one can open them.
 - Keep the spec's `brief:` up to date with decisions (what the reference does not show, cheats per
