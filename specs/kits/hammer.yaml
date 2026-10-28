@@ -1,0 +1,76 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: hammer, as: hammer, at: wrist_R}]`.
+# `spritekiln pose specs/kits/hammer.yaml --dirs all` shows it on its host.
+kit: hammer
+license: CC0-1.0
+summary: a one-handed war hammer held in the fist; the haft rises along the hand frame's y, a block head across its top
+host: humanoid
+at: wrist_R
+host_remove: [use.sword]   # the host template's sword is in the same hand
+params:
+  length: 0.55       # from the fist to the middle of the head (world units)
+  head: 0.15         # from the haft's axis out to each striking face, along the hand's z (world units)
+  width: 0.15        # width of the square striking face (world units)
+  beak: 0            # length of a pick on the back instead of the second face (world units; 0: two faces)
+  tilt: 0.52         # the haft leans forward from the fist (radians about the hand's x)
+  roll: 0            # turn about the haft (radians; 0: a face leads a swing along the hand's z)
+  pitch: 0           # extra lean at the wrist (radians), e.g. a channel such as hammer_pitch
+  cheat: 0.8         # strength of the per-direction cheats that turn the weapon's profile to the camera (0: off)
+# In a left hand (`at: wrist_L`, or `as: hammer_L`) negate `cheat` so the head turns out of the body there too.
+
+materials:
+  steel: {ramp: steel, finish: metal}
+  wood: {ramp: wood, finish: matte, bands: [2, 5]}   # matte: a 1-2 px haft does not flicker with a highlight; tones 2-5 keep it off the dark robe
+  leather: {ramp: bone, bands: [1, 3]}
+
+ramps:   # used only where the host's palette has none of that name
+  wood: ["#140c08", "#2f1d13", "#4d3120", "#6d4a2e", "#91683f", "#b88f5c"]
+
+bones:
+  hammer: {parent: at, pos: [0, 0, 0.035], rot: "[tilt + pitch, 0, 0]"}   # the fist, the haft along its y
+  # in s the head would face the camera end-on (a block): `cheat` turns it out of the body there to show the T
+  haft: {parent: hammer, rot: "[0, roll - cheat*pulse(yaw*sx, 0, 60), 0]"}
+
+parts:
+  haft:
+    material: wood
+    space: haft
+    priority: 2              # thin and in front of the body: it keeps its pixels
+    prims:
+      - cylinder: {a: [0, -0.08, 0], b: "[0, length, 0]", r: 0.023}
+  grip:
+    material: leather
+    space: haft
+    prims:
+      - cylinder: {a: [0, -0.07, 0], b: [0, 0.08, 0], r: 0.028}
+  pommel:
+    material: steel
+    space: haft
+    prims:
+      - sphere: {c: [0, -0.095, 0], r: 0.032}
+  head:                      # the striking face: a block from the haft with a flared face at its end
+    material: steel
+    space: haft
+    blend: {mode: chamfer, k: 0.015}
+    prims:
+      - box: {c: "[0, length, head*0.5 - 0.02]", half: "[width*0.4, width*0.42, head*0.5 + 0.02]", round: 0.008}
+      - box: {c: "[0, length, head - 0.025]", half: "[width/2, width/2, 0.025]", round: 0.008}
+  back:                      # the second face, the mirror of the first
+    material: steel
+    space: haft
+    when: "beak <= 0"
+    blend: {mode: chamfer, k: 0.015}
+    prims:
+      - box: {c: "[0, length, -head*0.5 + 0.02]", half: "[width*0.4, width*0.42, head*0.5 + 0.02]", round: 0.008}
+      - box: {c: "[0, length, -head + 0.025]", half: "[width/2, width/2, 0.025]", round: 0.008}
+  beak:                      # or a pick on the back, drooping towards the hand
+    material: steel
+    space: haft
+    when: "beak > 0"
+    prims:
+      - extrude: {c: "[0, length, 0]", rot: [0, -1.5708, 0], depth: 0.05, round: 0.006,
+                  profile: {polygon: ["[0.02, width*0.35]", "[-beak*0.5, width*0.2]", "[-beak, -width*0.45]",
+                                      "[-beak*0.55, -width*0.25]", "[0.02, -width*0.35]"]}}
+
+sockets:
+  hit: {bone: haft, offset: "[0, length, head]"}   # the leading face: where a blow lands

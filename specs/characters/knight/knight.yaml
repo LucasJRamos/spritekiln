@@ -1,0 +1,21 @@
+spritekiln: 1
+# yaml-language-server: $schema=https://raw.githubusercontent.com/LucasJRamos/spritekiln/main/spritekiln/data/spec.schema.json
+name: knight
+extends: humanoid       # the template's skeleton, body, sword kit and idle, walk and attack clips
+remove: [parts.belt]    # the belt kit below replaces the template's plain band
+# An example of a character made of a base and kits: `spritekiln spec outline` lists what each one brings.
+
+brief:
+  summary: a foot knight in a crested helm, with a red cape, a heater shield and a sword
+  must_keep: [crested helm, red cape, heater shield, sword]
+  simplify: [no heraldry on the shield or the tunic at 64 px]
+
+materials:
+  cloth: {ramp: stone}  # a grey tunic, so the red cape and the plume stand out (the template's robe is purple)
+
+use:
+  - {kit: helmet}
+  - {kit: cape}
+  - {kit: shield}
+  - {kit: belt}
+  - {kit: pouch, as: pouch_L, with: {angle: 1.15}}   # one on each hip

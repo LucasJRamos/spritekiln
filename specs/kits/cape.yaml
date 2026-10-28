@@ -1,0 +1,72 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: cape, as: cape, at: pelvis}]`.
+# `spritekiln pose specs/kits/cape.yaml --dirs all` shows it on its host.
+kit: cape
+license: CC0-1.0
+summary: a cloak from the shoulders down the back, open at the front, with a rolled collar; it sways with the walk
+host: humanoid
+at: pelvis
+params:
+  length: 0.9        # from the collar down to the hem (world units; the humanoid's knees are about 1.0 below its shoulders)
+  width: 0.42        # full width at the shoulders (world units): inside the shoulder balls (0.54 apart on the humanoid) frees the arms
+  flare: 0.3         # extra width at the hem (world units; the hem is width + flare across): it shows behind the legs in front views
+  drape: 0.10        # how far behind the shoulders the hem hangs (world units)
+  flat: 0.08         # a flatter back: the round section stretched sideways by this much on each side (world units; 0: a half cone; under width/2)
+  dip: 0.2           # slope of the hem: it hangs lower at the back and rises towards the open front (0: level)
+  top: 0.6           # height of the collar above the `at` frame (world units): the host's shoulder line
+  thick: 0.045       # cloth thickness (world units; at least a pixel: 0.04 at scale 0.04)
+  collar: true       # a rolled collar around the neck, over the cape's top edge
+  clasp: true        # a gold clasp at the throat
+
+channels:
+  sway: 0            # + lifts the hem backwards (wind, a run, a lunge: 1 is about horizontal), - forwards (below
+                     # -0.3 the humanoid's coat hem shows through); drive it as <as>_sway
+host_channels:       # the humanoid's, read below; a host without them gets these values
+  coat: 0
+  lean: 0
+  twist: 0
+
+materials:
+  cape: {ramp: blood, finish: matte}       # its own name: a host recolours it by defining `cape` (or mapping it)
+  gold: {ramp: gold, finish: metal}
+
+bones:
+  # The pivot is the back of the collar. Besides its own `sway`, the cape follows three channels of the humanoid
+  # host so that it moves with the host's idle, walk and attack without any work: it billows back with every
+  # swing of the coat hem (`abs(coat)`: twice per walk cycle, and in a lunge), hangs back towards the vertical when
+  # the body leans (half of `lean`, so it never digs into the hips) and lags behind the torso's `twist` (a host
+  # without those channels gets them at rest: `host_channels`).
+  cape: {parent: at, pos: "[0, top, 0]", rot: "[sway*0.5 + 0.15*abs(coat) - lean*0.5, -twist*0.3, 0]"}
+
+parts:
+  cape:
+    material: cape
+    space: cape
+    blend: 0.03
+    prims:
+      - cone: {a: [0, 0, -0.04], b: "[0, -length, -0.04 - drape]", r: "[width/2 - flat, width/2 - flat + flare/2]",
+               elongate: "[flat, 0, 0]", shell: thick}
+      # two folds fanning out from below the collar: ridges on the outer face of the back, cut by the hem too
+      - cone: {a: "[width*0.1, -0.12, -0.04 - width/2 + flat - thick/2 - 0.12*(drape + flare/2)/length]",
+               b: "[(width + flare)*0.21, -length - 0.1, -0.04 - drape - width/2 + flat - flare/2 - thick/2 - 0.1*(drape + flare/2)/length]",
+               r: [0.012, 0.04]}
+      - cone: {a: "[-width*0.1, -0.12, -0.04 - width/2 + flat - thick/2 - 0.12*(drape + flare/2)/length]",
+               b: "[-(width + flare)*0.21, -length - 0.1, -0.04 - drape - width/2 + flat - flare/2 - thick/2 - 0.1*(drape + flare/2)/length]",
+               r: [0.012, 0.04]}
+    cut:
+      - plane: {n: [0, 1, 0], at: 0}           # flat top (the collar covers it)
+      - plane: {n: "[0, -1, dip]", c: "[0, -length, -0.04 - drape]"}   # hem, tilted by `dip`
+      - plane: {n: [0, 0, 1], at: 0}           # open front
+  collar:
+    material: cape
+    space: cape
+    when: collar
+    prims:
+      - torus: {c: [0, 0, -0.01], R: "width/2 - 0.04", r: 0.05, rot: [0.3, 0, 0]}
+  clasp:
+    material: gold
+    space: cape
+    when: clasp
+    priority: 2
+    prims:
+      - sphere: {c: "[0, -0.05, width/2 + 0.01]", r: 0.045}

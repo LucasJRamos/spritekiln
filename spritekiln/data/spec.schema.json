@@ -36,6 +36,23 @@
       ]
     },
     "ramps": {"$ref": "#/$defs/ramps", "description": "Extra ramps defined in the spec (override the palette)."},
+    "extends": {"type": "string", "description": "A base spec merged under this one (its keys win; lists are replaced): a built-in template (humanoid), a project template (<specs>/templates/<name>.yaml) or a path relative to this file."},
+    "remove": {"type": "array", "items": {"type": "string"}, "description": "Paths of the base to delete (parts.cape, animations.dash), or use.<as> for everything a base's kit added."},
+    "use": {"type": "array", "description": "Kits: reusable parts with parameters (spritekiln kits lists them).", "items": {"type": "object", "additionalProperties": false, "required": ["kit"], "properties": {
+      "kit": {"type": "string", "description": "A built-in kit, a project kit (<specs>/kits/<name>.yaml) or a path relative to this file."},
+      "as": {"type": "string", "description": "Prefix of the names it adds (<as>_<name>; default the kit's name). A name ending in _L is mirrored."},
+      "at": {"type": "string", "description": "The frame it attaches to (default: the kit's)."},
+      "with": {"type": "object", "description": "Values of the kit's params."},
+      "materials": {"type": "object", "additionalProperties": {"type": "string"}, "description": "The kit's materials mapped to this spec's (steel: iron)."}
+    }}},
+    "kit": {"type": "string", "description": "Kit files only: the kit's name. A kit opened as a spec shows on its host."},
+    "license": {"type": "string", "description": "Kit files only: the licence of the kit (built-in kits are CC0-1.0)."},
+    "summary": {"type": "string", "description": "Kit files only: what the kit is, in one line."},
+    "host": {"type": "string", "description": "Kit files only: the base it is shown on (default humanoid)."},
+    "at": {"type": "string", "description": "Kit files only: the frame it attaches to by default; inside the kit, the frame `at`."},
+    "host_remove": {"type": "array", "items": {"type": "string"}, "description": "Kit files only: what to remove from the host when showing the kit (use.sword)."},
+    "params": {"type": "object", "description": "Kit files only: the kit's params and their defaults, used as variables in its expressions."},
+    "host_channels": {"type": "object", "description": "Kit files only: channels of the host the kit reads (coat, lean...), with the value used when the host has none."},
     "render": {"type": "object", "additionalProperties": false, "description": "How this spec is drawn. The project's style ([style] of spritekiln.toml) sets the defaults; set a field here only for an exception (spritekiln style lists such specs).", "properties": {
       "outline": {"enum": ["selective", "dark", "colored", "none"], "description": "Outer outline: each material's darkest tone (selective), one dark colour (dark), each material's line tone (colored) or none."},
       "outline_color": {"$ref": "#/$defs/color", "description": "The one colour of outline: dark (default: the darkest first tone of the ramps)."},

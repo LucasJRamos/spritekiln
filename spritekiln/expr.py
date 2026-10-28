@@ -2,8 +2,9 @@
 
 Any numeric field in a spec may be a string expression. Lists inside expressions
 are numpy vectors (so [1,0,0] + [0,1,0] adds, it does not concatenate).
-Available: channel names, p (phase 0..2pi), t (0..1), f (frame index), n (frame count),
-sx (+1 on _L side, -1 on _R side), and the functions below.
+Available: channel names, p (phase 0..2pi), t (0..1), f (frame index), n (frame count), yaw and dir (the
+direction rendered), sx (-1 inside an automatic _R twin, +1 elsewhere: in bones, IK, parts and sockets) and the
+functions below.
 """
 
 import ast

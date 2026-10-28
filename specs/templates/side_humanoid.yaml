@@ -22,7 +22,7 @@ materials:
   skin:  {ramp: skin}
   cloth: {ramp: cloth}
   hair:  {ramp: bone, bands: [1, 2]}
-  steel: {ramp: steel}
+  steel: {ramp: steel, finish: metal}   # a small hard highlight, darker body (blades, helmets, rims)
   leather: {ramp: bone, bands: [1, 3]}
   ink:   {ramp: cloth, emissive: true, band: 0, outline: false}
   fx_tail: {ramp: fx_tail, emissive: true}
@@ -63,9 +63,12 @@ bones:
   footyaw:    {parent: root, rot: "[0, twist*0.4, 0]"}
   sole_L:     {parent: footyaw, at: ankle_L, rot: "[pitch_foot_L, 0.08, 0]"}
   coatbase:   {parent: pelvis, rot: "[-coat*0.25, 0, 0]"}
-  swordgrip:  {parent: wrist_R, rot: "[sword_pitch, 0, 0]"}   # lets a windup cock the blade back
   # side view: the smear arc turned into the profile plane (vertical slashes read; flat ones are edge-on)
   fxspace:    {parent: root, pos: "[-0.20, smear_y, smear_z]", rot: "[0, 0, pi/2]"}   # x: sword side
+
+use:              # kits: parts with params (`spritekiln kits` lists them); swap or drop them in a spec
+  # side view: the blade turned flat into the profile plane (edge-on it breaks up); sword_pitch cocks it back
+  - {kit: sword, as: sword, at: wrist_R, with: {roll: 1.5708, pitch: sword_pitch}}
 
 ik:
   arm_L: {start: shoulder_L, space: torso_rot, target: hand_L, lengths: [0.29, 0.27],
@@ -147,17 +150,6 @@ parts:
     prims:
       - cone: {a: [0, 0.10, 0], b: [0, -0.02, 0.0], r: [0.065, 0.065]}
       - ellipsoid: {c: [0, -0.04, 0.05], r: [0.065, 0.045, 0.11]}
-  sword:           # right hand only (no _L => not mirrored)
-    material: steel
-    space: swordgrip
-    prims:         # side view: blade flat and guard turned into the profile plane (edge-on they break up)
-      - box: {c: [0, 0.26, 0.19], half: [0.010, 0.24, 0.026], rot: [0.52, 0, 0]}   # tilted blade
-      - box: {c: [0, 0.048, 0.068], half: [0.02, 0.013, 0.065], rot: [0.52, 0, 0]}
-  grip:
-    material: leather
-    space: swordgrip
-    prims:
-      - cylinder: {a: [0, -0.05, 0.01], b: [0, 0.04, 0.06], r: 0.021}
   smear:
     when: "smear_w > 0"
     materials: [fx_tail, fx_mid, fx_core]

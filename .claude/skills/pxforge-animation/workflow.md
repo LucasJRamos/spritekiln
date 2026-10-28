@@ -20,7 +20,8 @@ python -m pxforge ref prep <splash.png>                       # cutout, palette 
 python -m pxforge ref compare <spec.yaml> <splash.png> --dir se   # silhouette IoU (camera-corrected) + hints
 python -m pxforge palette ramp "#5d4f6c" --steps 6            # hue-shifted ramp
 python -m pxforge palette extract <image>                     # palette YAML from an image
-python -m pxforge new <name> [--template humanoid|side_humanoid] [--view side] [--ref splash.png]
+python -m pxforge new <name> [--extends] [--template humanoid|side_humanoid] [--view side] [--ref splash.png]
+spritekiln kits [<name>]                                # kits a spec can `use` (weapons, headwear, capes...)
 python -m pxforge cache info|prune|clear                      # render cache (.kilncache/)
 python -m pxforge update [--check | --files]                  # upgrade SpriteKiln, refresh the project's AI files
 ```
@@ -43,9 +44,12 @@ If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or t
    only when the user explicitly asks.
 1. **Read** the spec and its `brief:`. A long spec: `spec outline` first (a fraction of the file), then
    `spec show` the blocks you will edit (or read those line ranges); a mirrored `_R` item is edited in its
-   `_L` source. No spec yet: `python -m pxforge new <name>` (the humanoid template, or
-   `side_humanoid` with platformer clips for a side view), or start from a similar spec (the gargoyle in
-   SpriteKiln's repository, `specs/characters/gargula/gargula.yaml` on
+   `_L` source; an item from a base or a kit (`spec outline` says where from) is changed by giving the keys
+   that differ in the spec, never by editing the base or the kit. No spec yet: `python -m pxforge new <name>
+   --extends` for a humanoid (a short spec over the humanoid template, or `side_humanoid` with platformer
+   clips for a side view: it states only what differs), weapons and gear from `spritekiln kits`; a plain
+   `python -m pxforge new <name>` copies the template to reshape everything; or start from a similar spec (the
+   gargoyle in SpriteKiln's repository, `specs/characters/gargula/gargula.yaml` on
    https://github.com/LucasJRamos/spritekiln, is a good base for creatures).
 2. **Edit** a little at a time: one part or one key. Edit the YAML as text, in place: its comments explain
    the model and the compact `{...}` style keeps it readable. Never regenerate a spec with a YAML dumper
@@ -96,4 +100,4 @@ instructions; commands print a note when they come from another version.
 
 ## Tools for AIs
 `python -m pxforge mcp` serves the same operations over the Model Context Protocol (style, validate, pose,
-render, review, ref_compare, export, new, style_preview), returning images and JSON. Use it when your AI client supports MCP.
+render, review, ref_compare, export, new, kits, style_preview), returning images and JSON. Use it when your AI client supports MCP.

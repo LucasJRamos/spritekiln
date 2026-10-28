@@ -1,0 +1,66 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: helmet, as: helmet, at: head}]`.
+# `spritekiln pose specs/kits/helmet.yaml --dirs all` shows it on its host.
+kit: helmet
+license: CC0-1.0
+summary: a round steel helm over the head and hair, open at the face (or a closed visor), a nasal and a plume crest
+host: humanoid
+at: head
+params:
+  size: 1            # scale factor for bigger heads or hair (the template's head and hair fit at 1)
+  radius: 0.215      # the dome's radius at the brow (head units: the template's hair reaches 0.19)
+  low: 0.03          # height of the cheek and neck guards' lower edge (head units; the chin is about -0.02)
+  brow: 0.235        # height of the brow over the face opening (head units; the eyes are at 0.12)
+  opening: 0.25      # full width of the face opening between the cheek guards (head units)
+  visor: false       # true: the plate closes the face, a dark T-shaped slit painted on it
+  nasal: true        # a bar down over the nose (open face only)
+  crest: 0.1         # height of the plume crest over the dome (head units; 0: none)
+  trim: true         # a gold band around the lip of the helm
+
+materials:
+  steel: {ramp: steel, finish: metal}
+  gold: {ramp: gold, finish: metal}
+  plume: {ramp: blood, finish: matte}
+  slit: {ramp: steel, bands: [0, 0], outline: false}   # the visor's slit: the darkest steel tone, so the T reads
+
+bones:
+  helmet: {parent: at, pos: [0, 0, -0.035], scale: size}   # the axis behind the head's centre: the face sits flush
+
+parts:
+  helmet:          # the dome with a flared lip, solid so no hair can poke through; the face cut out at the front
+    material: steel
+    space: helmet
+    prims:
+      - revolve: {c: [0, 0, 0],
+                  profile: {bezier: ["[radius + 0.016, low]", "[radius + 0.006, low + 0.02]", "[radius, low + 0.045]",
+                                     "[radius, 0.1]", "[radius, 0.16]", "[radius, 0.36]", "[0, 0.36]",
+                                     "[-radius, 0.36]", "[-radius, 0.16]", "[-radius, 0.1]", "[-radius, low + 0.045]",
+                                     "[-radius - 0.006, low + 0.02]", "[-radius - 0.016, low]", "[0, low]"]}}
+    cut:
+      - extrude: {c: "[0, brow - 0.16, 0.27 + 3*visor]", depth: 0.4, profile: {rect: "[opening/2, 0.16]", round: 0.035}}
+    paint:
+      - material: gold
+        stripes: {axis: y, at: ["low + 0.032 - 3*(1 - trim)"], width: 0.05}
+      - material: slit
+        prims:   # a T: across the eyes and down the middle, clear of the trim (pushed away when the face is open)
+          - box: {c: "[0, 0.205, 0.22 + 3*(1 - visor)]", half: [0.14, 0.028, 0.1]}
+          - box: {c: "[0, 0.13, 0.22 + 3*(1 - visor)]", half: [0.024, 0.07, 0.1]}
+  nasal:           # a bar from the brow down over the nose, just in front of the dome
+    material: steel
+    space: helmet
+    when: "nasal and not visor"
+    prims:
+      - extrude: {c: "[0, brow - 0.065, radius + 0.01]", depth: 0.04,
+                  profile: {polygon: [[-0.024, 0.07], [0.024, 0.07], [0.02, -0.07], [-0.02, -0.07]]}}
+  crest:           # a fin over the top from the brow to the nape, in the dome's middle plane
+    material: plume
+    space: helmet
+    when: "crest > 0"
+    prims:
+      - extrude: {c: [0, 0, 0], rot: [0, 1.5708, 0], depth: 0.08, round: 0.012,
+                  profile: {bezier: ["[-0.16, 0.3]", "[-0.18, 0.36 + crest*1.25]", "[0, 0.36 + crest]",
+                                     "[0.22, 0.36 + crest*0.9]", "[radius + crest*0.5, 0.14]",
+                                     "[0.15, 0.28]", "[0, 0.33]", "[-0.12, 0.3]"]}}
+
+sockets:
+  top: {bone: helmet, offset: "[0, 0.36 + crest, 0]"}   # the top of the helm (or its crest)

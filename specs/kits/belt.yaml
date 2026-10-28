@@ -1,0 +1,36 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: belt, as: belt, at: pelvis}]`.
+# `spritekiln pose specs/kits/belt.yaml --dirs all` shows it on its host.
+kit: belt
+license: CC0-1.0
+summary: a leather belt around the waist with a buckle in front; tilt it for a belt slung on the hips
+host: humanoid
+at: pelvis
+host_remove: [parts.belt]   # the humanoid template has a belt of its own: a spec using this kit removes it too
+params:
+  radius: 0.2        # fit to the waist: a little wider than the body at that height (0.2 on the humanoid's coat)
+  height: 0.065      # band height (at least a pixel: 0.04 at scale 0.04)
+  y: 0.128           # height of the band's centre above the `at` frame (the humanoid's own belt line)
+  tilt: 0            # the front drops by this angle (radians; 0.25 slings it on the hips)
+  buckle: true       # a buckle in front
+
+materials:
+  leather: {ramp: bone, bands: [1, 3]}
+  gold: {ramp: gold, finish: metal}         # map it (`materials: {gold: steel}`) for an iron buckle
+
+bones:
+  belt: {parent: at, pos: "[0, y, 0]", rot: "[tilt, 0, 0]"}
+
+parts:
+  belt:
+    material: leather
+    space: belt
+    prims:
+      - cylinder: {a: "[0, -height/2, 0]", b: "[0, height/2, 0]", r: radius, round: 0.008}
+  buckle:
+    material: gold
+    space: belt
+    when: buckle
+    priority: 2              # small and in front of the band: it keeps its pixels
+    prims:                   # a plate a little taller than the band (an opening in it is under a pixel: it gains nothing)
+      - extrude: {c: "[0, 0, radius + 0.01]", depth: 0.04, profile: {rect: "[0.055, height/2 + 0.018]", chamfer: 0.014}}

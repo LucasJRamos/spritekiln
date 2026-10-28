@@ -1,0 +1,69 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: mace, as: mace, at: wrist_R}]`.
+# `spritekiln pose specs/kits/mace.yaml --dirs all` shows it on its host.
+kit: mace
+license: CC0-1.0
+summary: a one-handed spiked mace held in the fist; the haft rises along the hand frame's y to a ball ringed with spikes
+host: humanoid
+at: wrist_R
+host_remove: [use.sword]   # the host template's sword is in the same hand
+params:
+  length: 0.5        # from the fist to the middle of the head (world units)
+  head: 0.17         # radius of the head from its middle to the tips of the spikes (world units; the ball is 0.6 of it)
+  spike: 0           # length of a spike on top, along the haft (world units; 0: none)
+  tilt: 0.52         # the haft leans forward from the fist (radians about the hand's x)
+  roll: 0            # turn about the haft (radians; the spikes' angle)
+  pitch: 0           # extra lean at the wrist (radians), e.g. a channel such as mace_pitch
+
+materials:
+  steel: {ramp: steel, finish: metal}
+  wood: {ramp: wood, finish: matte, bands: [2, 5]}   # matte: a 1-2 px haft does not flicker with a highlight; tones 2-5 keep it off the dark robe
+  leather: {ramp: bone, bands: [1, 3]}
+
+ramps:   # used only where the host's palette has none of that name
+  wood: ["#140c08", "#2f1d13", "#4d3120", "#6d4a2e", "#91683f", "#b88f5c"]
+
+bones:
+  mace: {parent: at, pos: [0, 0, 0.035], rot: "[tilt + pitch, 0, 0]"}   # the fist, the haft along its y
+  haft: {parent: mace, rot: "[0, roll, 0]"}
+
+parts:
+  haft:
+    material: wood
+    space: haft
+    priority: 2              # thin and in front of the body: it keeps its pixels
+    prims:
+      - cylinder: {a: [0, -0.08, 0], b: "[0, length, 0]", r: 0.022}
+  grip:
+    material: leather
+    space: haft
+    prims:
+      - cylinder: {a: [0, -0.07, 0], b: [0, 0.08, 0], r: 0.027}
+  pommel:
+    material: steel
+    space: haft
+    prims:
+      - sphere: {c: [0, -0.095, 0], r: 0.032}
+  head:                      # a ball with a ring of eight spikes across the haft: a star seen along the haft,
+    material: steel          # a blunt head with spikes above and below from the side (no point: not a spear)
+    space: haft
+    blend: 0.01
+    prims:
+      - ellipsoid: {c: "[0, length, 0]", r: "[head*0.6, head*0.72, head*0.6]"}
+      - cone: {a: "[0, length, 0]", b: "[head, length, 0]", r: [0.06, 0.01]}
+      - cone: {a: "[0, length, 0]", b: "[-head, length, 0]", r: [0.06, 0.01]}
+      - cone: {a: "[0, length, 0]", b: "[0, length, head]", r: [0.06, 0.01]}
+      - cone: {a: "[0, length, 0]", b: "[0, length, -head]", r: [0.06, 0.01]}
+      - cone: {a: "[0, length, 0]", b: "[head*0.7, length, head*0.7]", r: [0.06, 0.01]}
+      - cone: {a: "[0, length, 0]", b: "[-head*0.7, length, head*0.7]", r: [0.06, 0.01]}
+      - cone: {a: "[0, length, 0]", b: "[head*0.7, length, -head*0.7]", r: [0.06, 0.01]}
+      - cone: {a: "[0, length, 0]", b: "[-head*0.7, length, -head*0.7]", r: [0.06, 0.01]}
+  spike:
+    material: steel
+    space: haft
+    when: "spike > 0"
+    prims:
+      - cone: {a: "[0, length + head*0.6, 0]", b: "[0, length + head*0.6 + spike, 0]", r: [0.035, 0.01]}
+
+sockets:
+  hit: {bone: haft, offset: "[0, length, 0]"}   # the middle of the head: where a blow lands

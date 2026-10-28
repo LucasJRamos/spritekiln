@@ -122,16 +122,24 @@ def build():
         folder: str | None = None,
         ref: str | None = None,
         view: str | None = None,
+        extends: bool = False,
     ) -> dict:
         """Create a spec from a template (default folder: the project's specs folder + /characters). `ref`: a
         splash art copied next to the spec. `view`: topdown (3/4, 8 directions) or side (side-scroller profile,
         directions e and w); default from the project. `template`: humanoid or side_humanoid (the default for a
-        side view). Returns the spec path."""
+        side view). `extends`: a short spec that extends the template (states only what differs) instead of a
+        copy. Returns the spec path."""
         from .style import missing_note
 
-        path = api.new(name, template, folder, ref, view=view)
+        path = api.new(name, template, folder, ref, view=view, extends=extends)
         note = missing_note(path)
         return {'spec': path, **({'note': note} if note else {})}
+
+    @tool
+    def kits(name: str | None = None) -> dict | list:
+        """The kits a spec can add with `use: [{kit, as, at, with}]` (weapons, shields, headwear, capes, belts...):
+        name, attachment frame, summary and params. With `name`: that kit and its params block with comments."""
+        return api.kits(name)
 
     @tool
     def validate(spec: str) -> dict:

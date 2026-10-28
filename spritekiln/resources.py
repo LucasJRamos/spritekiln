@@ -1,4 +1,4 @@
-"""Files that ship with the package: built-in palettes, spec templates and the Godot addon.
+"""Files that ship with the package: built-in palettes, spec templates, kits and the Godot addon.
 
 An installed wheel carries them in `spritekiln/data/` (see `force-include` in pyproject.toml). In a
 source checkout or an editable install they are read from their place in the repository.
@@ -14,6 +14,7 @@ _REPO = os.path.dirname(_PKG)
 _SOURCE = {
     'palettes': os.path.join(_REPO, 'specs', 'palettes'),
     'templates': os.path.join(_REPO, 'specs', 'templates'),
+    'kits': os.path.join(_REPO, 'specs', 'kits'),
     'godot_addon': os.path.join(_REPO, 'integrations', 'godot', 'addons', 'pxforge'),
     'agent': os.path.join(_REPO, 'docs', 'agent'),
     'godot_kiln_addon': os.path.join(_REPO, 'integrations', 'godot', 'addons', 'spritekiln'),
@@ -21,6 +22,7 @@ _SOURCE = {
 _PACKAGED = {
     'palettes': os.path.join(_DATA, 'palettes'),
     'templates': os.path.join(_DATA, 'templates'),
+    'kits': os.path.join(_DATA, 'kits'),
     'godot_addon': os.path.join(_DATA, 'godot', 'addons', 'pxforge'),
     'agent': os.path.join(_DATA, 'agent'),
     'godot_kiln_addon': os.path.join(_DATA, 'godot', 'addons', 'spritekiln'),
@@ -50,3 +52,16 @@ def template(name):
 
 def templates():
     return sorted(os.path.splitext(f)[0] for f in os.listdir(data_dir('templates')) if f.endswith('.yaml'))
+
+
+def kit(name):
+    """Path of a built-in kit by name ('sword'), or None."""
+    path = os.path.join(data_dir('kits'), f'{name}.yaml')
+    return path if os.path.exists(path) else None
+
+
+def kits():
+    folder = data_dir('kits')
+    if not os.path.isdir(folder):
+        return []
+    return sorted(os.path.splitext(f)[0] for f in os.listdir(folder) if f.endswith('.yaml'))

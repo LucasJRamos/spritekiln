@@ -202,6 +202,12 @@ def load(path, size=None, style=None):
     raw = _read_yaml(path)
     if not isinstance(raw, dict):
         raise SpecError(f'{path}: spec must be a YAML mapping')
+    resolved = None
+    if 'extends' in raw or 'use' in raw or 'kit' in raw:  # a base, kits, or a kit file shown on its host
+        from .kits import resolve
+
+        resolved = resolve(path, raw)
+        raw = resolved.doc
     base = os.path.dirname(os.path.abspath(path))
     version = raw.get('spritekiln', raw.get('pxforge'))
     warnings = []
@@ -214,7 +220,10 @@ def load(path, size=None, style=None):
     s['_warnings'] = warnings
     s['_path'] = os.path.abspath(path)
     s['_dir'] = base
-    s['_files'] = []  # files read (palettes, the project's style), so long-running processes notice changes
+    s['_files'] = list(resolved.files) if resolved else []  # files read (bases, kits, palettes, the style),
+    # so long-running processes notice when they change
+    s['_origins'] = resolved.origins if resolved else None  # where each item was written (bases and kits)
+    s['_uses'] = resolved.uses if resolved else {}  # what each kit `use` added
     s.setdefault('name', os.path.splitext(os.path.basename(path))[0])
     s.setdefault('kind', 'character')
     s.setdefault('size', 64)
@@ -266,7 +275,7 @@ def load(path, size=None, style=None):
         s['mirrored_yaw'] = {n: y for n, y in s['directions'] if n in s['mirrors']}
         s['directions'] = [(n, y) for n, y in s['directions'] if n not in s['mirrors']]
 
-    ramps = {}
+    ramps = dict(resolved.kit_ramps) if resolved else {}  # the kits' own, where the palette has none
     for p in (s.get('palette') or []) if isinstance(s.get('palette'), list) else [s.get('palette')]:
         if p:
             ramps.update(load_palette(p, base, s['_files']))
@@ -407,11 +416,19 @@ def check(spec):
         errors = timing_problems(spec)
     if not errors:
         warnings += geometry_notes(spec)
-    try:
-        marks = schema.marks(spec['_path'], _Loader)
-    except (OSError, yaml.YAMLError):
-        marks = {}
+    marks = _marks_of(spec)
     return [_located(m, spec, marks) for m in errors], [_located(m, spec, marks) for m in warnings]
+
+
+def _marks_of(spec):
+    """{path: (file, line, column)}: where each item of the spec was written (its base or kit when it came from
+    one)."""
+    if spec.get('_origins') is not None:
+        return {p: v[-1][:3] for p, v in spec['_origins'].items() if v}
+    try:
+        return {p: (spec['_path'], *lc) for p, lc in schema.marks(spec['_path'], _Loader).items()}
+    except (OSError, yaml.YAMLError):
+        return {}
 
 
 def geometry_notes(spec):
@@ -439,10 +456,7 @@ def quick_errors(spec):
     errors = errors or _static_problems(spec)
     if not errors or raw is None:
         return errors
-    try:
-        marks = schema.marks(spec['_path'], _Loader)
-    except (OSError, yaml.YAMLError):
-        marks = {}
+    marks = _marks_of(spec)
     return [_located(m, spec, marks) for m in errors]
 
 
@@ -455,16 +469,12 @@ def warnings_only(spec):
     warnings = list(spec.get('_warnings', [])) + [schema.describe_unknown(*u) for u in unknown]
     if not warnings:
         return []
-    try:
-        marks = schema.marks(spec['_path'], _Loader)
-    except (OSError, yaml.YAMLError):
-        marks = {}
+    marks = _marks_of(spec)
     return [_located(m, spec, marks) for m in warnings]
 
 
 def _located(message, spec, marks):
-    pos = schema.locate(message, marks) or (1, 1)
-    path = spec['_path']
+    path, *pos = schema.locate(message, marks) or (spec['_path'], 1, 1)
     try:
         rel = os.path.relpath(path)
         path = rel if not rel.startswith('..') else path

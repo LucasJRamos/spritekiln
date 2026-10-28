@@ -6,7 +6,8 @@ brush strokes. At 64 px only what is big and contrasted survives. Read [workflow
 
 ## 1. Prepare the reference
 ```
-spritekiln new <name> --ref <path/splash.png>        # creates <specs>/characters/<name>/ with splash.png
+spritekiln new <name> --extends --ref <path/splash.png>   # <specs>/characters/<name>/ with splash.png; a humanoid
+                                                      #    extends the template (drop --extends to copy it)
 spritekiln ref prep <specs>/characters/<name>/splash.png    # -> splash_ref/: cutout.png, cutout_pitch38.png,
                                                       #    palette.yaml, ref.json (proportions)
 ```
@@ -38,7 +39,8 @@ background or noise families and merge near-identical ones. Adjust with
 `palette: [gothic, ../../palettes/<name>.yaml]` (gothic brings the `fx_*` ramps and basics).
 
 ## 4. Blockout
-Start from a template (`humanoid`, or `side_humanoid` for a side view) or a similar spec:
+Start from a template (`humanoid`, or `side_humanoid` for a side view) or a similar spec. Over a base, give
+only the keys that change (`bones: {torso_rot: {pos: ...}}`, `ik: {leg_L: {lengths: [...]}}`):
 1. **World scale:** total height 1.6–2.0; adjust the pelvis height (`torso_rot.pos`) and the IK lengths.
 2. **Big masses:** torso, head (`head` bone scale), hips, legs: ellipsoids and cones only.
 3. `pose --dirs all` and `ref compare <spec> <splash> --dir <dir>`.
@@ -51,8 +53,9 @@ Start from a template (`humanoid`, or `side_humanoid` for a side view) or a simi
    own perspective and pose, and legibility matters more.
 
 ## 5. Striking shapes and materials
-Add one `must_keep` at a time (horns = `chain`, cape = `membrane` or an open cone with `cut`, weapon =
-`box`/`cylinder` in a hand frame, hair = blended ellipsoids). After each one: `pose --dirs all`. Check the
+Add one `must_keep` at a time (horns = `tube`, hair = blended ellipsoids). A weapon, shield, helmet, hood,
+hat, cape, belt or pouch starts from a kit (`spritekiln kits`; `use:` with its params, recoloured through
+materials); model your own only when no kit comes close. After each one: `pose --dirs all`. Check the
 **8 directions**, not only the art's; invent what the splash does not show, coherently, and record the
 decision in `brief`.
 

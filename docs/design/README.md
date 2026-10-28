@@ -1,7 +1,7 @@
 # Design proposals: quality, forms and speed
 
-**Status:** proposed on 2026-10-27. Stages 1, 2 and 3 (01–13) are done on the branch, each proposal with an
-"Outcome" section (2026-10-28); stage 4 (14) is next and 15 is not scheduled. Each proposal is decided on its own;
+**Status:** proposed on 2026-10-27. All four stages (01–14) are done on the branch, each proposal with an
+"Outcome" section (2026-10-28); 15 is not scheduled. Each proposal is decided on its own;
 accepted ones get an ADR in [`../decisions.md`](../decisions.md) and a line in [`../ROADMAP.md`](../ROADMAP.md).
 
 **Where and when:** all of it is developed on the branch `plan/quality-forms-performance`, in four stages

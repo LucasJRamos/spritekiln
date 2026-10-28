@@ -1,6 +1,6 @@
 # 14. Kits and `extends`
 
-**Status:** proposed · **Track:** forms, tokens · **Stage:** 4 (release 0.3) · **Depends on:** 13
+**Status:** done (stage 4) · **Track:** forms, tokens · **Stage:** 4 (release 0.3) · **Depends on:** 13
 
 ## Problem
 Every character spec is a full copy:
@@ -80,3 +80,45 @@ own, as palette files already do (`_files` in `spritekiln/spec.py`).
   changes within a minor version; a visual change bumps the template's name (`humanoid2`).
 - **Kits from other projects or the community** raise licence questions: the kit file carries a `license:`
   field, and the built-in ones are CC0.
+
+## Outcome (2026-10-28): done
+- `spritekiln/kits.py` resolves `extends`, `remove` and `use` into one document before `spec.load` reads it, and
+  keeps, for every item, the files and lines that wrote it (`_origins`). `check`, `quick_errors` and the
+  warnings locate problems through it, so a thin blade in a kit points at the kit's line. Bases: a built-in
+  template, `<specs>/templates/<name>.yaml` or a path; merged deeply, lists replaced, `name` and `brief` not
+  inherited, relative palettes made absolute, loops reported. `remove` takes paths or `use.<as>`, with the
+  closest path on a typo.
+- Kits: params are replaced in the kit's expressions through the AST (a param alone becomes its value, so
+  `r: width` is a number and `when: guard` a boolean); names get `<as>_`, the frame `at` maps to the attachment,
+  kit channels are renamed in expressions; materials, ramps and `host_channels` apply only where the spec has
+  none of that name; a `use` with the `as` of a base's replaces it. A plane's `at:` is a distance, not a frame
+  (found by the modelers). A kit file opened as a spec is the kit on its `host`, so `pose`, `validate` and the
+  schema test cover every kit.
+- `sx`: documented in `expr.py` since 0.1 but never set; now -1 inside an automatic `_R` twin, so kits write
+  their per-direction cheats with `yaw*sx` and stay right when used `as: x_L`. Changing what `yaw` means in
+  twins was rejected: existing specs (Hunt Tower's) would change.
+- `spec outline` lists inherited and kit items with their origin; `spec show` prints them from their file
+  (`(as parts.blade)` for a renamed kit item). `spritekiln kits [name]` and MCP `kits`; `new --extends`
+  writes a 10-line spec over the template; the style's spec facts read through bases and skip kit files.
+- The library (16 kits, 1004 lines, CC0): four `character-modeler` agents built it in parallel, two
+  `pixel-art-director` agents reviewed it (weapons: 3 of 9 ship as is; gear: 2 of 7), two modelers applied the
+  fixes: per-direction `cheat`s for the axe, hammer, spear, staff, bow, pistol, rifle and shield, so that no two
+  weapons are the same grey bar in `s`; a lighter wood (tones 2-5) off the dark robe; the hat tipped up so the
+  eyes show; the hood's own material; the pouch pair moved off the buckle. Before 0.3 freezes them, the names
+  were made consistent: widths are full widths, `thick` is a diameter, `length` runs from the fist, `size`
+  scales, `tilt` leans (negative: front up), sockets `hit` (impact), `tip` (points), `muzzle`, `orb`, `rest`.
+- Templates: the humanoid and side templates hold the sword kit (the side one with `roll: 1.5708` and `pitch:
+  sword_pitch`), and their `steel` is `finish: metal` (the reviewers found the plain steel turned a helmet white).
+- The cacador extends the humanoid: 215 → 30 lines, its 552 frames (colour, normal and emissive images of
+  every animation and direction) identical to the copy's; the goldens `cacador_pose_rest.png` and
+  `cacador_pose_attack_4.png` were rendered from the copy before the rewrite. It drops the base's sword kit and
+  metal finish for its own boxes, and re-declares the smear after them: the order of parts decides ties.
+- A new example, `specs/characters/knight/knight.yaml`: 21 lines (helmet, cape, shield, belt, a pair of pouches,
+  the template's sword, a grey tunic). It meets the "≤ 250 lines" target, but it is simpler than the Templar
+  (its three clips are the template's, the Templar has ten and its own skeleton); the showcase specs stay as
+  Hunt Tower uses them.
+- Decided: built-in templates and kits change only compatibly within a minor version; a visual change comes
+  under a new name (`humanoid2`). 0.3 is where the templates got the sword kit and metal steel.
+- Open: `when:` works on whole parts only (kits move a prim away with an expression to switch it); the
+  template's attack is a sword slash, so spears, staves, bows and guns need their own clips (each kit says so).
+

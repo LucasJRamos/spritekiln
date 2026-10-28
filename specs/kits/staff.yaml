@@ -1,0 +1,74 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: staff, as: staff, at: wrist_R}]`.
+# `spritekiln pose specs/kits/staff.yaml --dirs all` shows it on its host.
+kit: staff
+license: CC0-1.0
+summary: a tall wooden staff held upright in one fist, a wooden claw cradling a glowing orb at its head
+host: humanoid
+at: wrist_R
+host_remove: [use.sword]   # the host template's sword is in the same hand
+params:
+  length: 1.07       # from the fist to the top of the claw (world units; the shaft ends 2*orb + 0.04 below it)
+  butt: 0.85         # from the fist down to the foot of the shaft (world units)
+  thick: 0.07        # shaft diameter at the head (world units; the foot is a bit thinner; at least a pixel: 0.04 at scale 0.04)
+  orb: 0.085         # radius of the glowing orb in the claw (world units; 0: an empty claw)
+  tilt: -0.85        # lean about the hand's x (radians; -0.85 stands it upright in the template's idle and walk, 0.52 points it forward)
+  splay: 0.2         # sideways lean about the hand's z (radians; + tips the head away from the body; negate it in a left hand)
+  roll: 0            # turn about the shaft (radians; turns the claw's three prongs)
+  pitch: 0           # extra lean at the wrist (radians), e.g. a channel such as staff_pitch
+  cheat: 0.3         # strength of the per-direction cheats that turn the weapon's profile to the camera (0: off)
+# In a left hand (`at: wrist_L`, or `as: staff_L`) negate `cheat` and `splay`: the cheats then work in sw, w, nw.
+# In the template's 64 px frame the orb keeps 2 px or more from the top edge in idle and walk; a longer staff needs a
+# bigger `size` (or a lower camera.center) on the host.
+# The template's attack (a sword slash) does not fit a staff: it turns it upside down; a host gives it its own clips.
+
+materials:
+  wood: {ramp: wood, finish: matte, bands: [2, 5]}   # matte: a 1-2 px haft does not flicker with a highlight; tones 2-5 keep it off the dark robe
+  steel: {ramp: steel, finish: metal}
+  magic: {ramp: magic, emissive: true, band: 4, glow: {color: "#2367b9", mix: 0.5, radius: 1}}
+
+ramps:   # used only where the host's palette has none of that name
+  wood: ["#140c08", "#2f1d13", "#4d3120", "#6d4a2e", "#91683f", "#b88f5c"]
+  magic: ["#070a13", "#1a3268", "#2367b9", "#4fa7e3", "#97d6ed", "#ddf4f8"]   # a cold arcane glow, apart from the palette's warm flame
+
+bones:
+  # the fist, the shaft along its y. `cheat`, as pixel artists draw it: where the holding hand faces the camera the
+  # staff leans forward (e) and out (se) so the orb clears the face; on the far side (sw, w, nw) it leans towards the
+  # camera so the orb stays in the frame
+  staff: {parent: at, pos: [0, 0, 0.035],
+          rot: "[tilt + pitch + 0.7*abs(cheat)*pulse(yaw*sx, 90*sign(cheat), 50), 0,
+                 splay + cheat*pulse(yaw*sx, 45*sign(cheat), 40) + sign(cheat)*neg(cheat*sin(radians(yaw*sx)))]"}
+  pole: {parent: staff, rot: "[0, roll, 0]"}
+  top: {parent: pole, pos: "[0, length - orb*2 - 0.04, 0]"}   # the top of the shaft, where the claw starts
+
+parts:
+  shaft:
+    material: wood
+    space: pole
+    priority: 2              # long and thin, often in front of the body: it keeps its pixels
+    prims:
+      - cone: {a: "[0, -butt, 0]", b: "[0, length - orb*2 - 0.04, 0]", r: "[thick*0.4, thick/2]"}
+  collar:                    # an iron band where the shaft splits into the claw
+    material: steel
+    space: top
+    prims:
+      - cylinder: {a: [0, -0.14, 0], b: [0, -0.05, 0], r: "thick/2 + 0.024", round: 0.006}
+  claw:                      # three prongs rising around the orb and closing over it
+    material: wood
+    space: top
+    blend: 0.02
+    prims:
+      - tube: {pts: [[0.01, -0.03, 0], "[orb + 0.07, orb*0.6, 0]", "[orb*0.55, orb*2 + 0.04, 0]"], r: [0.03, 0.021]}
+      - tube: {pts: [[-0.005, -0.03, 0.009], "[-(orb + 0.07)*0.5, orb*0.6, (orb + 0.07)*0.866]",
+                     "[-orb*0.275, orb*2 + 0.04, orb*0.476]"], r: [0.03, 0.021]}
+      - tube: {pts: [[-0.005, -0.03, -0.009], "[-(orb + 0.07)*0.5, orb*0.6, -(orb + 0.07)*0.866]",
+                     "[-orb*0.275, orb*2 + 0.04, -orb*0.476]"], r: [0.03, 0.021]}
+  orb:
+    material: magic
+    space: top
+    when: "orb > 0"
+    prims:
+      - sphere: {c: "[0, orb + 0.03, 0]", r: orb}
+
+sockets:
+  orb: {bone: top, offset: "[0, orb + 0.03, 0]"}   # the orb's centre: spells start here

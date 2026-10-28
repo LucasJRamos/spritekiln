@@ -25,7 +25,8 @@ spritekiln ref prep <splash.png>                       # cutout, palette and pro
 spritekiln ref compare <spec.yaml> <splash.png> --dir se   # silhouette IoU (camera-corrected) + hints
 spritekiln palette ramp "#5d4f6c" --steps 6            # hue-shifted ramp
 spritekiln palette extract <image>                     # palette YAML from an image
-spritekiln new <name> [--template humanoid|side_humanoid] [--view side] [--ref splash.png]
+spritekiln new <name> [--extends] [--template humanoid|side_humanoid] [--view side] [--ref splash.png]
+spritekiln kits [<name>]                                # kits a spec can `use` (weapons, headwear, capes...)
 spritekiln cache info|prune|clear                      # render cache (.kilncache/)
 spritekiln update [--check | --files]                  # upgrade SpriteKiln, refresh the project's AI files
 ```
@@ -48,9 +49,12 @@ If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or t
    only when the user explicitly asks.
 1. **Read** the spec and its `brief:`. A long spec: `spec outline` first (a fraction of the file), then
    `spec show` the blocks you will edit (or read those line ranges); a mirrored `_R` item is edited in its
-   `_L` source. No spec yet: `spritekiln new <name>` (the humanoid template, or
-   `side_humanoid` with platformer clips for a side view), or start from a similar spec (the gargoyle in
-   SpriteKiln's repository, `specs/characters/gargula/gargula.yaml` on
+   `_L` source; an item from a base or a kit (`spec outline` says where from) is changed by giving the keys
+   that differ in the spec, never by editing the base or the kit. No spec yet: `spritekiln new <name>
+   --extends` for a humanoid (a short spec over the humanoid template, or `side_humanoid` with platformer
+   clips for a side view: it states only what differs), weapons and gear from `spritekiln kits`; a plain
+   `spritekiln new <name>` copies the template to reshape everything; or start from a similar spec (the
+   gargoyle in SpriteKiln's repository, `specs/characters/gargula/gargula.yaml` on
    https://github.com/LucasJRamos/spritekiln, is a good base for creatures).
 2. **Edit** a little at a time: one part or one key. Edit the YAML as text, in place: its comments explain
    the model and the compact `{...}` style keeps it readable. Never regenerate a spec with a YAML dumper
@@ -101,7 +105,7 @@ instructions; commands print a note when they come from another version.
 
 ## Tools for AIs
 `spritekiln mcp` serves the same operations over the Model Context Protocol (style, validate, pose,
-render, review, ref_compare, export, new, style_preview), returning images and JSON. Use it when your AI client supports MCP.
+render, review, ref_compare, export, new, kits, style_preview), returning images and JSON. Use it when your AI client supports MCP.
 
 The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°) is a short list.
 
@@ -218,6 +222,44 @@ horn_L:        # tapered and curling back
 Keep every piece at least a pixel thick (`validate` warns), look at a full `pose --dirs all`, and prefer one
 shaped primitive to a stack of blended ellipsoids plus cuts.
 
+## Kits
+Weapons, shields, headwear, capes and belts come from kits before you model your own: each is built with the
+shapes above and checked in 8 directions on the humanoid template ([spec.md](SPEC.md), "Bases and kits").
+`spritekiln kits <name>` prints a kit's params with their comments.
+
+| kit | at | params worth knowing | sockets |
+|---|---|---|---|
+| `sword` | `wrist_R` | `length`, `width`, `thick`, `guard`, `tilt`, `roll` (1.5708 in a side view), `pitch` (a channel) | `tip`, `hit` |
+| `axe` | `wrist_R` | `length`, `reach` (the bit), `head`, `double` | `hit` |
+| `mace` | `wrist_R` | `length` (to the head's middle), `head` (radius to the spike tips), `spike` (one on top) | `hit` |
+| `hammer` | `wrist_R` | `length`, `head`, `width` (the face), `beak` (a pick instead of the back face) | `hit` |
+| `spear` | `wrist_R` | `length` (fist to point), `butt`, `head`, `width`, `splay` | `tip` |
+| `staff` | `wrist_R` | `length` (fist to top), `butt`, `thick`, `orb` (an emissive `magic` orb) | `orb` |
+| `bow` | `wrist_L` | `length` (tip to tip), `depth` (the curve), `thick` | `nock`, `rest` |
+| `pistol` | `wrist_R` | `length` (fist to muzzle), `thick`, `flare` (a bell muzzle) | `muzzle` |
+| `rifle` | `wrist_R` | `length` (fist to muzzle), `stock`, `thick` | `muzzle` |
+| `shield` | `wrist_L` | `shape` (0 heater, 1 round, 2 kite), `width`, `height`, `boss`, `turn`, `side` (-1 on `wrist_R`) | `block` |
+| `helmet` | `head` | `size`, `visor`, `nasal`, `crest` (0: none), `trim` | `top` |
+| `hood` | `head` | `size`, `depth` (how deep the cowl), `tip`, `tilt`, `mantle`; its own `hood` material | `top` |
+| `hat` | `head` | `size`, `brim`, `crown`, `droop`, `tilt` (- shows the eyes) | `top` |
+| `cape` | `pelvis` | `length`, `width`, `flare`, `drape`, `collar`, `clasp`; channel `cape_sway` | |
+| `belt` | `pelvis` | `radius`, `height`, `y`, `tilt`, `buckle` (remove the template's `parts.belt`) | |
+| `pouch` | `pelvis` | `width`, `angle` (around the waist), `flap`, `stud`; a pair: `as: pouch_L, with: {angle: 1.15}` | |
+
+Widths are full widths, `thick` is a shaft's, barrel's or limb's diameter, `size` scales a whole piece, `tilt`
+leans it (negative: front up), and `cheat` is the strength of a kit's per-direction cheats (0: off).
+
+- Hand weapons hang from the fist like the template's sword (`at: wrist_R`, `tilt` about the hand's x): swap
+  one with `remove: [use.sword]` and a `use` of another, or `use: [{kit: axe, as: sword}]` to replace the
+  base's sword in place. A right-hand kit in the left hand (`at: wrist_L`) negates its `cheat` (and `splay`
+  or `roll` where it has them: each kit's comments say); a shield on the right arm takes `side: -1`.
+- A kit's colours come from its materials by name (`steel`, `wood`, `leather`, `cloth`, `gold`, and its own
+  such as `cape`, `plume`, `magic`): the spec's material of that name wins, so define `cape: {ramp: ...}` or
+  map one: `materials: {cloth: robe}`.
+- Fit a kit with its params first (`size` for a bigger head, `radius` for a wider waist), then, if a part
+  still needs it, change that part in the spec like any inherited item.
+- A project's own kits go in `<specs>/kits/`; write one when the same piece appears on two assets.
+
 ## Paint before geometry
 A colour on a surface is `paint:` on that part ([spec.md](SPEC.md)), not a new part: a cross on a tabard, a gold
 band, a belt drawn on a coat, rivets, moss. A painted region costs nothing to ray-march, cannot poke through the
@@ -238,8 +280,10 @@ the part, and a volume must enclose the surface it paints (a box through a cape 
 - No ground shadow by default (the ground is edge-on); the game usually draws its own.
 
 ## Procedure
-1. Start from a template (`spritekiln new <name>`) or the closest existing spec. Fill `brief:` first (see
-   [splash-to-model.md](splash-to-model.md)).
+1. Start from a base: `spritekiln new <name> --extends` for a humanoid (it inherits the template's skeleton,
+   body and animations), or the closest existing spec. Fill `brief:` first (see
+   [splash-to-model.md](splash-to-model.md)). Weapons, shields, headwear, capes and belts come from kits
+   ("Kits" above) before you model your own.
 2. **Big masses first**: world scale (total height 1.6–2.0 for a human), pelvis height, IK lengths, then
    torso, head, hips and legs as ellipsoids and cones only.
 3. Add the striking shapes one at a time with the primitive that has their form (see "Which shape for

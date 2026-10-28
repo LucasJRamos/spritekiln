@@ -48,6 +48,73 @@ in a side view) and exports the left-facing ones (`sw, w, nw`) as flipped copies
 symmetric designs: a sword in the right hand switches hands in the mirrored directions, and the light
 comes from the other side.
 
+## Bases and kits: `extends`, `remove`, `use`
+A spec can start from another one and add kits (reusable parts with params), so that it states only what is its
+own:
+```yaml
+spritekiln: 1
+name: knight
+extends: humanoid                 # a built-in template, <specs>/templates/<name>.yaml, or a path from this file
+remove: [use.sword, parts.coat]   # paths of the base to drop; use.<as> drops all that one of its kits added
+use:
+  - {kit: helmet, at: head, with: {visor: true}}
+  - {kit: shield, at: wrist_L}
+  - {kit: sword, as: blade, at: wrist_R, with: {length: 0.5}, materials: {steel: iron}}
+materials:
+  cloth: {ramp: blood}            # merged into the base's cloth: only its ramp changes
+parts:
+  head: {prims: [...]}            # replaces the base head's prims: a list is replaced, never merged
+```
+- **`extends`**: the base is merged deeply and the spec's keys win; lists (`prims`, `cut`, `keys`...) are
+  replaced whole. The base's `name` and `brief` are not inherited; its relative palette paths still work. A
+  base can extend another one.
+- **`remove`**: paths of the base to delete (`parts.cape`, `animations.dash`, `materials.fx_core`), or
+  `use.<as>`: everything one of the base's kits added. A typo is an error with the closest path.
+- **`use`**: a kit adds its parts, bones, IK chains, sockets and channels named `<as>_<name>` (`as` defaults to
+  the kit's name; its item named like the kit is just `<as>`): the `sword` kit adds `sword_blade`,
+  `sword_grip`..., the bone `sword` and the socket `sword_tip`. `at` is the frame it attaches to (default: the
+  kit's). `with` sets its params (`spritekiln kits <name>` lists them with their comments). Its materials and
+  ramps are used only where the spec has none of that name: define `steel` to recolour it, or map one with
+  `materials: {steel: iron}`. An `as` ending in `_L` is mirrored like any `_L` item. A `use` with the `as` of
+  one of the base's replaces it.
+- Change what a base or a kit gave like your own item, by giving the keys that differ:
+  `parts: {sword_blade: {material: gold}}`.
+- `spritekiln spec outline` lists what the base and the kits add and where it comes from; `spritekiln spec show
+  <path>` prints those lines from their file; `--resolved`, the merged result. Problems point at the file and
+  line that wrote them.
+- Part order: the base's parts, then the kits', then the spec's new ones. The order only decides which of two
+  parts wins a pixel they share exactly.
+- A spec that extends a template follows it: a fix to the template reaches it. Built-in templates and kits
+  change only compatibly within a minor version; a visual change comes under a new name (`humanoid2`).
+
+**Kit files** live in the project's `<specs>/kits/<name>.yaml` or ship with SpriteKiln (`spritekiln kits`
+lists both; a project kit of the same name wins):
+```yaml
+spritekiln: 1
+kit: club
+license: CC0-1.0
+summary: a wooden club held in the fist
+host: humanoid                    # the base it is shown on by `pose` and `validate`
+at: wrist_R                       # its default frame; inside the kit, the frame `at`
+host_remove: [use.sword]          # what to hide on the host when the kit is shown
+params:
+  length: 0.45                    # haft length (comment every param: `spritekiln kits` prints them)
+materials: {wood: {ramp: wood}}
+ramps: {wood: ["#140c08", "#2f1d13", "#4d3120", "#6d4a2e", "#91683f", "#b88f5c"]}
+bones:
+  club: {parent: at, pos: [0, 0, 0.035], rot: [0.52, 0, 0]}
+parts:
+  haft: {material: wood, space: club, prims: [{cylinder: {a: [0, -0.05, 0], b: "[0, length, 0]", r: 0.03}}]}
+sockets:
+  tip: {bone: club, offset: "[0, length, 0]"}
+```
+Params are replaced by their values in the kit's expressions (a param alone becomes its value: `r: width`);
+booleans work in `when:`. The kit's own channels are renamed with its prefix (`sway` → `cape_sway`), so a
+host's animation can drive them. A kit's per-direction cheats (turning a weapon's profile to the camera)
+go under one param, `cheat` (0 turns them off), and test the direction with `yaw*sx`, so that they stay right
+on a mirrored `_L` use. `python -m pxforge pose <kit.yaml> --dirs all` and `validate` show a kit on its
+host.
+
 ## Light
 `light` sets the direction (`dir`), the rim light (`rim`, `rim_strength`), `ambient`, `shadows` and `ao`; its
 keys win over the light preset of the project's style (below). The render cache keeps the geometry of each frame (parts, depth, normals, shadows, occlusion) and applies the light,
@@ -110,6 +177,9 @@ Any number or vector can be an expression string: `"[0, 0.78 + bob, 0]"`, `"0.04
   including animation channels, so cheat per direction right in the key, as pixel artists do:
   `rifle_pitch: "-0.08 + -0.2*pulse(yaw, 0, 70)"`, `bob: "0.02*(dir == 'n')"`. The frame count may not
   depend on the direction.
+- `sx` is -1 inside an automatic `_R` twin (its bones, IK, parts and sockets) and +1 elsewhere. A cheat in an
+  `_L` item written with `yaw*sx` (`pulse(yaw*sx, 90, 50)`) happens in the mirrored direction for its twin;
+  with a bare `yaw`, both sides cheat in the same direction.
 - Functions: `sin cos tan abs min max sqrt clamp lerp/mix unit smoothstep pulse(x,c,w) pos(x)=max(0,x)
   neg(x) roty rotx rotz v(x,y,z) radians floor sign exp noise(x,seed)`, constants `pi tau`, operator `@`.
 

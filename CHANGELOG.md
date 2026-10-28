@@ -4,6 +4,26 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
 
 ## Unreleased (0.3)
 
+### Bases and kits: specs that state only what is their own
+- `extends: humanoid` merges a base spec under a spec (a built-in template, a project template in
+  `<specs>/templates/` or a path): the spec's keys win, lists are replaced, `remove: [parts.cape, use.sword]`
+  drops what it does not want. A fix to a template reaches every spec that extends it.
+- `use: [{kit: sword, as: sword, at: wrist_R, with: {length: 0.5}}]` adds a kit: parts, bones, sockets and
+  channels with params, named `<as>_<name>`, mirrored when `as` ends in `_L`. Its materials and ramps apply
+  only where the spec has none of that name, or map to the spec's (`materials: {steel: iron}`).
+- 16 built-in kits (CC0), made with the shapes of 0.3: sword, axe, mace, hammer, spear, staff, bow, pistol,
+  rifle, shield, helmet, hood, hat, cape, belt and pouch. `spritekiln kits` (MCP `kits`) lists them and a
+  kit's params; `spritekiln pose <kit.yaml>` shows a kit on its host. A project's own kits go in
+  `<specs>/kits/`.
+- `spritekiln new <name> --extends` writes a short spec over the template instead of a copy.
+  `spec outline` lists what comes from the base and the kits, `spec show` prints it from their files, and
+  problems point at the file and line that wrote them.
+- The humanoid and side templates hold their sword through the sword kit (a shaped blade with a guard and a
+  pommel instead of two boxes), and their `steel` is `finish: metal`. The cacador now extends the humanoid:
+  30 lines instead of 215, rendering exactly as before. A new example, the knight, is 21 lines of kits.
+- `sx` in expressions is -1 inside an automatic `_R` twin: a cheat written with `yaw*sx` happens in the
+  mirrored direction for the twin (kits use it for their `cheat` param).
+
 ### Faster renders, correct soft shading
 - Each part is bounded by a tight sphere: frames render 1.5–2.7× faster (the Templar, 6.6 s → 2.2 s per frame
   on the development machine), with the same part in every pixel.

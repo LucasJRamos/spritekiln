@@ -1,8 +1,10 @@
 """A map of a spec file and its blocks by path, so an AI reads what it edits instead of the whole file
-(`spritekiln spec outline`, `spritekiln spec show`)."""
+(`spritekiln spec outline`, `spritekiln spec show`). Items a spec gets from its base (`extends`) or from a kit
+(`use`) are listed with where they come from, and `show` prints their lines from that file."""
 
 import difflib
 import json
+import os
 import re
 from collections import Counter
 
@@ -141,6 +143,10 @@ def outline(path):
     items, header = [], []
     for key, value in raw.items():
         r = rng[(key,)]
+        if key == 'use' and isinstance(value, list):  # kits: one line each
+            kits = [f'{u.get("kit")} as {u.get("as", u.get("kit"))}' for u in value if isinstance(u, dict)]
+            items.append(dict(path=key, lines=list(r), summary=f'{len(value)} kits: {", ".join(kits)}'))
+            continue
         if not isinstance(value, dict):
             header.append((key, value, r))
             continue
@@ -163,7 +169,62 @@ def outline(path):
         last = max(r[1] for _, _, r in header)
         summary = SEP.join(f'{k} {v if not isinstance(v, list) else ",".join(map(str, v))}' for k, v, _ in header)
         items.insert(0, dict(path='(header)', lines=[first, last], summary=summary))
+    if sp and sp.get('_origins') is not None and 'kit' not in raw:
+        items = _with_inherited(items, raw, sp)
     return items
+
+
+def _origin(sp, key):
+    """Where an item the spec did not write comes from: 'kit sword (use sword)' or 'humanoid.yaml:120'."""
+    for as_, u in (sp.get('_uses') or {}).items():
+        if key in [tuple(p) for p in u['paths']]:
+            return f'kit {u["kit"]}' + (f' (use {as_})' if as_ != u['kit'] else '')
+    src = (sp['_origins'].get(key) or [None])[0]
+    return f'{os.path.basename(src[0])}:{src[1]}' if src else 'base'
+
+
+def _with_inherited(items, raw, sp):
+    """The outline of a spec with a base or kits: the sections it inherits, and each inherited item of the itemized
+    ones after the spec's own, with where it comes from (`lines` is None for them)."""
+    merged = sp['_raw']
+    out = list(items)
+    for key, value in merged.items():
+        if not isinstance(value, dict) or key in ('_mirror',):
+            continue
+        own = raw.get(key) if isinstance(raw.get(key), dict) else {}
+        extra = [n for n in value if n not in own]
+        if not extra:
+            continue
+        listed = f'{len(value)} items' if key in ITEMIZED else f'{len(value)}: {_names(list(value))}'
+        if key not in raw:
+            out.append(dict(path=key, lines=None, summary=listed, origin='base'))
+        else:
+            for i in out:
+                if i['path'] == key:
+                    if key in ITEMIZED:
+                        i['summary'] = f'{len(value)} items ({len(own)} here)'
+                    else:
+                        i['summary'] = f'{len(value)} ({len(own)} here)' + listed[len(str(len(value))) :]
+        if key not in ITEMIZED:
+            continue
+        at = max(
+            (j for j, i in enumerate(out) if i['path'] == key or i['path'].startswith(key + '.')), default=len(out) - 1
+        )
+        added = []
+        for name in extra:
+            v = value[name]
+            if key == 'parts':
+                summary = _part(name, v or {})
+            elif key == 'animations':
+                summary = _animation(sp, name, v or {})
+            elif key == 'ik':
+                summary = _ik(v or {})
+            else:
+                summary = SEP.join(f'{k} {v[k]}' for k in list(v or {})[:2])
+            origin = _origin(sp, (key, name))
+            added.append(dict(path=f'{key}.{name}', lines=None, summary=f'from {origin}{SEP}{summary}', origin=origin))
+        out[at + 1 : at + 1] = added
+    return out
 
 
 def outline_text(path):
@@ -172,7 +233,10 @@ def outline_text(path):
     items = outline(path)
     names = [('  ' + i['path'].split('.', 1)[1]) if '.' in i['path'] else i['path'] for i in items]
     w = max(map(len, names)) if names else 0
-    return '\n'.join(f'{n:<{w}}  {_span(i["lines"]):>7}  {_cut(i["summary"])}'.rstrip() for n, i in zip(names, items))
+    spans = [
+        _span(i['lines']) if i['lines'] else ('kit' if i.get('origin', '').startswith('kit') else 'base') for i in items
+    ]
+    return '\n'.join(f'{n:<{w}}  {s:>7}  {_cut(i["summary"])}'.rstrip() for n, s, i in zip(names, spans, items))
 
 
 def _cut(text):
@@ -223,14 +287,49 @@ def show(path, paths, resolved=False):
         return '\n'.join(out)
     rng = ranges(path)
     lines = _text(path).split('\n')
+    sp = None
+    raw = specmod.yload(_text(path)) or {}
+    if isinstance(raw, dict) and ('extends' in raw or 'use' in raw) and 'kit' not in raw:
+        sp = specmod.load(path)
     for text in paths:
         p = schema.parse_path(text)
-        source = p if p in rng else tuple(re.sub(r'_R$', '_L', x) if isinstance(x, str) else x for x in p)
-        if source not in rng:
-            raise _missing(text, [schema.format_path(k) for k in rng], path)
-        a, b = rng[source]
+        mirror = tuple(re.sub(r'_R$', '_L', x) if isinstance(x, str) else x for x in p)
+        source = p if p in rng else mirror
+        others = _sources(sp, p, path) or _sources(sp, mirror, path)
+        if source not in rng and not others:
+            known = set(rng) | set((sp or {}).get('_origins') or {})
+            raise _missing(text, [schema.format_path(k) for k in known], path)
         note = f', mirrored from {schema.format_path(source)}' if source != p else ''
-        out.append(f'# {schema.format_path(p)}: lines {a}-{b}{note}')
-        width = len(str(b))
-        out += [f'{i:>{width}}| {lines[i - 1]}'.rstrip() for i in range(a, b + 1)]
+        for file, src in others:  # the base's or the kit's lines first
+            a, b = ranges(file)[src]
+            flines = _text(file).split('\n')
+            alias = f' (as {schema.format_path(src)})' if src not in (p, mirror) else ''
+            out.append(f'# {schema.format_path(p)}: {_rel(file)} lines {a}-{b}{alias}{note}')
+            width = len(str(b))
+            out += [f'{i:>{width}}| {flines[i - 1]}'.rstrip() for i in range(a, b + 1)]
+        if source in rng:
+            a, b = rng[source]
+            out.append(f'# {schema.format_path(p)}: lines {a}-{b}{note}')
+            width = len(str(b))
+            out += [f'{i:>{width}}| {lines[i - 1]}'.rstrip() for i in range(a, b + 1)]
     return '\n'.join(out)
+
+
+def _sources(sp, p, path):
+    """[(file, path in that file)] of the bases and kits that wrote item `p` of a spec, base first."""
+    if sp is None or not sp.get('_origins'):
+        return []
+    path = os.path.abspath(path)
+    found = []
+    for file, _, _, src in sp['_origins'].get(p, []):
+        if os.path.abspath(file) != path and (file, tuple(src)) not in found:
+            found.append((file, tuple(src)))
+    return found
+
+
+def _rel(path):
+    try:
+        rel = os.path.relpath(path)
+        return rel if not rel.startswith('..') else path
+    except ValueError:  # another drive on Windows
+        return path

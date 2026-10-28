@@ -1,0 +1,62 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: spear, as: spear, at: wrist_R}]`.
+# `spritekiln pose specs/kits/spear.yaml --dirs all` shows it on its host.
+kit: spear
+license: CC0-1.0
+summary: a spear held upright in the fist, a quarter of the way up; the shaft runs along the hand frame's y to a leaf head
+host: humanoid
+at: wrist_R
+host_remove: [use.sword]   # the host template's sword is in the same hand
+params:
+  length: 1.15       # from the fist to the tip (world units; the tip rises above a humanoid's head)
+  butt: 0.42         # from the fist down to the end of the shaft (world units)
+  head: 0.26         # length of the spearhead, from its socket to the tip (world units)
+  width: 0.1         # width of the spearhead at its widest (world units)
+  tilt: -0.95        # lean of the shaft about the hand's x (radians; about -1: upright at the side, 0.52: forward like a sword)
+  splay: 0.12        # lean away from the body about the hand's z (radians; keeps the head clear of the face; negate it in a left hand)
+  roll: 0            # turn about the shaft (radians; the head is round: only for parts a spec adds in spear_shaft's frame)
+  pitch: 0           # extra lean at the wrist (radians), e.g. a channel such as spear_pitch
+  cheat: 0.3         # strength of the per-direction cheats that turn the weapon's profile to the camera (0: off)
+# In a left hand (`at: wrist_L`, or `as: spear_L`) negate `cheat` and `splay`: the cheats then work in sw, w, nw.
+# The template's attack (a sword slash) does not fit a spear: it turns it upside down; a host gives it its own clips.
+
+materials:
+  steel: {ramp: steel, finish: metal}
+  wood: {ramp: wood, finish: matte, bands: [2, 5]}   # matte: a 1-2 px haft does not flicker with a highlight; tones 2-5 keep it off the dark robe
+
+ramps:   # used only where the host's palette has none of that name
+  wood: ["#140c08", "#2f1d13", "#4d3120", "#6d4a2e", "#91683f", "#b88f5c"]
+
+bones:
+  # the fist, the shaft along its y. `cheat`, as pixel artists draw it: where the holding hand faces the camera the
+  # shaft leans forward (e) and out (se) so it clears the face; on the far side (sw, w, nw) it leans towards the
+  # camera so the point stays in the frame
+  spear: {parent: at, pos: [0, 0, 0.035],
+          rot: "[tilt + pitch + 1.2*abs(cheat)*pulse(yaw*sx, 90*sign(cheat), 50), 0,
+                 splay + cheat*pulse(yaw*sx, 45*sign(cheat), 40) + sign(cheat)*neg(cheat*sin(radians(yaw*sx)))]"}
+  shaft: {parent: spear, rot: "[0, roll, 0]"}
+
+parts:
+  shaft:
+    material: wood
+    space: shaft
+    priority: 2              # long and thin, often in front of the body: it keeps its pixels
+    prims:
+      - cylinder: {a: "[0, -butt, 0]", b: "[0, length - head, 0]", r: 0.022}
+  head:                      # a leaf turned about the shaft: it keeps its width from every direction
+    material: steel
+    space: shaft
+    prims:
+      - revolve: {c: "[0, length - head, 0]",
+                  profile: {bezier: [[0.028, 0], "[width*0.55, head*0.12]", "[width/2, head*0.38]",
+                                     "[width*0.3, head*0.75]", "[0, head]", "[-width*0.3, head*0.75]",
+                                     "[-width/2, head*0.38]", "[-width*0.55, head*0.12]", [-0.028, 0], [0, 0]]}}
+      - cylinder: {a: "[0, length - head - 0.06, 0]", b: "[0, length - head + 0.01, 0]", r: 0.028}   # the socket
+  ferrule:                   # the cap at the butt
+    material: steel
+    space: shaft
+    prims:
+      - cylinder: {a: "[0, -butt - 0.01, 0]", b: "[0, -butt + 0.05, 0]", r: 0.026}
+
+sockets:
+  tip: {bone: shaft, offset: "[0, length - head*0.2, 0]"}   # just behind the point: where a thrust lands

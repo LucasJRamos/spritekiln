@@ -1,0 +1,66 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: rifle, as: rifle, at: wrist_R}]`.
+# `spritekiln pose specs/kits/rifle.yaml --dirs all` shows it on its host.
+kit: rifle
+license: CC0-1.0
+summary: a long flintlock rifle carried in one fist by its lock, the muzzle low and forward, the wooden stock behind the hand
+host: humanoid
+at: wrist_R
+host_remove: [use.sword]   # the host template's sword is in the same hand
+params:
+  length: 0.68       # from the fist to the muzzle (world units)
+  stock: 0.42        # from the fist back to the butt plate (world units)
+  thick: 0.05        # barrel diameter (world units; at least a pixel: 0.04 at scale 0.04)
+  tilt: 1.15         # lean about the hand's x (radians; 1.15 carries the muzzle low and forward in the template's idle, 0.8 level)
+  roll: 0            # turn about the barrel (radians; 1.5708 tips the rifle on its side)
+  pitch: 0           # extra lean at the wrist (radians; negative raises the muzzle), e.g. a channel such as rifle_pitch
+  cheat: 1.3         # strength of the per-direction cheats that turn the weapon's profile to the camera (0: off)
+# In a left hand (`at: wrist_L`, or `as: rifle_L`) negate `cheat` so the stock turns out of the body there too.
+# The template's attack (a sword slash) does not fit a rifle: it turns it upside down; a host gives it its own clips.
+
+materials:
+  iron: {ramp: steel, bands: [1, 3], finish: metal, highlight: {band: 4}}   # dark gun metal with a glint below a blade's brightest
+  wood: {ramp: wood, finish: matte, bands: [2, 5]}   # matte: a 1-2 px haft does not flicker with a highlight; tones 2-5 keep it off the dark robe
+
+ramps:   # used only where the host's palette has none of that name
+  wood: ["#140c08", "#2f1d13", "#4d3120", "#6d4a2e", "#91683f", "#b88f5c"]
+
+bones:
+  rifle: {parent: at, pos: [0, 0, 0.035], rot: "[tilt + pitch, 0, 0]"}   # the fist, the barrel along its y
+  # the gun's top (lock, sights) towards -z. Around s the rifle would face the camera edge-on, a long grey blade with
+  # the stock behind the forearm: `cheat` turns its side to the camera there, the stock out of the body
+  bore: {parent: rifle, rot: "[0, roll - cheat*pulse(yaw*sx, 0, 60), 0]"}
+
+parts:
+  barrel:
+    material: iron
+    space: bore
+    priority: 2              # long and thin, often in front of the body: it keeps its pixels
+    prims:
+      - cylinder: {a: [0, 0.02, -0.035], b: "[0, length, -0.035]", r: "thick/2"}
+  lock:                      # the receiver and flintlock in the fist, the hammer behind it
+    material: iron
+    space: bore
+    blend: {mode: chamfer, k: 0.01}
+    prims:
+      - box: {c: [0, -0.01, -0.025], half: [0.03, 0.075, 0.034], round: 0.008}
+      - box: {c: [0, -0.085, -0.065], half: [0.015, 0.02, 0.024], rot: [-0.5, 0, 0], round: 0.006}
+  stock:                     # the butt stock deepening towards the butt plate, and the fore-end under the barrel
+    material: wood
+    space: bore
+    blend: {mode: chamfer, k: 0.015}
+    prims:
+      # profile x is the gun's up (-z), y runs along the barrel
+      - extrude: {c: [0, 0, 0], rot: [0, 1.5708, 0], depth: 0.065, round: 0.008,
+                  profile: {polygon: [[0.03, -0.06], [0.045, "-stock"], [-0.13, "-stock"], [-0.12, "0.07 - stock"],
+                                      [-0.03, -0.12], [-0.03, -0.06]]}}
+      - extrude: {c: "[0, 0.06 + length*0.36, 0.002]", rot: [0, 1.5708, 0], depth: 0.07, round: 0.008,
+                  profile: {rect: "[0.03, length*0.36]", chamfer: 0.012}}   # the fore-end runs under most of the barrel
+  butt:                      # the iron butt plate
+    material: iron
+    space: bore
+    prims:
+      - box: {c: "[0, 0.012 - stock, 0.042]", half: [0.034, 0.014, 0.092], round: 0.006}
+
+sockets:
+  muzzle: {bone: bore, offset: "[0, length + 0.03, -0.035]"}   # just ahead of the muzzle: the flash and the shot start here

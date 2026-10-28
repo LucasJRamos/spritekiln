@@ -88,7 +88,7 @@ def rest_env(spec, yaw=0.0):
 class Ctx:
     def __init__(self, spec, env, notes=None, snap=True):
         self.spec = spec
-        self.env = env
+        self.env = dict(env, sx=1.0)  # sx: -1 while an automatic _R twin is evaluated (see side)
         self.frames = {}
         self.notes = notes  # a list to collect geometry warnings in (thin shells...), or None
         self.snap = set(spec.get('snap') or []) if snap else set()
@@ -110,6 +110,13 @@ class Ctx:
         sx, sy = (w @ cam.R) / cam.scale, -(w @ cam.U) / cam.scale
         fix = cam.R * (np.floor(sx + 0.5) - sx) * cam.scale - cam.U * (np.floor(sy + 0.5) - sy) * cam.scale
         return Frame(frame.o + Ry.T @ fix, frame.R, frame.s)
+
+    def side(self, mirror):
+        """Set `sx` for the item being evaluated (-1 in an automatic _R twin, +1 otherwise); returns the previous
+        value to restore. `yaw*sx` is then the direction as the item's _L source sees it."""
+        old = self.env.get('sx', 1.0)
+        self.env['sx'] = -1.0 if mirror else 1.0
+        return old
 
     def thin(self, value, where, what, us=1.0):
         """Note a size under one pixel at the spec's camera scale: it can vanish or flicker. `value` is in world
@@ -170,13 +177,16 @@ class Ctx:
         m = b.get('_mirror', False)
         w = f'bones.{name}'
         par = self.frame(b.get('parent', 'root'), w + '.parent')
+        at = self.frame(b['at'], w + '.at') if b.get('at') else None
+        old = self.side(m)
         pos = self.val(b.get('pos', [0, 0, 0]), w + '.pos', m, vec=True)
         R = self.rot(b.get('rot', [0, 0, 0]), w + '.rot', m)
         sc = np.broadcast_to(np.asarray(self.val(b.get('scale', 1.0), w + '.scale'), float), (3,))
+        self.env['sx'] = old
         Rp = par.R if b.get('inherit_rot', True) else np.eye(3)
         sp_ = par.s if b.get('inherit_scale', True) else np.ones(3)
-        if b.get('at'):
-            o = self.frame(b['at'], w + '.at').o + par.R @ (par.s * pos)
+        if at is not None:
+            o = at.o + par.R @ (par.s * pos)
         else:
             o = par.apply(pos)
         self.frames[name] = self.snapped(name, Frame(o, Rp @ R, sp_ * sc))
@@ -187,10 +197,13 @@ class Ctx:
         w = f'ik.{name}'
         a = self.frame(ik['start'], w + '.start')
         space = self.frame(ik.get('space', 'root'), w + '.space')
-        tgt = space.apply(self.val(ik['target'], w + '.target', m, vec=True))
         psp = self.frame(ik.get('pole_space', ik.get('space', 'root')), w + '.pole_space')
+        old = self.side(m)
+        tgt = space.apply(self.val(ik['target'], w + '.target', m, vec=True))
         pole = psp.dir(self.val(ik.get('pole', [0, 0, 1]), w + '.pole', m, vec=True))
         l1, l2 = [float(x) for x in self.val(ik['lengths'], w + '.lengths')]
+        up_v = self.val(ik['up'], w + '.up', m, vec=True) if 'up' in ik else None
+        self.env['sx'] = old
         A = a.o
         dvec = tgt - A
         d = np.clip(np.linalg.norm(dvec), abs(l1 - l2) + 1e-3, (l1 + l2) * 0.999)
@@ -201,8 +214,8 @@ class Ctx:
         v /= max(np.linalg.norm(v), 1e-9)
         joint = A + u * x + v * h
         end = A + u * d
-        if 'up' in ik:  # reference for the end frame's y axis (in pole_space)
-            up = psp.dir(self.val(ik['up'], w + '.up', m, vec=True))
+        if up_v is not None:  # reference for the end frame's y axis (in pole_space)
+            up = psp.dir(up_v)
         else:
             up = a.R @ np.array([0, 1.0, 0])
         self.frames[ik['joint']] = Frame(joint, basis_z(end - joint, up))
@@ -484,6 +497,7 @@ def build(spec, env, notes=None):
     for name, part in spec['parts'].items():
         w = f'parts.{name}'
         m = part.get('_mirror', False)
+        ctx.side(m)
         if 'when' in part and not ctx.val(part['when'], w + '.when'):
             continue
         space = ctx.frame(part.get('space', 'root'), w + '.space')
@@ -551,10 +565,12 @@ def socket_points(spec, env, frames=None):
     out = {}
     for name, sk in (spec.get('sockets') or {}).items():
         w = f'sockets.{name}'
+        ctx.side(sk.get('_mirror', False))
         if 'when' in sk and not ctx.val(sk['when'], w + '.when'):
             out[name] = None
             continue
         frame = ctx.frame(sk['bone'], w + '.bone')
+        ctx.side(sk.get('_mirror', False))
         off = ctx.val(sk.get('offset', [0, 0, 0]), w + '.offset', sk.get('_mirror', False), vec=True)
         out[name] = frame.apply(off)
     return out

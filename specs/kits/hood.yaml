@@ -1,0 +1,49 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: hood, as: hood, at: head}]`.
+# `spritekiln pose specs/kits/hood.yaml --dirs all` shows it on its host.
+kit: hood
+license: CC0-1.0
+summary: a grey cloth hood over the head and hair, pinched into a point that leans back, open at the face, over a short mantle
+host: humanoid
+at: head
+params:
+  size: 1            # scale factor for bigger heads or hair (the template's head and hair fit at 1)
+  depth: 0.4         # how deep the face sits in the cowl (0..1): 0 pushed back off the face, 1 deep, the face in shadow
+  tip: 0.14          # height of the point over the crown (head units; 0: a round hood)
+  tilt: -0.25        # forward/back tilt (radians about the head's x): negative tips the front up, so the point falls behind the head
+  mantle: true       # a short cape over the shoulders under the hood (on the host's `pelvis` frame)
+
+materials:
+  hood: {ramp: stone, finish: matte}   # its own name, a grey that stands off a dark robe; map it to `cloth` for a hood that matches the robe
+
+bones:
+  hood: {parent: at, pos: [0, 0.02, -0.03], scale: size}
+  mantle: {parent: pelvis, pos: [0, 0, -0.01], scale: [1, 1, 0.62]}   # a round mantle squashed front to back
+
+parts:
+  hood:            # a dome pinched into a soft point, as a shell; a tilted plane opens the face
+    material: hood
+    space: hood
+    prims:
+      - revolve: {c: [0, 0, 0], rot: "[tilt, 0, 0]", shell: 0.045,   # narrow at the neck, full over the skull
+                  profile: {bezier: [[0.2, -0.13], [0.255, 0.03], [0.225, 0.18], [0.2, 0.3], "[0.12, 0.33 + tip*0.3]",
+                                     "[0.06, 0.35 + tip*0.6]", "[0, 0.36 + tip]", "[-0.06, 0.35 + tip*0.6]",
+                                     "[-0.12, 0.33 + tip*0.3]", [-0.2, 0.3], [-0.225, 0.18], [-0.255, 0.03],
+                                     [-0.2, -0.13], [0, -0.13]]}}
+    cut:
+      - plane: {n: [0, -0.3, 1], c: "[0, 0, 0.15*depth]"}   # the opening; deeper with `depth`
+  mantle:          # a bell from the neck over the shoulders, as a shell; its top and hem cut flat
+    material: hood
+    space: mantle
+    when: mantle
+    prims:
+      - revolve: {c: [0, 0, 0], shell: 0.065,   # 0.04 front to back once squashed
+                  profile: {bezier: [[0.1, 0.78], [0.28, 0.75], [0.34, 0.63], [0.37, 0.56], [0.37, 0.44],
+                                     [0, 0.44], [-0.37, 0.44], [-0.37, 0.56], [-0.34, 0.63], [-0.28, 0.75],
+                                     [-0.1, 0.78], [0, 0.78]]}}
+    cut:
+      - plane: {n: [0, -1, 0], at: -0.47}
+      - plane: {n: [0, 1, 0], at: 0.75}
+
+sockets:
+  top: {bone: hood, offset: "[0, (0.36 + tip)*cos(tilt), (0.36 + tip)*sin(tilt)]"}   # the point of the hood

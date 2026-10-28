@@ -506,11 +506,31 @@ def cmd_new(a):
     from . import api
     from .style import missing_note
 
-    path = api.new(a.name, a.template, a.dir, a.ref, view=a.view)
+    path = api.new(a.name, a.template, a.dir, a.ref, view=a.view, extends=a.extends)
     print('created', path)
     note = missing_note(path)
     if note:
         _note('note: ' + note)
+
+
+def cmd_kits(a):
+    from . import api
+
+    res = api.kits(a.name)
+    if a.name:
+        k = res
+        print(f'kit {k["name"]} ({k["origin"]}, {k["license"] or "no licence given"}): {k["summary"]}')
+        print(f'  file: {k["file"]}')
+        print(
+            f'  attaches at {k["at"]} (`at:` in the use), shown on {k["host"]}; materials: {", ".join(k["materials"])}'
+        )
+        print(k['params_text'] or '  no params')
+        print(f'use: [{{kit: {k["name"]}, as: {k["name"]}, at: {k["at"]}, with: {{...}}}}]')
+        return
+    w = max((len(k['name']) for k in res), default=0)
+    for k in res:
+        print(f'{k["name"]:<{w}}  {k["at"]:<8} {k["summary"]}' + (' (project)' if k['origin'] == 'project' else ''))
+    print('`spritekiln kits <name>` shows its params; a spec adds one with use: [{kit: <name>, as: ..., at: ...}]')
 
 
 DIRS = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw']
@@ -736,7 +756,14 @@ def build_parser(prog='spritekiln'):
     s.add_argument(
         '--view', choices=['topdown', 'side'], help='camera preset (default: the project default or topdown)'
     )
+    s.add_argument(
+        '--extends', action='store_true', help='a short spec that extends the template instead of a copy of it'
+    )
     s.set_defaults(f=cmd_new)
+
+    s = sub.add_parser('kits', help="list the kits a spec can `use` (built-in and the project's), or one kit")
+    s.add_argument('name', nargs='?', help='show this kit: its params with their comments')
+    s.set_defaults(f=cmd_kits)
 
     s = sub.add_parser('export', help='export a rendered spec to the engine of spritekiln.toml (or --engine)')
     s.add_argument('spec')

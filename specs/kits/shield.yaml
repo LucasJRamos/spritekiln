@@ -1,0 +1,99 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: shield, as: shield, at: wrist_L}]`.
+# `spritekiln pose specs/kits/shield.yaml --dirs all` shows it on its host.
+kit: shield
+license: CC0-1.0
+summary: a heater, round or kite shield strapped to the outside of the left forearm; wood in a steel rim, a steel boss
+host: humanoid
+at: wrist_L
+params:
+  shape: 0           # 0 heater (flat top, pointed foot), 1 round (domed), 2 kite (round top, long point)
+  width: 0.5         # full width across the face (world units; a round shield's diameter)
+  height: 0.62       # top to point of a heater (world units); a kite is 1.25x as long; a round shield ignores it
+  thick: 0.05        # plate thickness (world units; at least a pixel: 0.04 at scale 0.04)
+  dome: 0.04         # how far a round shield's face bulges at the centre (world units)
+  rim: 0.04          # width of the steel rim around the wooden face (world units; 0: all wood)
+  boss: true         # a steel boss at the centre of the face
+  upright: 1.03      # turn about the face normal (radians): 1.03 stands it up on the template's hanging forearm
+  turn: 0.6          # the face turns forward (radians), so a front view sees it and not just its edge
+  lift: 0.07         # how far up the forearm from the wrist the straps sit (world units)
+  side: 1            # which arm: 1 the left forearm (at: wrist_L), -1 the right one (at: wrist_R)
+  cheat: 0.9         # strength of the per-direction cheats that turn the face to the camera (0: off)
+
+materials:
+  steel: {ramp: steel, finish: metal}
+  wood: {ramp: wood, finish: matte, bands: [2, 5]}   # matte: a 1-2 px haft does not flicker with a highlight; tones 2-5 keep it off the dark robe
+
+ramps:
+  wood: ["#140c08", "#2f1d13", "#4d3120", "#6d4a2e", "#91683f", "#b88f5c"]
+
+bones:   # on the outside of the forearm (the hand frame's +x on wrist_L), z out of the face, y up
+  shield: {parent: at, pos: "[0.075*side, 0, -lift]", rot: "[0, 1.5708*side, -upright*side]"}
+  # `cheat` turns the face further forward in se and back in nw, the two views where the plate would go edge-on;
+  # `yaw*sx*side` is the direction as a left-arm shield sees it (mirrored on the right arm and in an _R twin)
+  face: {parent: shield, rot: "[0, -(turn + cheat*(pulse(yaw*sx*side, 45, 40) - pulse(yaw*sx*side, -135, 40)))*side, 0]"}
+
+parts:
+  heater:          # flat top, straight sides that curve into the point; the wood is paint inside the rim
+    material: steel
+    space: face
+    when: "shape == 0"
+    prims:
+      - extrude: {c: [0, 0, 0], depth: thick, round: 0.012,
+                  profile: {bezier: ["[-width/2, height*0.42]", "[0, height*0.42]", "[width/2, height*0.42]",
+                                     "[width/2, height*0.27]", "[width/2, height*0.12]",
+                                     "[width/2, -height*0.2]", "[0, -height*0.58]",
+                                     "[-width/2, -height*0.2]", "[-width/2, height*0.12]",
+                                     "[-width/2, height*0.27]"]}}
+    paint:
+      - material: wood
+        prims:   # the same outline, `rim` smaller, deep enough to paint both faces
+          - extrude: {c: [0, 0, 0], depth: 0.4,
+                      profile: {bezier: ["[rim - width/2, height*0.42 - rim]", "[0, height*0.42 - rim]",
+                                         "[width/2 - rim, height*0.42 - rim]",
+                                         "[width/2 - rim, height*0.27]", "[width/2 - rim, height*0.12]",
+                                         "[width/2 - rim, -height*0.2]", "[0, rim*1.4 - height*0.58]",
+                                         "[rim - width/2, -height*0.2]", "[rim - width/2, height*0.12]",
+                                         "[rim - width/2, height*0.27]"]}}
+  round:           # a disc with a shallow domed face: a revolve about the face normal
+    material: steel
+    space: face
+    when: "shape == 1"
+    prims:
+      - revolve: {c: [0, 0, 0], rot: [1.5708, 0, 0],
+                  profile: {bezier: ["[width/2, -thick/2]", "[width/2, 0]", "[width/2, thick/2]",
+                                     "[width/4, thick/2 + dome]", "[0, thick/2 + dome]",
+                                     "[-width/4, thick/2 + dome]", "[-width/2, thick/2]",
+                                     "[-width/2, 0]", "[-width/2, -thick/2]", "[0, -thick/2]"], round: 0.008}}
+    paint:
+      - material: wood
+        prims:
+          - extrude: {c: [0, 0, 0], depth: 0.4, profile: {circle: "width/2 - rim"}}
+  kite:            # long and narrow: a round top tapering into a long point, `height` x 1.25
+    material: steel
+    space: face
+    when: "shape == 2"
+    prims:
+      - extrude: {c: [0, 0, 0], depth: thick, round: 0.012,
+                  profile: {bezier: ["[-width*0.45, height*0.32]", "[-width*0.45, height*0.52]",
+                                     "[0, height*0.52]", "[width*0.45, height*0.52]", "[width*0.45, height*0.32]",
+                                     "[width*0.42, -height*0.15]", "[0, -height*0.74]",
+                                     "[-width*0.42, -height*0.15]"]}}
+    paint:
+      - material: wood
+        prims:
+          - extrude: {c: [0, 0, 0], depth: 0.4,
+                      profile: {bezier: ["[rim - width*0.45, height*0.32]", "[rim - width*0.45, height*0.52 - rim]",
+                                         "[0, height*0.52 - rim]", "[width*0.45 - rim, height*0.52 - rim]",
+                                         "[width*0.45 - rim, height*0.32]",
+                                         "[width*0.42 - rim, -height*0.15]", "[0, rim*2 - height*0.74]",
+                                         "[rim - width*0.42, -height*0.15]"]}}
+  boss:
+    material: steel
+    space: face
+    when: boss
+    prims:
+      - sphere: {c: "[0, 0, thick*0.1 + dome*(shape == 1)]", r: 0.055}
+
+sockets:
+  block: {bone: face, offset: "[0, 0, thick/2 + 0.03 + dome*(shape == 1)]"}   # the middle of the face: sparks of a blocked hit

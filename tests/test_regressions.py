@@ -8,7 +8,7 @@ import time
 import pytest
 import yaml
 
-from spritekiln import api, cache, engines, pipeline, scaffold
+from spritekiln import api, cache, engines, pipeline, resources, scaffold
 from spritekiln import spec as S
 from spritekiln.cli import main
 from spritekiln.errors import ExportError, SpriteKilnError
@@ -66,7 +66,12 @@ def test_project_palettes_folder(tmp_path):
     text = open(spec, encoding='utf-8').read().replace('palette: gothic', 'palette: mygame')
     open(spec, 'w', encoding='utf-8').write(text)
     sp = S.load(spec)
-    assert sp['_files'] == [str(tmp_path / 'game' / 'spritekiln.toml'), str(pal)]  # the style, then the palette
+    # the template's sword kit, the style, then the palette
+    assert sp['_files'] == [
+        os.path.abspath(resources.kit('sword')),
+        str(tmp_path / 'game' / 'spritekiln.toml'),
+        str(pal),
+    ]
 
 
 def test_in_process_spec_cache_sees_palette_edits(tmp_path):

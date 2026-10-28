@@ -13,11 +13,12 @@ from . import spec as specmod
 from .errors import SpriteKilnError
 
 
-def new(name, template=None, folder=None, ref=None, start=None, view=None):
+def new(name, template=None, folder=None, ref=None, start=None, view=None, extends=False):
     """Create <folder>/<name>/<name>.yaml from a template; `folder` defaults to spritekiln.toml's specs folder
     + /characters (or specs/characters). Project defaults (view, size, palette, camera, light) are applied;
     `view` ('topdown' or 'side') overrides the project's. Without a template, a side view starts from
-    `side_humanoid` and a top-down one from `humanoid`."""
+    `side_humanoid` and a top-down one from `humanoid`. `extends`: a short spec that extends the template
+    (design 14) instead of a full copy of it; it states only what differs."""
     if not re.fullmatch(r'[A-Za-z0-9_-]+', name or ''):
         raise SpriteKilnError(f'name {name!r}: use letters, digits, - and _ only')
     if view and view not in specmod.VIEWS:
@@ -43,6 +44,11 @@ def new(name, template=None, folder=None, ref=None, start=None, view=None):
     import yaml
 
     base = yaml.safe_load(txt) or {}  # what the template already says: keys it satisfies stay as written
+    if extends:
+        from .kits import resolve
+
+        base = resolve(tpl).doc
+        txt = _EXTENDS.format(name=name, template=template)
     made_for = base.get('view')  # a template made for one view (side_humanoid) keeps it
     view = view or made_for or project_view
     if made_for and made_for != view:
@@ -64,6 +70,21 @@ def new(name, template=None, folder=None, ref=None, start=None, view=None):
     if ref:
         shutil.copy(ref, os.path.join(dst_dir, 'splash' + os.path.splitext(ref)[1]))
     return dst
+
+
+_EXTENDS = """spritekiln: 1
+# yaml-language-server: $schema=https://raw.githubusercontent.com/LucasJRamos/spritekiln/main/spritekiln/data/spec.schema.json
+name: {name}
+extends: {template}   # its skeleton, body, kits and animations: write here only what differs
+# `spritekiln spec outline` lists what comes from the base; `spritekiln spec show <path>` prints its lines,
+# `--resolved` the result. Keys given here merge into the base's (parts.head.prims replaces its prims);
+# `remove: [parts.cape, use.sword]` drops a part or a kit of the base.
+
+brief:
+  summary: ""
+  must_keep: []
+  simplify: []
+"""
 
 
 def _satisfies(base, key, value):
@@ -114,6 +135,31 @@ def validate(path):
             sockets=list(sp['sockets']),
         )
     return dict(ok=not errors, errors=errors, warnings=warnings, summary=summary)
+
+
+def kits(name=None, start=None):
+    """The kits a spec can use: [{name, origin, file, summary, at, host, license, params, materials}]; with a
+    `name`, that kit, plus `params_text` (its params block with comments)."""
+    from . import kits as K
+    from .outline import ranges
+
+    found = K.catalogue(start)
+    if not name:
+        return found
+    for k in found:
+        if k['name'] == name:
+            r = ranges(k['file']).get(('params',))
+            text = ''
+            if r:
+                with open(k['file'], encoding='utf-8') as fh:
+                    lines = fh.read().split('\n')
+                text = '\n'.join(lines[r[0] - 1 : r[1]])
+            return dict(k, params_text=text)
+    import difflib
+
+    near = difflib.get_close_matches(name, [k['name'] for k in found], n=1)
+    hint = f' (did you mean {near[0]}?)' if near else ''
+    raise SpriteKilnError(f'kit {name!r} not found{hint}; `spritekiln kits` lists them')
 
 
 def pose_env(sp, anim, frame, yaw=0.0):

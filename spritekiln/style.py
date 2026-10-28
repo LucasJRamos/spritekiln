@@ -402,7 +402,16 @@ def _spec_facts(folder, root):
                     data = yaml.safe_load(fh)
             except (OSError, yaml.YAMLError):
                 continue
-            if not isinstance(data, dict) or not ({'spritekiln', 'pxforge'} & set(data)) or 'parts' not in data:
+            if not isinstance(data, dict) or not ({'spritekiln', 'pxforge'} & set(data)) or 'kit' in data:
+                continue  # not a spec, or a kit
+            if 'extends' in data or 'use' in data:  # what its base and kits give it
+                from .kits import resolve
+
+                try:
+                    data = resolve(path, data).doc
+                except Exception:  # noqa: BLE001 - a broken spec is validate's business, not the style's
+                    continue
+            if 'parts' not in data:
                 continue
             view = data.get('view', 'topdown') if data.get('view') in PITCH else 'topdown'
             cam = data.get('camera') if isinstance(data.get('camera'), dict) else {}

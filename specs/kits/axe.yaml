@@ -1,0 +1,61 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: axe, as: axe, at: wrist_R}]`.
+# `spritekiln pose specs/kits/axe.yaml --dirs all` shows it on its host.
+kit: axe
+license: CC0-1.0
+summary: a one-handed bearded axe held in the fist; the haft rises along the hand frame's y, the bit faces its z
+host: humanoid
+at: wrist_R
+host_remove: [use.sword]   # the host template's sword is in the same hand
+params:
+  length: 0.56       # from the fist to the top of the head (world units)
+  reach: 0.22        # how far the bit's edge stands out from the haft (world units)
+  head: 0.3          # height of the cutting edge along the haft, from the toe down to the tip of the beard (world units)
+  double: false      # true: a second bit on the back (a double-bit axe)
+  tilt: 0.52         # the haft leans forward from the fist (radians about the hand's x)
+  roll: 0            # turn about the haft (radians; 0: the bit leads a swing along the hand's z)
+  pitch: 0           # extra lean at the wrist (radians), e.g. a channel such as axe_pitch
+  cheat: 0.8         # strength of the per-direction cheats that turn the weapon's profile to the camera (0: off)
+# In a left hand (`at: wrist_L`, or `as: axe_L`) negate `cheat` so the bit turns out of the body there too.
+
+materials:
+  steel: {ramp: steel, finish: metal}
+  wood: {ramp: wood, finish: matte, bands: [2, 5]}   # matte: a 1-2 px haft does not flicker with a highlight; tones 2-5 keep it off the dark robe
+
+ramps:   # used only where the host's palette has none of that name
+  wood: ["#140c08", "#2f1d13", "#4d3120", "#6d4a2e", "#91683f", "#b88f5c"]
+
+bones:
+  axe: {parent: at, pos: [0, 0, 0.035], rot: "[tilt + pitch, 0, 0]"}   # the fist, the haft along its y
+  # in s the bit would face the camera edge-on (a 2 px bar): `cheat` turns it out of the body around there
+  haft: {parent: axe, rot: "[0, roll - cheat*pulse(yaw*sx, 0, 60), 0]"}
+
+parts:
+  haft:
+    material: wood
+    space: haft
+    priority: 2              # thin and in front of the body: it keeps its pixels
+    blend: 0.02
+    prims:
+      - cylinder: {a: [0, -0.1, 0], b: "[0, length + 0.02, 0]", r: 0.022}
+      - sphere: {c: [0, -0.11, 0], r: 0.03}                     # the knob at the butt
+  head:                      # the eye around the haft and the bearded bit, in the plane of the haft and z
+    material: steel
+    space: haft
+    blend: {mode: chamfer, k: 0.015}
+    prims:
+      - cylinder: {a: "[0, length - 0.13, 0]", b: "[0, length, 0]", r: 0.04}
+      - extrude: &bit {c: "[0, length - 0.065, 0]", rot: [0, -1.5708, 0], depth: 0.05, round: 0.01,
+                       profile: {bezier: [[-0.04, 0.055], [0, 0.06], [0.04, 0.055], "[reach*0.55, 0.06]",   # top of the bit
+                                          "[reach, head*0.32]", "[reach*1.22, -head*0.1]",                   # toe, edge
+                                          "[reach*0.92, -head*0.68]", "[reach*0.35, -head*0.25]",           # beard
+                                          [0.04, -0.055], [0, -0.06], [-0.04, -0.055], [-0.055, 0]]}}       # neck, eye
+  back:                      # the second bit of a double-bit axe: the same bit turned to face -z
+    material: steel
+    space: haft
+    when: double
+    prims:
+      - extrude: {<<: *bit, rot: [0, 1.5708, 0]}
+
+sockets:
+  hit: {bone: haft, offset: "[0, length - 0.065 - head*0.15, reach*1.08]"}   # the middle of the edge: where a chop lands
