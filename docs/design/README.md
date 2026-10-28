@@ -115,6 +115,9 @@ and style systems; rendering them earlier would mean redoing them.
 - **2026-10-27, one release.** Everything is developed on the branch `plan/quality-forms-performance`. The
   stages are milestones, not releases: no release on `main` per stage. Release 0.3 ships everything, complete,
   when the maintainer decides it is ready.
+- **2026-10-28, 15 is not in 0.3.** Saving context must not cost visual detail on unique designs: "numbers
+  before images", drafts in 4 directions and a standard reference task would let small, expected details be
+  lost silently. The proposal's "Review" section says how to rewrite it before it is scheduled.
 
 ## Success, measured at release 0.3
 | measure | now | target |

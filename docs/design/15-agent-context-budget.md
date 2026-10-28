@@ -1,6 +1,6 @@
 # 15. Agent context budget
 
-**Status:** proposed · **Track:** tokens · **Stage:** not scheduled yet · **Depends on:** 03, 04
+**Status:** not in 0.3 (decided 2026-10-28) · **Track:** tokens · **Stage:** not scheduled yet · **Depends on:** 03, 04
 
 ## Problem
 An asset session loads a lot of context before any useful work, and the recipe loads it again:
@@ -74,3 +74,32 @@ The same work with much less context:
 - **Decided (2026-10-27): no model routing.** Every agent and every check, numeric ones included, keeps the
   model chosen for the session; ADR-019 ("the strongest model with image input") stands. Quality is the main
   goal: this proposal saves tokens only by reading less, never by using a weaker model.
+
+## Review (2026-10-28): not in 0.3; rewrite before scheduling
+The maintainer's concern: an AI working on less context loses visual details the user expects, above all on
+designs that are unique or far from the templates. The analysis agrees for parts of this proposal:
+- **Numbers first (2) is the main risk.** The summary's measures are aggregates (silhouette area, IoU,
+  material shares, value contrast). A 3 px feather, a horn's curl, an asymmetric hat or an emblem changes none
+  of them, so the numbers never "point to a problem" and the image is never asked for: a silent failure.
+  Evidence from stage 4: the kit reviews found every important problem by looking (four weapons reading as the
+  same grey bar in `s`, a white helmet, a hat hiding the face, the bowstring as the brightest thing) and used
+  numbers only afterwards, to measure the fixes. The flow that worked was image, then number.
+- **Drafts in 4 directions (3) hide fine and one-sided details.** A draft breaks thin parts; mirrored
+  directions are redundant only for symmetric designs, and unique ones tend to be asymmetric. A loss made early
+  survives several iterations before the 8-direction check.
+- **A 4k core with an index (1)** works when the agent knows it needs a section. Unusual designs need the less
+  obvious tools (paint, membranes, tubes, shape operators, `priority`), which an agent that has not read about
+  them replaces with generic primitives.
+- **Hand-offs as paths (4)** lose the whole picture unless the splash and the `brief` travel with them.
+- **The reference task (5)** is a standard goblin: the case least sensitive to the concern, so a regression on
+  unique designs would pass it.
+- Low risk: reading by outline and block (04), cropped pixel-exact previews (03), not loading the same docs
+  three times. The docs have grown since (45 KB → 78 KB of `docs/agent/` after stages 3-4).
+
+If this proposal comes back, it should be rewritten as: (1) with a core that lists every capability in one line
+each and loads the sections the `brief` calls for; images kept mandatory whenever a `must_keep` trait is touched,
+numbers as an extra check, and `must_keep` traits tied to parts so a summary flags one that falls below N pixels
+in a direction; drafts only for pose and mass, all 8 full directions at every milestone of an asymmetric
+design; the splash and the `brief` in every hand-off; validation on off-template designs (a non-humanoid, an
+asymmetric detailed character, a stylised splash), judged trait by trait by the maintainer.
+
