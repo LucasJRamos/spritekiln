@@ -264,15 +264,21 @@ def to_gbuffer(samples, nG, cam, weight=None, min_cover=None):
     )
 
 
-def shade(gb, cam, light):
+def facing(gb, cam, light):
+    """n.h per pixel (Blinn-Phong): 1 where the surface faces halfway between the light and the camera."""
+    h = normalize(np.asarray(light.L, float) - cam.D)
+    return np.where(gb.gid >= 0, gb.normal.astype(np.float64) @ h, -1.0)
+
+
+def shade(gb, cam, light, rim=None):
     """The light value (0..1) of each pixel of a GBuffer: wrap diffuse darkened by the soft shadow and AO, plus a
-    rim light on the shadow side. 0 for background."""
+    rim light on the shadow side (`rim`: its strength per pixel; default the light's). 0 for background."""
     n = gb.normal.astype(np.float64)
     sh = gb.shadow / 255.0
     ao = gb.ao / 255.0
     wrap = np.clip((n @ light.L + 0.25) / 1.25, 0, 1)
     diff = wrap * (0.45 + 0.55 * sh)
-    rim = np.clip(n @ light.RIM, 0, 1) * (1 - np.clip(-(n @ cam.D), 0, 1)) ** 2
+    rim_light = np.clip(n @ light.RIM, 0, 1) * (1 - np.clip(-(n @ cam.D), 0, 1)) ** 2
     lv = light.ambient + 0.98 * diff * (0.62 + 0.38 * ao)
-    lv = lv + light.rim_strength * rim * (wrap < 0.45)
+    lv = lv + (light.rim_strength if rim is None else rim) * rim_light * (wrap < 0.45)
     return np.where(gb.gid >= 0, np.clip(lv, 0, 1), 0.0)

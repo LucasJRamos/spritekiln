@@ -11,6 +11,11 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   depends on the geometry only. Assets rendered again are lighter where those false shadows used to fall,
   so they do not match renders of 0.2 pixel for pixel.
 
+### Materials that read as what they are
+- `finish: matte | soft | metal | glossy` on a material: metal gets a small hard highlight and a strong rim,
+  cloth stays matte. `highlight` (size, pixels per cluster, tone or colour), `rim` per material and `thresholds`
+  (hard toon steps) can be set one by one. A material with a highlight keeps its ramp's top tone for it.
+
 ### Light and materials applied after the cache
 - The render cache keeps each frame's geometry (part, depth, normal, soft shadow and occlusion per pixel) and
   the light, materials and palette are applied to it: after a change of `ambient`, `rim_strength`, a ramp or

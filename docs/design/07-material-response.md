@@ -1,6 +1,6 @@
 # 07. Material response: highlights, rim, thresholds
 
-**Status:** proposed · **Track:** quality · **Stage:** 3 (release 0.3) · **Depends on:** 06
+**Status:** done (stage 3) · **Track:** quality · **Stage:** 3 (release 0.3) · **Depends on:** 06
 
 ## Problem
 Light reaches `compose` as one value, and `band_of` (`spritekiln/pixelize.py`) maps it onto the material's ramp
@@ -72,3 +72,16 @@ materials:
   [10](10-thin-parts-and-stability.md).
 - Should `finish: metal` also lower the shadow side by one band (more contrast)? Decide on the before/after
   sheets.
+
+## Outcome (2026-10-28): done
+- `finish` presets (matte, soft, metal, glossy) expand into `highlight` and `rim`; explicit fields win.
+  `highlight: {size, max_px, min_px, band, color}` uses `render.facing` (n.h, Blinn-Phong) and
+  `pixelize.clusters` to keep clusters small; `rim` per material; `thresholds` for toon steps.
+- Found on the Templar: a highlight in the ramp's top tone did not read, because the lit side already used that
+  tone. A material with a highlight now keeps its top tone for it (the light uses the tones below), as pixel
+  artists do: with `finish: metal` on iron and gold the armour reads darker and metallic, with small hard
+  highlights on the pauldrons, arms and knees.
+- Tests: a metal ball shows 1-4 top-tone pixels on its upper half in all 4 directions (a plain one shows more
+  than 8); toon thresholds; rim per material; validation of highlight bands and thresholds.
+- Without these fields every spec renders as before (goldens unchanged).
+

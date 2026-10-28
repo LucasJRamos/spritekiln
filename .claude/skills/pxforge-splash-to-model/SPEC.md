@@ -88,6 +88,18 @@ uses `band`), `bands: [lo, hi]` (index range the light uses), `line` (takes part
 `line_band` (colour of inner lines, default 1), `outline` (outer outline), `two_sided`, `glow`, `gamma`
 (light → band curve, default 1.05).
 
+How a material answers light:
+- `finish: matte | soft | metal | glossy`: a preset of the two fields below (a field the material sets wins).
+  matte (cloth, stone, fur): no highlight, little rim; soft (skin, leather, wood): a wide highlight; metal
+  (armour, blades, coins): a small hard highlight, strong rim; glossy (gems, lacquer, eyes): a tiny one.
+- `highlight: {size: 0.95, max_px: 4, min_px: 1, band, color}`: where the surface faces halfway between the
+  light and the camera (`size`, a cosine: 0.9 wide, 0.97 small) the pixels take the ramp's top tone (`band`, or
+  a `color`), in clusters of at most `max_px` pixels. A material with a highlight keeps its top tone for it: the
+  light uses the tones below.
+- `rim: 0.6`: the rim light's strength on this material (default `light.rim_strength`).
+- `thresholds: [0.35, 0.7]`: the light values where the tone steps up (hard toon shading) instead of `gamma`.
+- `flat_band`: the tone used with `light: {mode: flat}`.
+
 Ramps come from `palette:`: a file path relative to the spec, a name in the project's palettes folder
 (`<specs>/palettes/<name>.yaml` of `spritekiln.toml`), a built-in name (`gothic`), or a list of them (later
 ones win). A top-level `ramps:` mapping adds or overrides ramps for this spec alone:

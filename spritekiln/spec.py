@@ -50,7 +50,22 @@ DEFAULT_MATERIAL = dict(
     glow=None,
     gamma=1.05,
     flat_band=None,
+    finish=None,
+    highlight=None,
+    rim=None,
+    thresholds=None,
+    crease=None,
+    edge_highlight=None,
+    dither=None,
+    line_color=None,
 )
+# `finish` presets (design 07): fields a material sets itself win over them
+FINISHES = {
+    'matte': dict(highlight=None, rim=0.15),
+    'soft': dict(highlight=dict(size=0.9, max_px=8), rim=0.3),
+    'metal': dict(highlight=dict(size=0.95, max_px=4), rim=0.6),
+    'glossy': dict(highlight=dict(size=0.975, max_px=2), rim=0.45),
+}
 
 _SIDE = re.compile(r'_L(?![A-Za-z0-9])')
 
@@ -228,6 +243,11 @@ def load(path, size=None):
     for name, m in (s.get('materials') or {}).items():
         mm = dict(DEFAULT_MATERIAL)
         mm.update(m or {})
+        for k, v in FINISHES.get(mm['finish'], {}).items():
+            if not (m and k in m):
+                mm[k] = copy.deepcopy(v)
+        if mm['highlight'] is True:
+            mm['highlight'] = dict(FINISHES['metal']['highlight'])
         if mm['ramp'] is None:
             mm['ramp'] = name
         if isinstance(mm['ramp'], str):
@@ -404,6 +424,14 @@ def _static_problems(spec):
             if not str(k).lstrip('-').isdigit() or not 0 <= int(k) < int(n):
                 problems.append(f'animations.{name}.events: frame {k} does not exist (frames 0..{int(n) - 1})')
     for name, m in spec['materials'].items():
+        hl = m.get('highlight')
+        if isinstance(hl, dict) and hl.get('band') is not None and not 0 <= hl['band'] < len(m.get('colors') or []):
+            problems.append(
+                f'materials.{name}.highlight.band: {hl["band"]} is outside its ramp (0..{len(m["colors"]) - 1})'
+            )
+        th = m.get('thresholds')
+        if th is not None and (list(th) != sorted(th) or not all(0 <= t <= 1 for t in th)):
+            problems.append(f'materials.{name}.thresholds: {th} (increasing light values between 0 and 1)')
         band = m.get('band')
         if m.get('emissive') and isinstance(band, int) and not 0 <= band < len(m.get('colors') or []):
             problems.append(f'materials.{name}.band: {band} is outside its ramp (0..{len(m["colors"]) - 1})')

@@ -25,9 +25,13 @@ def band_of(M, v, flat=False):
         b = M['band'] if M['band'] is not None else n - 1
         return np.full(v.shape, b, int)
     lo, hi = M['bands'] if M['bands'] else (1, n - 1)
+    if M.get('highlight') and hi >= n - 1 and hi - 1 > lo and not flat:
+        hi -= 1  # the top tone is the highlight's, as a pixel artist keeps it
     if flat:
         b = M.get('flat_band')
         return np.full(v.shape, (lo + hi + 1) // 2 if b is None else b, int)
+    if M.get('thresholds'):  # toon: the tone steps up at each threshold
+        return np.clip(lo + np.searchsorted(np.asarray(M['thresholds'], float), np.clip(v, 0, 1), 'right'), lo, hi)
     levels = hi - lo + 1
     g = np.clip(v, 0, 1) ** M['gamma']
     return np.clip(lo + np.floor(g * levels * 0.999).astype(int), lo, hi)
@@ -47,8 +51,37 @@ def shift(a, dy, dx, fill):
     return out
 
 
-def compose(gid, val, depth, groups, materials, shadow=None, flat=False):
-    """-> RGBA uint8 image. shadow: (cx, cy, rx, ry, rgba) or None; flat: see band_of."""
+def clusters(mask, score, min_px=1, max_px=None):
+    """`mask` without its 4-connected clusters smaller than min_px, each larger one cut to its max_px pixels of
+    highest `score`."""
+    out = np.zeros_like(mask)
+    seen = np.zeros_like(mask)
+    H, W = mask.shape
+    for y0, x0 in zip(*np.nonzero(mask)):
+        if seen[y0, x0]:
+            continue
+        stack, comp = [(y0, x0)], []
+        seen[y0, x0] = True
+        while stack:
+            y, x = stack.pop()
+            comp.append((y, x))
+            for dy, dx in N4:
+                yy, xx = y + dy, x + dx
+                if 0 <= yy < H and 0 <= xx < W and mask[yy, xx] and not seen[yy, xx]:
+                    seen[yy, xx] = True
+                    stack.append((yy, xx))
+        if len(comp) < min_px:
+            continue
+        if max_px and len(comp) > max_px:
+            comp = sorted(comp, key=lambda p: -score[p])[:max_px]
+        for p in comp:
+            out[p] = True
+    return out
+
+
+def compose(gid, val, depth, groups, materials, shadow=None, flat=False, ndh=None):
+    """-> RGBA uint8 image. shadow: (cx, cy, rx, ry, rgba) or None; flat: see band_of; ndh: render.facing, for the
+    materials' highlights."""
     H, W = gid.shape
     names = list(materials)
     mid = {n: i for i, n in enumerate(names)}
@@ -79,6 +112,22 @@ def compose(gid, val, depth, groups, materials, shadow=None, flat=False):
                     u, c = np.unique(vals, return_counts=True)
                     band[y, x] = u[c.argmax()]
 
+    # --- 1b. highlights: a small hard cluster where the surface faces between the light and the camera ---
+    hl_colors = []
+    if ndh is not None and not flat:
+        for n in names:
+            h = materials[n].get('highlight')
+            if not h or materials[n]['emissive']:
+                continue
+            sel = (mat == mid[n]) & (ndh >= h.get('size', 0.94))
+            sel = clusters(sel, ndh, h.get('min_px', 1), h.get('max_px'))
+            if not sel.any():
+                continue
+            hb = h.get('band')
+            band[sel] = len(RAMPS[mid[n]]) - 1 if hb is None else hb
+            if h.get('color'):
+                hl_colors.append((sel, hx(h['color'])))
+
     # --- 2. internal contour lines where a nearer part overlaps a farther one ---
     line = np.zeros((H, W), bool)
     for dy, dx in N4 + ((1, 1), (1, -1), (-1, 1), (-1, -1)):
@@ -104,6 +153,9 @@ def compose(gid, val, depth, groups, materials, shadow=None, flat=False):
             col = r[b]
         img[y, x, :3] = col
         img[y, x, 3] = 255
+
+    for sel, col in hl_colors:
+        img[sel & ~line, :3] = col
 
     # --- 4. outer outline (selout: tinted by neighbour material) ---
     solid = gid >= 0

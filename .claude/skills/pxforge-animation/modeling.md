@@ -9,6 +9,9 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
 - **Thin parts:** a radius of at least ~0.025 at `scale: 0.05` (claws, blades); thinner breaks into dots.
   When a detail must stay thinner (a staff, a rapier, antennae), give its part `min_cover: 1` or `2` and,
   when it crosses in front of the body, `priority: 2`–`3` ([spec.md](SPEC.md)).
+- **Materials read through their finish:** give armour and blades `finish: metal`, skin and leather `soft`,
+  cloth and stone `matte`, gems and eyes `glossy` (SPEC.md). A ramp for a metal needs 5–6 tones: the top one
+  becomes its highlight.
 - **Colours:** one ramp per material, 4–6 tones; few materials (3–6). Emissives (eyes, magic) are the
   accent. Value contrast between neighbouring materials matters more than hue.
 - **Perspective:** things that stick out backwards or away rise on the screen. Check the diagonals: a thin

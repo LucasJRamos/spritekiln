@@ -14,7 +14,7 @@ from . import spec as specmod
 from .anim import frames_of
 from .errors import RenderError
 from .pixelize import aux_maps, compose, hx
-from .render import Camera, Light, Scene, shade, to_gbuffer
+from .render import Camera, Light, Scene, facing, shade, to_gbuffer
 from .rig import build, rest_env, socket_points
 from .sdf import rot_y
 
@@ -126,7 +126,13 @@ def render_frame(spec, env, yaw, force=False, maps=True):
     G = gb.gid.astype(int)
     light = Light(**spec['light'])
     flat = spec['light'].get('mode') == 'flat'
-    img = compose(G, shade(gb, cam, light), gb.depth, groups, spec['materials'], shadow_for(spec, env, yaw, cam), flat)
+    mats = spec['materials']
+    rim = None
+    if groups and any(mats[g.mat].get('rim') is not None for g in groups):  # rim strength per material
+        per = [mats[g.mat]['rim'] if mats[g.mat].get('rim') is not None else light.rim_strength for g in groups]
+        rim = np.array([*per, 0.0])[np.where(G >= 0, G, -1)]
+    ndh = facing(gb, cam, light) if any(mats[g.mat].get('highlight') for g in groups) else None
+    img = compose(G, shade(gb, cam, light, rim), gb.depth, groups, mats, shadow_for(spec, env, yaw, cam), flat, ndh)
     nm, em = aux_maps(img, G, gb.normal.astype(float), groups, spec['materials'], cam) if maps else (None, None)
     mats = {}
     if groups:
