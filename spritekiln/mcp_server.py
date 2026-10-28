@@ -17,9 +17,9 @@ from .errors import SpriteKilnError
 INSTRUCTIONS = """SpriteKiln makes animated 8-direction pixel-art sprites from YAML specs.
 First call style(): if no art style is recorded for the project, interview the user with the questions of
 guide('style') and record the answers with style(answers=...) before generating anything; every asset
-follows the recorded style. Then guide('workflow') and guide('spec'). Loop: edit the spec file -> validate
--> pose (look at the image) -> repeat; render only at the end, then export. If you cannot see images, use
-review numbers."""
+follows the recorded style. Then guide('workflow') and guide('spec'). To read a spec, spec_outline() it and
+spec_show() the blocks you edit. Loop: edit the spec file -> validate -> pose (look at the image) -> repeat;
+render only at the end, then export. If you cannot see images, use review numbers."""
 
 
 def _pngs(path_or_img):
@@ -118,6 +118,24 @@ def build():
     def validate(spec: str) -> dict:
         """Check a spec: errors and warnings with file:line:column, and a summary (parts, animations, sockets)."""
         return api.validate(spec)
+
+    @tool
+    def spec_outline(spec: str) -> str:
+        """A map of a spec file: each part, animation, IK chain and socket on a line with its line range and a
+        summary (material, space, primitives; frames, duration, loop), the other sections as one line of names.
+        Read it instead of the whole file, then spec_show the blocks you will edit."""
+        from . import outline
+
+        return outline.outline_text(spec)
+
+    @tool
+    def spec_show(spec: str, paths: str, resolved: bool = False) -> str:
+        """The numbered source lines of some blocks of a spec, comments kept: comma-separated paths such as
+        parts.helm, animations.walk, animations.walk.keys[2] (a mirrored _R item shows its _L source). Edit
+        those lines in place. `resolved`: the blocks as the renderer sees them (mirrored, defaults filled in)."""
+        from . import outline
+
+        return outline.show(spec, _split(paths), resolved)
 
     @tool
     def pose(

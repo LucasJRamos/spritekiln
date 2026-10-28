@@ -9,6 +9,8 @@ coherent directions (the same 3D model, rotated). Read [spec.md](SPEC.md) before
 spritekiln style                                      # the project's art style (first: interview the user)
 spritekiln style set --view topdown --height 48 ...   # record the answers (see style.md)
 spritekiln validate <spec.yaml>                       # after every edit; problems come with file:line:column
+spritekiln spec outline <spec.yaml>                   # map of the file: each part/animation with its lines
+spritekiln spec show <spec.yaml> parts.helm animations.walk   # numbered lines of the blocks you edit
 spritekiln pose <spec.yaml> [--anim walk --frame 3] [--dirs all|s,se,e] [--draft]   # cheap preview PNG
 spritekiln render <spec.yaml> [--anims idle,walk] [--dirs s,e] [--size 48] [--draft]   # atlas, JSON, GIFs, QA
 spritekiln review <spec.yaml> [--bg floor.png --tint 0.7,0.7,1.0] [--against other.yaml] [--ref splash.png]
@@ -37,7 +39,9 @@ If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or t
    stop and interview the user with the questions of [style.md](style.md), confirm a summary and record
    it with `spritekiln style set`; only then go on. Every asset follows the recorded style; it changes
    only when the user explicitly asks.
-1. **Read** the spec and its `brief:`. No spec yet: `spritekiln new <name>` (the humanoid template, or
+1. **Read** the spec and its `brief:`. A long spec: `spec outline` first (a fraction of the file), then
+   `spec show` the blocks you will edit (or read those line ranges); a mirrored `_R` item is edited in its
+   `_L` source. No spec yet: `spritekiln new <name>` (the humanoid template, or
    `side_humanoid` with platformer clips for a side view), or start from a similar spec (the gargoyle in
    SpriteKiln's repository, `specs/characters/gargula/gargula.yaml` on
    https://github.com/LucasJRamos/spritekiln, is a good base for creatures).

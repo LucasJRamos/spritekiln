@@ -51,6 +51,18 @@ def cmd_validate(a):
     return 0
 
 
+def cmd_spec(a):
+    """Read only what you edit: a map of the spec file, or the source lines of some blocks."""
+    from . import outline
+
+    if a.action == 'outline':
+        if a.paths:
+            raise SpriteKilnError('spec outline takes no paths (use `spec show SPEC PATH...`)')
+        print(json.dumps(outline.outline(a.spec), indent=1) if a.json else outline.outline_text(a.spec))
+    else:
+        print(outline.show(a.spec, a.paths, a.resolved))
+
+
 def cmd_pose(a):
     """Quick look: one pose in several directions, zoomed (cheap; use it while modelling)."""
     from . import api
@@ -503,6 +515,16 @@ def build_parser(prog='spritekiln'):
     s.add_argument('spec')
     s.add_argument('--strict', action='store_true', help='treat warnings (unknown keys, no version header) as errors')
     s.set_defaults(f=cmd_validate)
+
+    s = sub.add_parser('spec', help='map of a spec file (outline), or the numbered lines of some blocks (show)')
+    s.add_argument('action', choices=['outline', 'show'])
+    s.add_argument('spec')
+    s.add_argument('paths', nargs='*', help='show: block paths, e.g. parts.helm animations.walk.keys[2]')
+    s.add_argument('--json', action='store_true', help='outline: as JSON')
+    s.add_argument(
+        '--resolved', action='store_true', help='show: the blocks as the renderer sees them (mirrored, defaults)'
+    )
+    s.set_defaults(f=cmd_spec)
 
     s = sub.add_parser('pose', help='quick preview of one pose (rest by default)')
     s.add_argument('spec')

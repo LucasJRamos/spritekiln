@@ -25,6 +25,14 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
 - `pose --scale` is now the largest zoom; `pose --no-crop` keeps whole frames. MCP `pose` returns the `zoom` and
   the `crop` box; MCP tools cut an image that is still too large into pieces instead of shrinking it.
 
+### Read only what you edit
+- `spritekiln spec outline <spec>` maps a spec file: each part, animation, IK chain and socket with its line
+  range and a summary, the other sections as one line of names. The Huntress's outline is 6 KB; its spec is
+  41 KB. `--json` gives the same as data.
+- `spritekiln spec show <spec> parts.helm animations.walk.keys[2]` prints the numbered source lines of those
+  blocks, comments kept; a mirrored `_R` item shows its `_L` source; `--resolved` shows a block as the
+  renderer reads it. MCP tools `spec_outline` and `spec_show`.
+
 ## 0.2.0 (2026-10-25)
 
 ### Upgrading from 0.1.0
