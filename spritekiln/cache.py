@@ -16,7 +16,7 @@ import numpy as np
 DIRNAME = '.kilncache'
 LEGACY_DIRNAME = '.pxcache'  # pickle cache of pxforge <= 0.1; never read, `cache clear --legacy` removes it
 DEFAULT_MAX_MB = 1024  # per spec, enforced after each render (least recently used go first)
-FORMAT = 5  # 5: the order of parts is part of the key
+FORMAT = 6  # 6: a geometry buffer (render.GBuffer); light intensities are applied after the cache
 
 _ENGINE_MODULES = ('expr.py', 'rig.py', 'sdf.py', 'render.py', 'pipeline.py', 'scene_ir.py', 'fast.py')
 
@@ -40,7 +40,8 @@ def _plain(v):
 
 
 def key(spec, env, yaw):
-    """Hash of everything that changes geometry/lighting (not the palette, applied after the cache), including
+    """Hash of everything that changes the geometry buffer: not the palette, materials' colours, light intensities
+    or style, applied after the cache. It includes
     the backend: numba and numpy agree on all but a few pixels, and a cache never mixes them."""
     from . import backend
 
@@ -52,7 +53,7 @@ def key(spec, env, yaw):
         parts=spec['parts'],
         order=list(spec['parts']),  # the cached group ids follow the order of the parts
         camera=spec['camera'],
-        light=spec['light'],
+        light={k: spec['light'].get(k) for k in ('dir', 'shadows', 'ao')},  # what the geometry pass uses
         size=spec['size'],
         mats={k: (v['emissive'], v['two_sided']) for k, v in spec['materials'].items()},
         env={k: _plain(v) for k, v in env.items()},
@@ -72,10 +73,12 @@ def entry(spec, env, yaw):
 
 
 def load(path):
-    """Buffers (gid, val, depth, normal) or None when missing or unreadable."""
+    """The render.GBuffer saved at `path`, or None when missing, unreadable or of another format."""
+    from .render import GBuffer
+
     try:
         with np.load(path, allow_pickle=False) as z:
-            buf = (z['g'], z['v'], z['d'], z['n'])
+            buf = GBuffer(*(z[f] for f in GBuffer._fields))
     except (FileNotFoundError, OSError, KeyError, ValueError, zipfile.BadZipFile):
         return None
     try:
@@ -89,8 +92,7 @@ def save(path, buf):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = f'{path}.{os.getpid()}.tmp'
     with open(tmp, 'wb') as fh:
-        g, v, d, n = buf
-        np.savez_compressed(fh, g=g, v=v, d=d, n=n)
+        np.savez_compressed(fh, **buf._asdict())
     os.replace(tmp, path)  # a killed render never leaves a half-written entry
 
 

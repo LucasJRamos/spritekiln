@@ -16,10 +16,13 @@ MINIMAL = os.path.join(FIXTURES, 'minimal', 'minimal.yaml')
 
 
 def _buf():
+    from spritekiln.render import GBuffer
+
     rng = np.random.default_rng(0)
-    g = rng.integers(-1, 5, (8, 8))
-    d = np.where(g >= 0, rng.random((8, 8)), np.inf)
-    return g, rng.random((8, 8)), d, rng.random((8, 8, 3))
+    g = rng.integers(-1, 5, (8, 8)).astype(np.int16)
+    d = np.where(g >= 0, rng.random((8, 8)), np.inf).astype(np.float32)
+    u8 = lambda: rng.integers(0, 256, (8, 8)).astype(np.uint8)  # noqa: E731
+    return GBuffer(g, d, rng.random((8, 8, 3)).astype(np.float16), u8(), u8(), u8())
 
 
 def test_cache_roundtrip_is_exact(tmp_path):

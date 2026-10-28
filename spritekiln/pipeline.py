@@ -14,7 +14,7 @@ from . import spec as specmod
 from .anim import frames_of
 from .errors import RenderError
 from .pixelize import aux_maps, compose, hx
-from .render import Camera, Light, Scene, to_pixels
+from .render import Camera, Light, Scene, shade, to_gbuffer
 from .rig import build, rest_env, socket_points
 from .sdf import rot_y
 
@@ -59,13 +59,14 @@ def _votes(groups, cam):
 
 
 def render_buffers(spec, env, yaw, force=False):
+    """(GBuffer, groups, rig frames, camera) of a pose, from the render cache when it has it."""
     cam = Camera.from_spec(spec)
     path = cache.entry(spec, env, yaw)
     groups, frames = build(spec, env)
     buf = None if force else cache.load(path)
     if buf is None:
         sc = Scene(groups, np.radians(yaw))
-        buf = to_pixels(*backend.render(sc, cam, Light(**spec['light'])), len(groups), cam, *_votes(groups, cam))
+        buf = to_gbuffer(backend.render(sc, cam, Light(**spec['light'])), len(groups), cam, *_votes(groups, cam))
         cache.save(path, buf)
     return buf, groups, frames, cam
 
@@ -121,9 +122,12 @@ def sockets_2d(spec, env, yaw, frames, cam):
 def render_frame(spec, env, yaw, force=False, maps=True):
     """Render one pose seen from `yaw` -> Frame (without timing; see _job)."""
     env = dict(env, yaw=float(yaw), dir=specmod.direction_name(yaw))  # per-direction cheats in bones/parts
-    (G, V, D, N), groups, frames, cam = render_buffers(spec, env, yaw, force)
-    img = compose(G, V, D, groups, spec['materials'], shadow_for(spec, env, yaw, cam))
-    nm, em = aux_maps(img, G, N, groups, spec['materials'], cam) if maps else (None, None)
+    gb, groups, frames, cam = render_buffers(spec, env, yaw, force)
+    G = gb.gid.astype(int)
+    light = Light(**spec['light'])
+    flat = spec['light'].get('mode') == 'flat'
+    img = compose(G, shade(gb, cam, light), gb.depth, groups, spec['materials'], shadow_for(spec, env, yaw, cam), flat)
+    nm, em = aux_maps(img, G, gb.normal.astype(float), groups, spec['materials'], cam) if maps else (None, None)
     mats = {}
     if groups:
         names = np.array([g.mat for g in groups] + [''])

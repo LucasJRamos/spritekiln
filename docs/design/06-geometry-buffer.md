@@ -1,6 +1,6 @@
 # 06. Geometry buffer and deferred shading
 
-**Status:** proposed · **Track:** quality, speed · **Stage:** 3 (release 0.3) · **Depends on:** 02
+**Status:** done (stage 3) · **Track:** quality, speed · **Stage:** 3 (release 0.3) · **Depends on:** 02
 
 ## Problem
 - **Light is baked into one number before the pixel stage.** `render()` (`spritekiln/render.py`) lights each
@@ -74,3 +74,16 @@ lit by the engine through the normal map.
 - The order of averaging changes the look slightly everywhere. This is a one-time change.
 - `local` needs each group to know its part frame (`rig` builds it). That is shared with
   [09](09-surface-paint.md).
+
+## Outcome (2026-10-28): done
+- Backends return `render.Samples` (part, depth, normal, soft shadow, AO per ray); `to_gbuffer` votes per pixel
+  and averages the winner's normal, shadow and AO into a `GBuffer` (part int16, depth float32, normal float16,
+  shadow, AO and cover uint8, quantised before caching so cached and fresh frames are identical); `shade`
+  computes the light value in 2D. Cache format 6; the key keeps the light's `dir`, `shadows` and `ao` only.
+- Averaging before shading changed 2-4 % of the opaque pixels (gargoyle 3.8 %, Templar 2.2 %, the minimal
+  fixture 4.3 %), at band borders: goldens and showcase hashes updated once.
+- Measured, gargoyle (192 frames, numba): 277 ms per frame cold, 50 ms per frame after an `ambient` change.
+- `light.mode: flat` with `flat_band` per material.
+- Not done: re-tracing only the shadows when `dir` changes (a `dir` change re-renders everything). The paint id
+  and part-local position channels come with [09](09-surface-paint.md).
+

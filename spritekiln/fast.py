@@ -494,13 +494,15 @@ def ball_mask(masks, row, x, y, z, C, BR, radius):
 
 
 @njit(parallel=True, cache=True)
-def trace(ro, D, scene_c, scene_r, C, BR, L, RIM, light, W, codes, offs, data, gp, gc, gblend, gb, flags, glip, masks):
+def trace(
+    ro, D, scene_c, scene_r, C, BR, L, use_ao, use_sh, W, codes, offs, data, gp, gc, gblend, gb, flags, glip, masks
+):
     n = ro.shape[0]
     gid = np.full(n, -1, np.int64)
-    val = np.zeros(n)
     depth = np.full(n, np.inf)
     nrm = np.zeros((n, 3))
-    ambient, rim_strength, use_ao, use_sh = light[0], light[1], light[2] > 0, light[3] > 0
+    shadow = np.ones(n)
+    occl = np.ones(n)
     cam, aom, shm = masks[0], masks[1], masks[2]
     for i in prange(n):
         ox, oy, oz = ro[i, 0], ro[i, 1], ro[i, 2]
@@ -560,18 +562,12 @@ def trace(ro, D, scene_c, scene_r, C, BR, L, RIM, light, W, codes, offs, data, g
                 if not res > 0:
                     break
             sh = _clip01(res)
-        wrap = _clip01((nx * L[0] + ny * L[1] + nz * L[2] + 0.25) / 1.25)
-        diff = wrap * (0.45 + 0.55 * sh)
-        facing = _clip01(-(nx * D[0] + ny * D[1] + nz * D[2]))
-        rim = _clip01(nx * RIM[0] + ny * RIM[1] + nz * RIM[2]) * (1 - facing) ** 2
-        lv = ambient + 0.98 * diff * (0.62 + 0.38 * ao)
-        if wrap < 0.45:
-            lv += rim_strength * rim
         gid[i] = g
-        val[i] = _clip01(lv)
         depth[i] = t
         nrm[i, 0], nrm[i, 1], nrm[i, 2] = nx, ny, nz
-    return gid, val, depth, nrm
+        shadow[i] = sh
+        occl[i] = ao
+    return gid, depth, nrm, shadow, occl
 
 
 @njit(cache=True)
@@ -589,17 +585,17 @@ def distances(primitive, pts):
 
 
 def render(scene, cam, light):
-    """Supersampled buffers gid, val, depth, normal, as render.render."""
-    from .render import camera_rays
+    """render.Samples of a frame, as render.render."""
+    from .render import Samples, camera_rays
 
     N = cam.size * cam.ss
     ro = camera_rays(cam)
     if not scene.groups:
-        return np.full((N, N), -1), np.zeros((N, N)), np.full((N, N), np.inf), np.zeros((N, N, 3))
+        one = np.ones((N, N))
+        return Samples(np.full((N, N), -1), np.full((N, N), np.inf), np.zeros((N, N, 3)), one, one.copy())
     ir = compile_scene(scene)
     masks = np.zeros((3, len(ro), (len(scene.groups) + 63) // 64), np.uint64)
-    lt = np.array([light.ambient, light.rim_strength, float(light.ao), float(light.shadows)])
-    gid, val, depth, nrm = trace(
+    out = trace(
         ro,
         np.asarray(cam.D, float),
         np.asarray(scene.bc, float),
@@ -607,8 +603,8 @@ def render(scene, cam, light):
         ir.C,
         ir.gb[:, 3].copy(),
         np.asarray(light.L, float),
-        np.asarray(light.RIM, float),
-        lt,
+        bool(light.ao),
+        bool(light.shadows),
         ir.W,
         ir.codes,
         ir.offs,
@@ -621,4 +617,7 @@ def render(scene, cam, light):
         ir.glip,
         masks,
     )
-    return gid.reshape(N, N), val.reshape(N, N), depth.reshape(N, N), nrm.reshape(N, N, 3)
+    gid, depth, nrm, shadow, occl = out
+    return Samples(
+        gid.reshape(N, N), depth.reshape(N, N), nrm.reshape(N, N, 3), shadow.reshape(N, N), occl.reshape(N, N)
+    )

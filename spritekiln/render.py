@@ -1,8 +1,10 @@
-"""SDF raymarch -> per-pixel buffers (group id, light value, depth, normal).
+"""SDF raymarch -> per-ray samples -> a per-pixel geometry buffer -> the light value of each pixel.
 
 Orthographic top-down 3/4 camera. The light is fixed in world space, the model is
 rotated (yaw) for each of the 8 directions, so shading stays consistent.
 """
+
+from typing import NamedTuple
 
 import numpy as np
 
@@ -136,9 +138,31 @@ def camera_rays(cam):
     return cam.center + u.reshape(-1, 1) * cam.R + v.reshape(-1, 1) * cam.U - cam.D * 20
 
 
+class Samples(NamedTuple):
+    """The supersampled rays of a frame (cam.size * cam.ss squared): what a backend's render returns."""
+
+    gid: np.ndarray  # [N, N] int: the nearest group, -1 for background
+    depth: np.ndarray  # [N, N] ray distance, inf for background
+    normal: np.ndarray  # [N, N, 3] world normal
+    shadow: np.ndarray  # [N, N] soft shadow towards the light, 0..1 (1 = lit)
+    ao: np.ndarray  # [N, N] ambient occlusion, 0..1 (1 = open)
+
+
+class GBuffer(NamedTuple):
+    """A frame per output pixel, after the coverage vote: the geometry the render cache keeps. Light, materials,
+    palette and style are applied to it in 2D (shade, then pixelize.compose)."""
+
+    gid: np.ndarray  # [S, S] int16, -1 for background
+    depth: np.ndarray  # [S, S] float32
+    normal: np.ndarray  # [S, S, 3] float16, averaged over the winner's samples
+    shadow: np.ndarray  # [S, S] uint8, 255 = lit
+    ao: np.ndarray  # [S, S] uint8, 255 = open
+    cover: np.ndarray  # [S, S] uint8: how many samples the winner had
+
+
 def render(scene, cam, light):
-    """Supersampled buffers: gid, val (0..1 light), depth, normal (world). The numpy reference; fast.render
-    is the compiled one (backend.py picks)."""
+    """Samples of a frame: per ray, the nearest group, depth, normal, soft shadow and AO. The numpy reference;
+    fast.render is the compiled one (backend.py picks)."""
     S = cam.size
     N = S * cam.ss
     ro = camera_rays(cam)
@@ -163,8 +187,9 @@ def render(scene, cam, light):
         tmax = np.where(never, -1.0, tmax)
     t, hit = march(scene, ro, rd, t0, tmax)
     gid = np.full(len(ro), -1)
-    val = np.zeros(len(ro))
     nrm = np.zeros((len(ro), 3))
+    shadow = np.ones(len(ro))
+    occl = np.ones(len(ro))
     P = ro[hit] + rd[hit] * t[hit, None]
     if len(P):
         D = scene.dist_all(P)
@@ -186,23 +211,19 @@ def render(scene, cam, light):
             for h in (0.04, 0.09, 0.16, 0.26):  # a part at least h away does not occlude: exact below h
                 ao += w * np.clip(h - scene.dist_solid(P + n * h, h), 0, None)
                 w *= 0.6
-            ao = np.clip(1 - 3.2 * ao, 0, 1)
-        else:
-            ao = np.ones(len(P))
-        sh = soft_shadow(scene, P + n * 0.01, light.L) if light.shadows else np.ones(len(P))
-        wrap = np.clip((n @ light.L + 0.25) / 1.25, 0, 1)
-        diff = wrap * (0.45 + 0.55 * sh)
-        rim = np.clip(n @ light.RIM, 0, 1) * (1 - np.clip(-(n @ cam.D), 0, 1)) ** 2
-        lv = light.ambient + 0.98 * diff * (0.62 + 0.38 * ao)
-        lv = lv + light.rim_strength * rim * (wrap < 0.45)
-        val[hit] = np.clip(lv, 0, 1)
+            occl[hit] = np.clip(1 - 3.2 * ao, 0, 1)
+        if light.shadows:
+            shadow[hit] = soft_shadow(scene, P + n * 0.01, light.L)
         nrm[hit] = n
     depth = np.where(hit, t, np.inf)
-    return gid.reshape(N, N), val.reshape(N, N), depth.reshape(N, N), nrm.reshape(N, N, 3)
+    return Samples(
+        gid.reshape(N, N), depth.reshape(N, N), nrm.reshape(N, N, 3), shadow.reshape(N, N), occl.reshape(N, N)
+    )
 
 
-def to_pixels(gid, val, depth, nrm, nG, cam, weight=None, min_cover=None):
-    """Supersampled buffers -> size x size gid / val / depth / normal (majority coverage).
+def to_gbuffer(samples, nG, cam, weight=None, min_cover=None):
+    """Samples -> GBuffer (size x size): a pixel is filled when enough samples hit (cam.cover) and goes to the
+    group with the most samples; depth is the winner's nearest, normal, shadow and AO the winner's average.
     `weight`: per group, how much each of its samples counts in the vote (a part's `priority`); `min_cover`: per
     group, how many of its samples fill a pixel even below the camera's coverage (thin weapons, antennae)."""
     S, k = cam.size, cam.ss
@@ -211,25 +232,47 @@ def to_pixels(gid, val, depth, nrm, nG, cam, weight=None, min_cover=None):
         sh = a.shape[2:]
         return a.reshape(S, k, S, k, *sh).swapaxes(1, 2).reshape(S, S, k * k, *sh)
 
-    g, vv, dd, nn = blk(gid), blk(val), blk(depth), blk(nrm)
+    g, dd, nn, ss, aa = (blk(a) for a in samples)
     out_g = np.full((S, S), -1)
-    out_v = np.zeros((S, S))
-    out_d = np.full((S, S), np.inf)
-    out_n = np.zeros((S, S, 3))
     hits = (g >= 0).sum(-1)
     if nG == 0:
-        return out_g, out_v, out_d, out_n
-    counts = np.stack([(g == j).sum(-1) for j in range(nG)], -1)
-    best = (counts if weight is None else counts * weight).argmax(-1)
-    filled = hits >= cam.cover
-    if min_cover is not None:
-        filled |= (counts >= min_cover).any(-1)
-    m = (g == best[..., None]) & filled[..., None]
-    cnt = np.maximum(m.sum(-1), 1)
-    out_g[filled] = best[filled]
-    out_v = np.where(filled, (vv * m).sum(-1) / cnt, 0)
-    out_d = np.where(filled, np.where(m, dd, np.inf).min(-1), np.inf)
+        filled = np.zeros((S, S), bool)
+        m = np.zeros(g.shape, bool)
+    else:
+        counts = np.stack([(g == j).sum(-1) for j in range(nG)], -1)
+        best = (counts if weight is None else counts * weight).argmax(-1)
+        filled = hits >= cam.cover
+        if min_cover is not None:
+            filled |= (counts >= min_cover).any(-1)
+        m = (g == best[..., None]) & filled[..., None]
+        out_g[filled] = best[filled]
+    cnt = m.sum(-1)
+    c1 = np.maximum(cnt, 1)
     ns = (nn * m[..., None]).sum(-2)
     ns /= np.maximum(np.linalg.norm(ns, axis=-1, keepdims=True), 1e-9)
-    out_n = np.where(filled[..., None], ns, 0)
-    return out_g, out_v, out_d, out_n
+
+    def unit(a):  # a 0..1 average as 0..255
+        return np.where(filled, np.round((a * m).sum(-1) / c1 * 255), 255).astype(np.uint8)
+
+    return GBuffer(
+        out_g.astype(np.int16),
+        np.where(filled, np.where(m, dd, np.inf).min(-1), np.inf).astype(np.float32),
+        np.where(filled[..., None], ns, 0).astype(np.float16),
+        unit(ss),
+        unit(aa),
+        cnt.astype(np.uint8),
+    )
+
+
+def shade(gb, cam, light):
+    """The light value (0..1) of each pixel of a GBuffer: wrap diffuse darkened by the soft shadow and AO, plus a
+    rim light on the shadow side. 0 for background."""
+    n = gb.normal.astype(np.float64)
+    sh = gb.shadow / 255.0
+    ao = gb.ao / 255.0
+    wrap = np.clip((n @ light.L + 0.25) / 1.25, 0, 1)
+    diff = wrap * (0.45 + 0.55 * sh)
+    rim = np.clip(n @ light.RIM, 0, 1) * (1 - np.clip(-(n @ cam.D), 0, 1)) ** 2
+    lv = light.ambient + 0.98 * diff * (0.62 + 0.38 * ao)
+    lv = lv + light.rim_strength * rim * (wrap < 0.45)
+    return np.where(gb.gid >= 0, np.clip(lv, 0, 1), 0.0)

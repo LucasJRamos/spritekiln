@@ -68,7 +68,7 @@ def test_every_primitive_matches_the_reference(name):
 def _buffers(spec, yaw):
     """Pixel buffers (part ids, colour) of a rest pose with each backend."""
     from spritekiln.pixelize import compose
-    from spritekiln.render import Camera, Light, Scene, render, to_pixels
+    from spritekiln.render import Camera, Light, Scene, render, shade, to_gbuffer
     from spritekiln.rig import build
 
     env = dict(rest_env(spec, yaw), yaw=yaw, dir='s')
@@ -77,8 +77,9 @@ def _buffers(spec, yaw):
     scene = Scene(groups, np.radians(yaw))
     out = []
     for fn in (render, fast.render):
-        g, v, d, n = to_pixels(*fn(scene, cam, light), len(groups), cam)
-        out.append((g, compose(g, v, d, groups, spec['materials'])))
+        gb = to_gbuffer(fn(scene, cam, light), len(groups), cam)
+        g = gb.gid.astype(int)
+        out.append((g, compose(g, shade(gb, cam, light), gb.depth, groups, spec['materials'])))
     return out
 
 

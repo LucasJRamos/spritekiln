@@ -48,6 +48,14 @@ in a side view) and exports the left-facing ones (`sw, w, nw`) as flipped copies
 symmetric designs: a sword in the right hand switches hands in the mirrored directions, and the light
 comes from the other side.
 
+## Light
+`light` sets the direction (`dir`), the rim light (`rim`, `rim_strength`), `ambient`, `shadows` and `ao`. The
+render cache keeps the geometry of each frame (parts, depth, normals, shadows, occlusion) and applies the light,
+materials and palette afterwards, so changing `ambient`, `rim_strength`, a ramp or a material re-renders a whole
+asset in seconds; changing `dir` traces the shadows again. `mode: flat` draws every material in one tone
+(`flat_band`, default the upper middle of its `bands`) for games that light the sprite at run time through the
+normal map.
+
 ## Units and axes
 - The world is in "game metres": a human is 1.6–1.9 tall. The ground is `y = 0`.
 - **+Y is up, +Z is the character's front** (direction `s` faces the camera), **+X is the character's

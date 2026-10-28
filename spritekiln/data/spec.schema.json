@@ -74,7 +74,8 @@
         "rim_strength": {"type": "number"},
         "ambient": {"type": "number"},
         "shadows": {"type": "boolean"},
-        "ao": {"type": "boolean"}
+        "ao": {"type": "boolean"},
+        "mode": {"enum": ["baked", "flat"], "description": "flat: one tone per material (flat_band), for games that light the sprite through the normal map."}
       }
     },
     "brief": {"description": "Free text for humans and AIs (summary, must_keep, simplify, reference). Ignored by the renderer."},
@@ -198,6 +199,27 @@
             "outline": {"type": "boolean"},
             "two_sided": {"type": "boolean", "description": "Thin membranes lit from both sides."},
             "gamma": {"type": "number"},
+            "flat_band": {"type": "integer", "minimum": 0, "description": "The tone used when light.mode is flat (default: the upper middle of bands)."},
+            "finish": {"enum": ["matte", "soft", "metal", "glossy"], "description": "A preset of highlight and rim: matte (cloth, stone), soft (skin, leather, wood), metal, glossy (gems, eyes)."},
+            "highlight": {
+              "anyOf": [{"type": "null"}, {"type": "boolean"}, {
+                "type": "object", "additionalProperties": false,
+                "properties": {
+                  "band": {"type": "integer", "minimum": 0, "description": "Ramp index of the highlight (default: the top)."},
+                  "color": {"$ref": "#/$defs/color"},
+                  "size": {"type": "number", "description": "Cosine threshold of n.h: higher is smaller (0.9 wide, 0.97 small)."},
+                  "max_px": {"type": "integer", "minimum": 1, "description": "Keep at most this many pixels per highlight cluster."},
+                  "min_px": {"type": "integer", "minimum": 1, "description": "Drop clusters smaller than this."}
+                }
+              }],
+              "description": "A small hard light cluster where the surface faces between the light and the camera."
+            },
+            "rim": {"type": "number", "description": "Rim light strength on this material's shadow side (default: light.rim_strength)."},
+            "thresholds": {"type": "array", "items": {"type": "number"}, "minItems": 1, "description": "Light values where the tone steps up (toon shading), instead of gamma."},
+            "crease": {"type": "boolean", "description": "Lines where the surface folds inwards inside one part."},
+            "edge_highlight": {"type": "boolean", "description": "One tone up along convex edges facing the light."},
+            "dither": {"type": "boolean", "description": "Dither between neighbouring tones (when the style has dither)."},
+            "line_color": {"$ref": "#/$defs/color", "description": "Outline colour with style outline = colored."},
             "glow": {
               "anyOf": [
                 {"$ref": "#/$defs/color"},

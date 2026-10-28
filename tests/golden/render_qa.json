@@ -7,14 +7,14 @@
   "colors_used": 16,
   "palette_size": 23,
   "boil": {
-   "idle/s": 0.126,
-   "idle/e": 0.181,
-   "idle/n": 0.166,
-   "idle/w": 0.154,
-   "attack/s": 0.12,
-   "attack/e": 0.14,
-   "attack/n": 0.081,
-   "attack/w": 0.131
+   "idle/s": 0.142,
+   "idle/e": 0.19,
+   "idle/n": 0.169,
+   "idle/w": 0.133,
+   "attack/s": 0.111,
+   "attack/e": 0.158,
+   "attack/n": 0.068,
+   "attack/w": 0.099
   },
   "idle_area_ratio_min_max": 0.74,
   "attack_area_ratio_min_max": 0.82

@@ -17,13 +17,17 @@ def hx(s):
     return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
 
 
-def band_of(M, v):
-    """light value (0..1) -> ramp index for material M."""
+def band_of(M, v, flat=False):
+    """light value (0..1) -> ramp index for material M. `flat`: one tone per material, `flat_band` (default the
+    upper middle of its bands), for games that light sprites themselves through the normal map."""
     n = len(M['colors'])
     if M['emissive'] or n == 1:
         b = M['band'] if M['band'] is not None else n - 1
         return np.full(v.shape, b, int)
     lo, hi = M['bands'] if M['bands'] else (1, n - 1)
+    if flat:
+        b = M.get('flat_band')
+        return np.full(v.shape, (lo + hi + 1) // 2 if b is None else b, int)
     levels = hi - lo + 1
     g = np.clip(v, 0, 1) ** M['gamma']
     return np.clip(lo + np.floor(g * levels * 0.999).astype(int), lo, hi)
@@ -43,8 +47,8 @@ def shift(a, dy, dx, fill):
     return out
 
 
-def compose(gid, val, depth, groups, materials, shadow=None):
-    """-> RGBA uint8 image. shadow: (cx, cy, rx, ry, rgba) or None."""
+def compose(gid, val, depth, groups, materials, shadow=None, flat=False):
+    """-> RGBA uint8 image. shadow: (cx, cy, rx, ry, rgba) or None; flat: see band_of."""
     H, W = gid.shape
     names = list(materials)
     mid = {n: i for i, n in enumerate(names)}
@@ -58,7 +62,7 @@ def compose(gid, val, depth, groups, materials, shadow=None):
     for n in names:
         sel = mat == mid[n]
         if sel.any():
-            band[sel] = band_of(materials[n], val[sel])
+            band[sel] = band_of(materials[n], val[sel], flat)
 
     # --- 1. remove orphan band pixels (pillow noise) ---
     for _ in range(2):

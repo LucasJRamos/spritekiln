@@ -11,6 +11,15 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   depends on the geometry only. Assets rendered again are lighter where those false shadows used to fall,
   so they do not match renders of 0.2 pixel for pixel.
 
+### Light and materials applied after the cache
+- The render cache keeps each frame's geometry (part, depth, normal, soft shadow and occlusion per pixel) and
+  the light, materials and palette are applied to it: after a change of `ambient`, `rim_strength`, a ramp or
+  a material the gargoyle's 192 frames re-render in 10 s (50 ms per frame) instead of being traced again.
+- Shading now comes from each pixel's averaged normal, shadow and occlusion: 2-4 % of pixels change tone at
+  band borders compared with 0.2.
+- `light: {mode: flat}`: one tone per material (`flat_band`), for games lit by the engine through the normal
+  map.
+
 ### Shapes beyond rounded primitives
 - New primitives: `extrude` (a 2D profile pushed along local z: blades, axe heads, shields, plates), `revolve`
   (a cross-section turned about local y, fully or partly: helmets, hats, bottles, pauldrons), `tube` (a smooth
