@@ -1,6 +1,6 @@
 # 13. Shape operators
 
-**Status:** done (stage 2; showcase port pending) · **Track:** forms · **Stage:** 2 (release 0.3) · **Depends on:** 12 (the compiled scene
+**Status:** done (stage 2) · **Track:** forms · **Stage:** 2 (release 0.3) · **Depends on:** 12 (the compiled scene
 comes first, so each new primitive is written once)
 
 ## Problem
@@ -173,5 +173,21 @@ hat:
   counts, unknown join modes and modifiers on a `chain` or `membrane` are errors.
 - Docs: the spec reference, a "which shape for what" table and eight recipes (sword, axe, shield, hat, hood,
   cape, pauldron, horn) checked on the humanoid template. Golden fixture `tests/fixtures/shapes`.
-- Pending: porting the showcase (Templar, Huntress, gargoyle) on a branch with before/after sheets.
+- Showcase port (branch `showcase/forms-port`, commit 83ae706, not merged: Hunt Tower uses these specs),
+  modeled by character-modeler agents from the new docs and kept only where a part reads better:
+  - Templar: cape and lining as revolve shells flaring at the hem, a hood with a soft tip, helm, pauldrons
+    along the arm, tabard panels, capelet, chamfered hammer head. IoU s 0.701 -> 0.707, se 0.592 -> 0.605;
+    cuts 25 -> 23.
+  - Huntress: a tricorne (revolved crown, extruded brim plates), collar ring, coat skirt and lining shells with
+    an extruded A-line cutter. IoU s 0.492 -> 0.500, se 0.479 -> 0.497; cuts 12 -> 9.
+  - gargoyle: horns and tail as tapered tubes, a barbed spade; primitives 77 -> 70.
+  - Tried and reverted where nothing changed at the sprite's size: chamfer joins on the ellipsoid torsos and
+    heads, lapels, claws, fangs, pistol parts.
+- What the port changed in the docs and tools: shells are centred on the surface, `extrude` depth is centred,
+  `rot` applies after `align` (a profile along an aligned line needs `rot: [1.5708, 0, 0]`), Bezier curves bend
+  towards their control points, tubes pass through the midpoints of inner points, `bend` curves an extrusion's
+  outline (not the plate), cuts can be extrusions (an A-line opening), the hood recipe is a pinched dome (an
+  ellipsoid shell reads as a ball), tips need an apex under about 104 degrees to stay on the silhouette at the
+  38 degree pitch; `validate` counts primitives and cuts, checks profile widths and speaks in the spec's numbers
+  under scaled bones; `ref compare -o` takes a folder.
 

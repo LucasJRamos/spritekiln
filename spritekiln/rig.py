@@ -111,13 +111,14 @@ class Ctx:
         fix = cam.R * (np.floor(sx + 0.5) - sx) * cam.scale - cam.U * (np.floor(sy + 0.5) - sy) * cam.scale
         return Frame(frame.o + Ry.T @ fix, frame.R, frame.s)
 
-    def thin(self, value, where, what):
-        """Note a size under one pixel at the spec's camera scale: it can vanish or flicker."""
+    def thin(self, value, where, what, us=1.0):
+        """Note a size under one pixel at the spec's camera scale: it can vanish or flicker. `value` is in world
+        units; `us` is the part space's scale, so the note speaks in the numbers written in the spec."""
         scale = float(self.spec.get('camera', {}).get('scale', 0.05))
         if self.notes is not None and value < scale:
             self.notes.append(
-                f'{where}: {what} {value:.3f} is {value / scale:.1f} px at camera.scale {scale:g}: it can vanish or '
-                f'flicker (make it at least {scale:.3f})'
+                f'{where}: {what} {value / us:.3f} is {value / scale:.1f} px at camera.scale {scale:g}: it can vanish '
+                f'or flicker (make it at least {scale / us:.3f})'
             )
 
     def val(self, v, where, mirror=False, vec=False):
@@ -258,9 +259,12 @@ def _profile(ctx, a, where, m, us):
     kind = kinds[0]
     w = f'{where}.{kind}'
     if kind == 'circle':
-        return circle(float(ctx.val(a['circle'], w)) * us)
+        r = float(ctx.val(a['circle'], w)) * us
+        ctx.thin(2 * r, w, 'diameter', us)
+        return circle(r)
     if kind == 'rect':
         hx, hy = (float(v) for v in np.broadcast_to(np.asarray(ctx.val(a['rect'], w), float), (2,)))
+        ctx.thin(2 * min(hx, hy) * us, w, 'width', us)
         chamfer = float(ctx.val(a.get('chamfer', 0.0), where + '.chamfer'))
         return rect(hx * us, hy * us, chamfer * us, float(ctx.val(a.get('round', 0.0), where + '.round')) * us)
     pts = []
@@ -310,7 +314,7 @@ def _prims(ctx, part_name, part, space, m, prim_list, where_base):
         elif kind == 'extrude':
             prof = _profile(ctx, a.get('profile'), w + '.profile', m, us)
             depth = float(V('depth')) * us
-            ctx.thin(depth, w + '.depth', 'depth')
+            ctx.thin(depth, w + '.depth', 'depth', us)
             out.append(extrude(P('c', [0, 0, 0]), rotm(), prof, depth, float(V('round', 0.0)) * us))
         elif kind == 'revolve':
             prof = _profile(ctx, a.get('profile'), w + '.profile', m, us)
@@ -324,7 +328,7 @@ def _prims(ctx, part_name, part, space, m, prim_list, where_base):
             if len(pts) < 3:
                 raise ExprError(f'{w}.pts: a tube needs at least 3 points (2 points: use a cone)')
             r = np.broadcast_to(np.asarray(ctx.val(a['r'], w + '.r'), float), (2,)) * us
-            ctx.thin(2 * float(r.max()), w + '.r', 'diameter')  # a thin tip is intended; a thin tube is not
+            ctx.thin(2 * float(r.max()), w + '.r', 'diameter', us)  # a thin tip is intended; a thin tube is not
             out.append(tube(pts, float(r[0]), float(r[1])))
         elif kind == 'sphere':
             out.append(sphere(P('c'), float(V('r')) * us))
@@ -379,7 +383,7 @@ def _prims(ctx, part_name, part, space, m, prim_list, where_base):
             f = out.pop()
             shell = float(V('shell', 0.0)) * us
             if shell:
-                ctx.thin(shell, w + '.shell', 'shell thickness')
+                ctx.thin(shell, w + '.shell', 'shell thickness', us)
             twist = float(V('twist', 0.0)) / us
             elong = np.abs(np.asarray(ctx.val(a['elongate'], w + '.elongate'), float)) * us if 'elongate' in a else None
             centre = P('c') if 'c' in a else np.asarray(f.bound[0])

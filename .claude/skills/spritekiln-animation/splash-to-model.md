@@ -43,6 +43,8 @@ Start from a template (`humanoid`, or `side_humanoid` for a side view) or a simi
 2. **Big masses:** torso, head (`head` bone scale), hips, legs: ellipsoids and cones only.
 3. `pose --dirs all` and `ref compare <spec> <splash> --dir <dir>`.
 4. Iterate until the **camera-corrected IoU ≥ 0.65** in the art's direction and no band hint is large.
+   Each silhouette is scaled to its own bounding box, so a hat tip, a raised weapon or a flared hem moves
+   the whole comparison: when an extremity changes, read the overlay on the sheet, not only the number.
    `ref compare` squashes the splash by cos(pitch) like the game camera sees a front view; against the raw
    splash the IoU tops out near 0.56, so do not chase raw numbers. The hints say at which height the sprite
    is too wide or too narrow: fix the part at that height. Do not chase IoU above ~0.85; the splash has its

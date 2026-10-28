@@ -100,9 +100,14 @@ def validate(path):
     errors, warnings = specmod.check(sp)
     summary = None
     if not errors:
+        from .rig import build, rest_env
+
+        groups = build(sp, rest_env(sp, sp['directions'][0][1]))[0]
         summary = dict(
             name=sp['name'],
             parts=len(sp['parts']),
+            primitives=sum(len(g.prims) for g in groups),
+            cuts=sum(len(g.cut) for g in groups),
             bones=len(sp['bones']),
             directions=[d for d, _ in sp['directions']],
             animations={k: len(frames_of(sp, k)) for k in sp['animations']},
@@ -263,6 +268,8 @@ def ref_compare(path, image, direction='s', anim=None, frame=0, pitch_correction
     res['iou_raw'] = raw
     turn = [frame_image(sp, pose_env(sp, anim, frame, y), y, maps=False)[0] for _, y in specmod.DIRECTIONS8]
     out = out or os.path.join(sp['_dir'], 'out', f'compare_{direction}.png')
+    if os.path.isdir(out) or not os.path.splitext(out)[1]:  # a folder: the sheet goes inside
+        out = os.path.join(out, f'compare_{direction}.png')
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     R.sheet(
         cut, spr, turn, (ga, gb), R.ref_palette(cut, mask), sp['materials'], out, f'{sp["name"]} ({anim or "rest"})'

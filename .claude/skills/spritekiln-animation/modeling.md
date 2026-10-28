@@ -27,13 +27,24 @@ Pixel artists draw plates, blades and brims with crisp edges. Rounded primitives
 |---|---|
 | limbs, torso, head, round masses | `ellipsoid`, `cone`, `sphere` with `blend` |
 | a blade, an axe head, a shield, a plate, a buckle, a leaf | `extrude` of a `polygon`, `rect` (`chamfer`) or `bezier` profile |
-| a helmet, a hat (crown and brim), a bottle, a bell, a skirt | `revolve` of the cross-section |
-| a pauldron, a hood's opening, half a dome | `revolve` with `angle`, or `shell` plus `plane` cuts |
-| a cape, a hood, a sleeve, a coat skirt | a `cone` or `ellipsoid` with `shell`, cut by `plane` |
-| a horn, a tail, a tentacle, a strap, a hair lock | `tube` (tapered with `r: [start, end]`; `twist` for a ram's horn) |
-| a curved blade, a scimitar | `extrude` with `bend` |
-| armour joints, a stepped pedestal | `blend: {mode: chamfer}` or `{mode: stairs}` |
+| a helmet, a round hat crown, a bottle, a bell, a mantle | `revolve` of the cross-section |
+| a hood | `revolve` of a dome that pinches into a soft tip, the face cut open by a tilted `plane` (an ellipsoid shell reads as a ball) |
+| a pauldron | `revolve` along the arm (`align` + `rot: [1.5708, 0, 0]`), or a dome over the shoulder |
+| a cape, a sleeve, a coat skirt | a `cone` or `revolve` with `shell`, cut by `plane`s (top, hem) and an extruded triangle (an A-line front) |
+| an asymmetric or cocked brim (a tricorne) | flat `extrude` plates (`rot: [1.5708, 0, 0]`, then tilted with `rot` z) |
+| a horn, a tail, a tentacle, a strap, a hair lock | `tube` (tapered with `r: [start, end]`; push the inner points outwards for a tight curl) |
+| a curved blade, a scimitar | `extrude` with `bend` (it curves the outline, not the plate) |
+| armour joints, a stepped pedestal | `blend: {mode: chamfer}` or `{mode: stairs}` on flat-faced primitives |
 | a line engraved on armour | `cut` with `cut_blend: {mode: groove}` |
+
+What the showcase port taught:
+- **Change a part only if it reads better** at the sprite's size in all 8 directions; at 64-96 px lapels,
+  pistol grips and belt buckles already have their shape, and a 1 px detail gains nothing from a new primitive.
+- **A tip stays on the silhouette at the 38° pitch** only if its sides fall steeper than about 38° from
+  horizontal (an apex under about 104°): a gothic-arch hood tip vanishes. Check the back views.
+- **Shells are centred on the surface** (SPEC.md): shrink the radii by half the shell to keep an outer surface
+  (a cross painted on a cloak sits on it).
+- A hood or hat must cover the corners of a helm under it, or they poke through in the back views.
 
 Recipes, checked on the humanoid template (`spritekiln new`): its frames `wrist_R`, `wrist_L`, `head`,
 `shoulder_L` and `pelvis`, `scale: 0.048`. Adapt the sizes; keep the idea.
@@ -65,13 +76,15 @@ hat:           # a brim and a crown in one cross-section through the axis
   prims:
     - revolve: {c: [0, 0.2, 0], profile: {polygon: [[-0.25, 0], [0.25, 0], [0.25, 0.02], [0.16, 0.035], [0.14, 0.24],
                                                      [-0.14, 0.24], [-0.16, 0.035], [-0.25, 0.02]], round: 0.006}}
-hood:          # a hollow egg around the head, open at the face
+hood:          # a cowl: a dome pinched into a soft tip, leaning back, open at the face
   material: cloth
   space: head
   prims:
-    - ellipsoid: {c: [0, 0.13, -0.02], r: [0.21, 0.23, 0.22], shell: 0.05}
+    - revolve: {c: [0, 0.02, -0.02], rot: [-0.1, 0, 0],
+                profile: {bezier: [[0.21, -0.12], [0.225, 0.12], [0.12, 0.3], [0.04, 0.37], [0, 0.43], [-0.04, 0.37],
+                                   [-0.12, 0.3], [-0.225, 0.12], [-0.21, -0.12], [0, -0.12]]}}
   cut:
-    - plane: {n: [0, -0.2, 1], at: 0.07}
+    - plane: {n: [0, -0.25, 1], at: 0.06}
 cape:          # a cone shell from the shoulders, open at the front, flat top and hem
   material: cloth
   space: pelvis

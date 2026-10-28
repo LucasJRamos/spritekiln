@@ -21,9 +21,11 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
 - Joins: `blend: {mode: chamfer|round|stairs, k, n}` and `cut_blend: {mode: groove, depth, width}` (a line
   engraved where a cutter crosses the part). The smooth union stays the default and renders as before.
 - `_L` parts with these shapes mirror correctly to `_R`, asymmetric profiles and bends included.
-- `validate` warns about a shell, an extrusion or a tube thinner than one pixel and about polygons whose edges
-  cross. The knowledge files have a "which shape for what" table and eight recipes checked on the humanoid
-  template.
+- `validate` warns about a shell, an extrusion, a tube or a profile thinner than one pixel (in the numbers the
+  spec uses, under scaled bones too) and about polygons whose edges cross, and counts the primitives and cuts.
+  The knowledge files have a "which shape for what" table, notes from porting the showcase, and eight recipes
+  checked on the humanoid template.
+- `ref compare -o` takes a folder.
 
 ### Thin parts and steady pixels
 - Parts take `priority` (the weight of their samples in the pixel vote) and `min_cover` (how many samples fill

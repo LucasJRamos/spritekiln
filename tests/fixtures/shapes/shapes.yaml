@@ -38,7 +38,7 @@ parts:
     blend: {mode: stairs, k: 0.05, n: 2}
     prims:
       - revolve: {c: [0, 0, 0], profile: {bezier: [[-0.15, -0.08], [0, -0.12], [0.15, -0.08], [0.2, 0.1], [0, 0.18], [-0.2, 0.1]]}}
-      - extrude: {c: [0, 0.15, 0], profile: {rect: [0.02, 0.06], round: 0.01}, depth: 0.22, rot: [0, 1.5708, 0]}
+      - extrude: {c: [0, 0.15, 0], profile: {rect: [0.026, 0.06], round: 0.01}, depth: 0.22, rot: [0, 1.5708, 0]}
   brim:                   # revolve of a circle away from the axis (a ring), turned only partly
     material: gold
     space: head

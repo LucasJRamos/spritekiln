@@ -1,5 +1,7 @@
 """Splash-art reference tools: cutout on gradient backgrounds, gaps kept open, pitch correction."""
 
+import os
+
 import numpy as np
 from PIL import Image
 
@@ -59,3 +61,21 @@ def test_compare_with_pitch_correction():
     raw = R.compare_masks(tall, seen)[0]
     fixed = R.compare_masks(tall, seen, 38)[0]
     assert fixed['iou'] > raw['iou'] and fixed['iou'] > 0.95 and fixed['pitch'] == 38
+
+
+def test_compare_into_a_folder(tmp_path):
+    """`ref compare -o <folder>` writes compare_<dir>.png inside it."""
+    from spritekiln import api
+
+    from conftest import FIXTURES, stage_spec
+
+    img = np.full((120, 80, 3), 255, np.uint8)
+    img[10:115, 25:55] = (40, 30, 60)
+    splash = tmp_path / 'splash.png'
+    Image.fromarray(img).save(splash)
+    folder = tmp_path / 'sheets'
+    folder.mkdir()
+    res = api.ref_compare(
+        stage_spec(tmp_path, os.path.join(FIXTURES, 'minimal', 'minimal.yaml')), str(splash), out=str(folder)
+    )
+    assert os.path.basename(res['sheet']) == 'compare_s.png' and os.path.exists(res['sheet'])

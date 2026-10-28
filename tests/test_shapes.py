@@ -160,3 +160,24 @@ def test_shapes_pose_golden(tmp_path, update_golden):
     out = str(tmp_path / 'shapes.png')
     main(['pose', stage_spec(tmp_path, SHAPES), '--dirs', 'all', '--scale', '1', '--no-crop', '-o', out])
     assert_image_matches(out, 'shapes_pose_rest.png', update_golden)
+
+
+def test_thin_warnings_speak_in_the_spec_numbers(tmp_path):
+    """Under a scaled bone the warning gives the value written in the spec and the value it needs."""
+    text = open(SHAPES, encoding='utf-8').read()
+    text = text.replace('  hand_L: {parent: hips, pos: [0.36, 0.05, 0.12]}\n', '  big: {parent: hips, scale: 2}\n', 1)
+    text = text.split('parts:\n')[0] + 'parts:\n'
+    text += (
+        '  a:\n    material: steel\n    space: big\n    prims:\n      - sphere: {c: [0, 0, 0], r: 0.1, shell: 0.02}\n'
+    )
+    p = tmp_path / 'scaled.yaml'
+    p.write_text(text + 'animations:\n  idle: {frames: 1, ms: 100}\n', encoding='utf-8')
+    _, warnings = S.check(S.load(str(p)))
+    assert any('shell thickness 0.020 is 0.8 px' in w and 'at least 0.025' in w for w in warnings), warnings
+
+
+def test_validate_counts_primitives_and_cuts(tmp_path):
+    from spritekiln import api
+
+    summary = api.validate(stage_spec(tmp_path, SHAPES))['summary']
+    assert (summary['primitives'], summary['cuts']) == (13, 4)

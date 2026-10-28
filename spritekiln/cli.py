@@ -45,7 +45,8 @@ def cmd_validate(a):
         return 1
     s = res['summary']
     print(
-        f'OK: {s["name"]} - {s["parts"]} parts, {s["bones"]} bones, {len(s["directions"])} directions, '
+        f'OK: {s["name"]} - {s["parts"]} parts ({s["primitives"]} primitives, {s["cuts"]} cuts), {s["bones"]} bones, '
+        f'{len(s["directions"])} directions, '
         'animations: ' + ', '.join(f'{k}({n})' for k, n in s['animations'].items())
     )
     return 0

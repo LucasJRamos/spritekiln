@@ -161,39 +161,72 @@ Primitives (each item is a one-key mapping):
 | `sphere` | `c, r` |
 | `ellipsoid` | `c, r: [rx, ry, rz], rot: [x, y, z]` or `align: [p0, p1]` (z axis from p0 to p1) |
 | `cone` | `a, b, r: [r1, r2]` (tapered capsule: limbs, horns, claws) |
-| `chain` | `pts: [...], r: [...]` (a run of cones: tails, tentacles, curved horns) |
+| `chain` | `pts: [...], r: [...]` (a run of cones through every point; for a smooth curve prefer `tube`) |
 | `box` | `c, half: [hx, hy, hz], rot, round` (blades, armour, props) |
 | `cylinder` | `a, b, r, round` |
 | `torus` | `c, R, r, rot` (rings, halos, chains) |
 | `tri` | `a, b, c, th` |
 | `membrane` | `hub, ring: [...], th, scallop: [idx...], scallop_depth, fill_root` (wings, capes, sails) |
 | `arc` | `c, r, a0, a1, width, fade, dip, segments`: smear VFX; use `materials: [tail, mid, core]` |
-| `extrude` | `c, rot` or `align, profile, depth, round`: a 2D profile in the local x-y plane pushed `depth` along local z (blades, axe heads, shields, plates, buckles); `round` rounds the edges of the front and back faces |
-| `revolve` | `c, rot` or `align, profile, offset, angle: [a0, a1]`: a cross-section turned about local y (helmets, hat crowns and brims, bottles, bells); `angle` (radians from local +z towards +x) for a partial turn (pauldrons, a hood's opening) |
-| `tube` | `pts: [...], r` or `r: [start, end]`: a smooth round tube from the first point to the last, bending towards the points between (horns, tails, straps, hair locks) |
-| `plane` | `n, at` or `n, c`: **only under `cut:`**; removes the side `n` points to (a flat cut: the hem of a cape, an open front) |
+| `extrude` | `c, rot, align, profile, depth, round`: a 2D profile in the local x-y plane, `depth` thick along local z and centred on `c` (blades, axe heads, shields, plates, buckles); `round` rounds the edges of the front and back faces |
+| `revolve` | `c, rot, align, profile, offset, angle: [a0, a1]`: a cross-section turned about local y (helmets, hat crowns, hoods, bottles, bells); `angle` (radians from local +z towards +x) for a partial turn (a collar open at the front) |
+| `tube` | `pts: [...], r` or `r: [start, end]`: a smooth round tube (horns, tails, straps, hair locks); see below |
+| `plane` | `n, at` or `n, c`: **only under `cut:`**; removes the side `n` points to, from the plane at distance `at` along `n` (normalised first) or through `c` (the hem of a cape, an open front) |
+
+**The local frame** of `ellipsoid`, `box`, `torus`, `extrude`, `revolve`: `align: [p0, p1]` points local z from p0
+to p1 (otherwise the part's space), then `rot` turns it further (Euler radians, applied after `align`). So a
+profile or a revolve that must run **along** an aligned line needs `rot: [1.5708, 0, 0]`: local y then points
+from p0 to p1 (a blade or a pauldron that follows the arm). `rot: [1.5708, 0, 0]` without `align` lays an
+`extrude` flat: the profile in the ground plane, its y pointing forward, `depth` vertical (a hat brim, a
+platform); a further `rot` z tilts that plate about its front-back line.
 
 **Profiles** (`extrude`, `revolve`), in the primitive's local frame, scaled with the part's space:
-`{circle: r}`, `{rect: [hx, hy]}` with `chamfer: 0.02` (45° corners) or `round: 0.02` (both keep the size),
-`{polygon: [[x, y], ...]}` with `round` (grows the outline by that much) and `{bezier: [P0, C0, P1, C1, ...]}`
-(quadratic segments from each P through its C to the next P, the last back to P0; curves, leaves, cloth).
-A `revolve` profile is the **whole cross-section through the axis** (x = distance from it, both sides, like a
-slice of the object), or one side with `offset` for a ring.
+- `{circle: r}`; `{rect: [hx, hy]}` (half sizes) with `chamfer: 0.02` (45° corners) or `round: 0.02` (both keep
+  the size); `{polygon: [[x, y], ...]}` with `round` (rounds the corners by growing the outline that much);
+- `{bezier: [P0, C0, P1, C1, ...]}`: quadratic segments from each P to the next, bending **towards** its C (a
+  curve does not pass through C; for a straight segment put C at the midpoint); the last segment goes back
+  to P0 (curves, leaves, cloth outlines, hoods).
+- A `revolve` profile is the **whole cross-section through the axis**, both sides drawn (x = distance from the
+  axis; only the x ≥ 0 half is used, but the outline must be closed), or one side with `offset` for a ring. A
+  `revolve` turned about a vertical axis can only make round things; for an asymmetric brim use `extrude`
+  plates.
+- `validate` warns when a `rect` or `circle` profile is narrower than a pixel.
 
-**Modifiers** on any single primitive (not `chain`, `membrane`, `plane`), in its frame (its `c` and `rot` or
-`align`, or the part's space): `shell: 0.05` hollows it into a shell that thick (capes, hoods, sleeves, open
-helmets, with `plane` cuts); `elongate: [x, y, z]` stretches its middle by those half lengths and keeps the
-ends (long plates, belts); `twist: 2` turns it about local y, radians per unit (twisted horns, ropes);
-`bend: 1` curves it in the local x-y plane, radians per unit along x (curved blades, a cape's fall). Twisted
-and bent parts take shorter ray-marching steps.
+**Tubes**: the path starts at the first point and ends at the last; every point in between pulls the curve
+towards it (it passes through the midpoints between inner points, not through the points). To copy a `chain`
+with the same curl, push the inner points outwards. The radius goes linearly from `r` start to end.
+
+**Modifiers** on any single primitive (not `chain`, `membrane`, `plane`), in its local frame: its `c` and
+`rot`/`align`, or for a primitive without `c` (cone, cylinder, tube, tri) the centre of its bounds and the
+part's space.
+- `shell: 0.05` hollows it into a shell that thick, **centred on its surface**: the outside grows by half the
+  shell. To keep an outer surface where it was, shrink the radii by half the shell (capes, sleeves, open
+  helmets, coat skirts; open it with cuts). A 1 px shell is about 0.05 at `scale: 0.05`.
+- `elongate: [x, y, z]` stretches its middle by those half lengths and keeps the ends (long plates, belts).
+- `twist: 2` turns it about the local y axis through that centre, radians per unit along y: a round tube only
+  twists if its centre line winds around that axis (ropes, a ram's horn made of a box or an ellipsoid).
+- `bend: 1` curves it in the local x-y plane, radians per unit along x: both ends turn towards local +y for a
+  positive value (towards -y for a negative one), symmetrically about the centre. On an `extrude` that plane
+  is the profile's: it curves the outline (a scimitar), it cannot curl a flat plate (use a `revolve` or a
+  `shell` for a curved plate).
+- Twisted and bent parts take shorter ray-marching steps.
+
+**Cuts**: any primitive can be a cutter, `extrude` and `revolve` included: an extruded triangle opens an A-line
+front in a coat shell, where a `plane` would leave a sliver of the inner wall or open too wide at the hem.
+`cut_blend` (default `0.01`, a smooth edge) softens the cut edges.
 
 **Joins**: `blend: 0.05` is the smooth union (as before); `blend: {mode: chamfer|round|stairs, k: 0.04, n: 3}`
-joins the primitives with a 45° bevel, a fillet or `n` steps. `cut_blend` takes the same, or `{mode: groove,
-depth: 0.02, width: 0.01}`: a channel engraved where each cutter's surface crosses the part, which keeps its
-volume (a `box` or `plane` cutter draws a groove line across armour).
+joins the primitives with a 45° bevel, a fillet or `n` steps. On round masses (ellipsoids) a small chamfer is
+nearly invisible at 64-96 px and a large one fills concave corners like a smooth blend: it pays on flat-faced
+primitives (boxes, extrusions). `cut_blend` takes the same, or `{mode: groove, depth: 0.02, width: 0.01}`: a
+channel engraved where each cutter's surface crosses the part, which keeps its volume (a thin `box` or a
+`plane` cutter draws a groove line across armour).
 
-`validate` warns when a shell, an extrusion or a tube is thinner than one pixel at the spec's `camera.scale`
-(it can vanish or flicker) and when a polygon's edges cross.
+Inner lines are drawn only where two **parts** meet, so a step inside one part (a pauldron's lames) reads only
+through its shading: make it at least 1-1.5 px. `validate` warns when a shell, an extrusion, a tube or a
+profile is thinner than one pixel at the spec's `camera.scale` (it can vanish or flicker), in the numbers the
+spec uses, and when a polygon's edges cross. `validate` also counts the primitives and cuts the rest pose
+builds.
 
 ## animations
 **Expression cycles** (loops: idle, walk, run, fly):
