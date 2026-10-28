@@ -59,8 +59,9 @@ class Scene:
             rs = np.array([g.br for g in groups])
             lo = (cs - rs[:, None]).min(0)
             hi = (cs + rs[:, None]).max(0)
-            self.bc = self.Rlw @ ((lo + hi) / 2) + self.off
-            self.br = np.linalg.norm(hi - lo) / 2
+            centre = (lo + hi) / 2
+            self.bc = self.Rlw @ centre + self.off
+            self.br = float((np.linalg.norm(cs - centre, axis=1) + rs).max())
         else:
             self.bc = np.zeros(3)
             self.br = 0.0
@@ -79,11 +80,12 @@ class Scene:
             d = np.minimum(d, g(q))
         return d
 
-    def dist_solid(self, p):
+    def dist_solid(self, p, exact_within=0.05):
+        """Distance to the non-emissive parts; exact wherever it is below `exact_within` (see Group)."""
         q = self.to_local(p)
         d = np.full(len(p), 1e3)
         for i in self.solid_idx:
-            d = np.minimum(d, self.groups[i](q))
+            d = np.minimum(d, self.groups[i](q, exact_within))
         return d
 
 
@@ -113,7 +115,9 @@ def soft_shadow(scene, P, L, steps=28):
         if idx.size == 0:
             break
         ti = t[idx]
-        d = scene.dist_solid(P[idx] + L * ti[:, None])
+        # exact where it can matter: the penumbra term darkens below d = t / 10, the step changes below 0.2,
+        # so a bounding sphere farther than both never shades (it used to: "phantom shadows")
+        d = scene.dist_solid(P[idx] + L * ti[:, None], np.maximum(ti / 10, 0.2))
         r = np.minimum(res[idx], 10 * d / ti)
         res[idx] = r
         t[idx] = ti + np.clip(d, 0.02, 0.2)
@@ -171,8 +175,8 @@ def render(scene, cam, light):
         if light.ao:
             ao = np.zeros(len(P))
             w = 1.0
-            for h in (0.04, 0.09, 0.16, 0.26):
-                ao += w * np.clip(h - scene.dist_solid(P + n * h), 0, None)
+            for h in (0.04, 0.09, 0.16, 0.26):  # a part at least h away does not occlude: exact below h
+                ao += w * np.clip(h - scene.dist_solid(P + n * h, h), 0, None)
                 w *= 0.6
             ao = np.clip(1 - 3.2 * ao, 0, 1)
         else:

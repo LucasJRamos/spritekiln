@@ -2,6 +2,15 @@
 
 All notable changes to SpriteKiln. The output format has its own version (`docs/format.md`).
 
+## Unreleased (0.3)
+
+### Faster renders, correct soft shading
+- Each part is bounded by a tight sphere: frames render 1.5–2.7× faster (the Templar, 6.6 s → 2.2 s per frame
+  on the development machine), with the same part in every pixel.
+- Soft shadows and ambient occlusion no longer darken surfaces near a part's bounding sphere: shading
+  depends on the geometry only. Assets rendered again are lighter where those false shadows used to fall,
+  so they do not match renders of 0.2 pixel for pixel.
+
 ## 0.2.0 (2026-10-25)
 
 ### Upgrading from 0.1.0

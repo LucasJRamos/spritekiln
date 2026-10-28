@@ -219,12 +219,16 @@ class Group:
         lo = np.min([c - r for c, r in cs], axis=0)
         hi = np.max([c + r for c, r in cs], axis=0)
         self.bc = (lo + hi) / 2
-        self.br = np.linalg.norm(hi - lo) / 2 + k + 0.01
+        # a sphere around the primitives' spheres (around their box it would be up to sqrt(3) too large);
+        # k: a smooth union bulges out by at most k / 4
+        self.br = max(float(np.linalg.norm(np.asarray(c) - self.bc)) + r for c, r in cs) + k + 0.01
 
-    def __call__(self, p):
-        # cheap bounding-sphere skip
+    def __call__(self, p, exact_within=0.05):
+        """Distance from each point to the part. Where the bounding sphere is at least `exact_within` away (a
+        scalar, or one value per point), the distance to that sphere instead: a lower bound, enough for
+        stepping. Callers that read the value itself (soft shadows, AO) pass how close it can matter."""
         db = norm(p - self.bc) - self.br
-        idx = np.flatnonzero(db < 0.05)
+        idx = np.flatnonzero(db < exact_within)
         if idx.size:
             q = p[idx]
             d = self.prims[0](q)
