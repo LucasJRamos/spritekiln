@@ -173,11 +173,20 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln', look=N
     Image.fromarray(atl['emissive']).save(os.path.join(dst, f'{name}_emissive.png'))
     with open(os.path.join(dst, f'{name}.json'), 'w', encoding='utf-8') as fh:
         json.dump(meta, fh, indent=1)
+    previews(spec, anims, dlist, out, pv, gif_scale, look)
+    return meta
 
-    # previews
+
+def previews(spec, anims, dlist, out, pv, gif_scale=5, look=None):
+    """`<anim>_<n>dir.gif` (every direction side by side) and `contact_<anim>.png` in folder `pv`. Returns the
+    contact sheet path of each animation."""
+    os.makedirs(pv, exist_ok=True)
+    S = spec['size']
+
     def shown(fr):
         return look(fr.img, fr.emissive) if look else fr.img
 
+    sheets = {}
     for a in anims:
         n = len([k for k in out if k[0] == a and k[1] == dlist[0][0]])
         durs = [out[(a, dlist[0][0], i)].ms for i in range(n)]
@@ -186,5 +195,6 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln', look=N
         sheet = contact_sheet(
             [[shown(out[(a, d, i)]) for i in range(n)] for d, _ in dlist], [d for d, _ in dlist], n, S, 3
         )
-        sheet.save(os.path.join(pv, f'contact_{a}.png'))
-    return meta
+        sheets[a] = os.path.join(pv, f'contact_{a}.png')
+        sheet.save(sheets[a])
+    return sheets

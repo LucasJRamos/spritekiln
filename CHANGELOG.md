@@ -11,6 +11,12 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   depends on the geometry only. Assets rendered again are lighter where those false shadows used to fall,
   so they do not match renders of 0.2 pixel for pixel.
 
+### Draft previews
+- `pose --draft` (MCP `pose(draft=true)`) traces one ray per pixel instead of nine: an 8-direction pose of the
+  Templar takes 5 s instead of 15 s, for shaping silhouettes and poses. Files end in `_draft`.
+- `render --draft` writes only GIFs and contact sheets, in `preview-draft/`, to check motion; it writes no atlas,
+  JSON or QA and cannot be exported.
+
 ## 0.2.0 (2026-10-25)
 
 ### Upgrading from 0.1.0

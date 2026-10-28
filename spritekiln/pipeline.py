@@ -26,21 +26,24 @@ def _stamp(files):
     return tuple(os.path.getmtime(f) if os.path.exists(f) else None for f in files)
 
 
-def get_spec(path, size=None):
-    """The loaded spec, reused while neither the spec nor its palette files change."""
-    key = (path, size)
+def get_spec(path, size=None, draft=False):
+    """The loaded spec, reused while neither the spec nor its palette files change. `draft`: one sample per
+    pixel (spec.as_draft)."""
+    key = (path, size, draft)
     hit = _SPEC_CACHE.get(key)
     if hit and hit[0] == _stamp([path] + hit[1].get('_files', [])):
         return hit[1]
     spec = specmod.load(path, size=size)
+    if draft:
+        specmod.as_draft(spec)
     _SPEC_CACHE[key] = (_stamp([path] + spec.get('_files', [])), spec)
     _FRAMES_CACHE.clear()  # keyed by the spec object; old entries are stale
     return spec
 
 
-def _frames(path, size, anim, yaw):
+def _frames(path, size, anim, yaw, draft=False):
     """frames_of() memoized per worker: a job renders one frame but the animation is evaluated once."""
-    spec = get_spec(path, size)
+    spec = get_spec(path, size, draft)
     key = (path, size, anim, yaw, id(spec))
     if key not in _FRAMES_CACHE:
         _FRAMES_CACHE[key] = frames_of(spec, anim, yaw)
@@ -129,12 +132,12 @@ def frame_image(spec, env, yaw, force=False, maps=True):
 
 
 def _job(args):
-    path, size, anim, d_name, yaw, i, force = args
+    path, size, anim, d_name, yaw, i, force, draft = args
     if anim:
-        spec, frames = _frames(path, size, anim, yaw)
+        spec, frames = _frames(path, size, anim, yaw, draft)
         env, ms, ev = frames[i]
     else:
-        spec = get_spec(path, size)
+        spec = get_spec(path, size, draft)
         env, ms, ev = rest_env(spec, yaw), 100, []
     return (anim, d_name, i), render_frame(spec, env, yaw, force)._replace(ms=ms, events=ev)
 
@@ -229,10 +232,12 @@ def render_all(
     size=None,
     cache_max_mb=cache.DEFAULT_MAX_MB,
     log=None,
+    draft=False,
 ):
     """Render every (animation, direction, frame). `progress`: True for the stderr bar, or a Progress-like
-    object; `log`: callable for one-line notes (job count, resume, degraded pool)."""
-    spec = get_spec(path, size)
+    object; `log`: callable for one-line notes (job count, resume, degraded pool); `draft`: one sample per
+    pixel."""
+    spec = get_spec(path, size, draft)
     anims = anims or list(spec['animations'])
     missing = [a for a in anims if a not in spec['animations']]
     if missing:
@@ -244,7 +249,7 @@ def render_all(
     for a in anims:
         for d, y in dlist:
             for i, (env, _, _) in enumerate(frames_of(spec, a, y)):
-                tasks.append((path, size, a, d, y, i, force))
+                tasks.append((path, size, a, d, y, i, force, draft))
                 if not force and os.path.exists(cache.entry(spec, dict(env, yaw=float(y)), y)):
                     cached += 1
     log = log or (lambda msg: None)

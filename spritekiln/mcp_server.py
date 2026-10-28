@@ -127,12 +127,14 @@ def build():
         scale: int = 3,
         bg: str | None = None,
         tint: str | None = None,
+        draft: bool = False,
     ) -> list:
         """Render one pose (rest, or `anim` at `frame`) in several directions side by side and return the image.
-        Cheap (about 1 s per direction): use it after every edit. `bg`/`tint`: preview over the game's floor
-        under the scene light."""
-        out, dl = api.pose(spec, anim, frame, dirs, scale, bg, tint)
-        return [{'image': out, 'directions': dl}, _png(out)]
+        Cheap (about 1 s per direction): use it after every edit. `draft`: one sample per pixel, about 6x
+        faster, for silhouettes and poses (rougher edges); look at a full pose before `render`. `bg`/`tint`:
+        preview over the game's floor under the scene light."""
+        out, dl = api.pose(spec, anim, frame, dirs, scale, bg, tint, draft=draft)
+        return [{'image': out, 'directions': dl, 'draft': draft}, _png(out)]
 
     @tool
     def render(
@@ -142,10 +144,13 @@ def build():
         jobs: int | None = None,
         force: bool = False,
         sheets: bool = True,
+        draft: bool = False,
     ) -> list:
         """Render animations (comma-separated; default all) and write atlas, JSON, GIFs and qa.json. Slow (about
-        190 frames for 3 animations x 8 directions). Returns QA and paths, plus up to 3 contact sheets."""
-        res = api.render(spec, _split(anims), _split(dirs), jobs, force)
+        190 frames for 3 animations x 8 directions). Returns QA and paths, plus up to 3 contact sheets.
+        `draft`: one sample per pixel and previews only (GIFs and contact sheets, no atlas, JSON or QA), to check
+        motion quickly."""
+        res = api.render(spec, _split(anims), _split(dirs), jobs, force, draft=draft)
         summary = {k: v for k, v in res.items() if k != 'spec'}
         out = [summary]
         if sheets:

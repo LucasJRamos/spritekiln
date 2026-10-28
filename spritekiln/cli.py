@@ -57,13 +57,15 @@ def cmd_pose(a):
 
     _spec(a.spec)
     t = time.time()
-    out, dirs = api.pose(a.spec, a.anim, a.frame, a.dirs, a.scale, a.bg, a.tint, a.out)
-    print(f'{out}  ({", ".join(dirs)}; {time.time() - t:.1f}s)')
+    out, dirs = api.pose(a.spec, a.anim, a.frame, a.dirs, a.scale, a.bg, a.tint, a.out, a.draft)
+    print(f'{out}  ({", ".join(dirs)}; {time.time() - t:.1f}s{"; draft" if a.draft else ""})')
 
 
 def cmd_render(a):
     from . import api, qa
 
+    if a.draft and (a.godot is not None or a.export):
+        raise SpriteKilnError('a draft render writes previews only and cannot be exported: drop --draft')
     _spec(a.spec, a.size)  # report spec warnings before the long part
     t = time.time()
     res = api.render(
@@ -79,8 +81,12 @@ def cmd_render(a):
         tint=a.tint,
         progress=True,
         log=_note,
+        draft=a.draft,
     )
     print(f'{res["frames"]} frames in {time.time() - t:.0f}s -> {res["dir"]}')
+    if a.draft:
+        print('draft previews (no atlas, JSON or QA): ' + ', '.join(res['contact_sheets'].values()))
+        return
     print(qa.summary(res['qa']))
     print('review: ' + ', '.join(res['contact_sheets'].values()))
     if a.anims or a.dirs:
@@ -501,6 +507,9 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--frame', type=int, default=0)
     s.add_argument('--dirs', help='e.g. s,se,e or all')
     s.add_argument('--scale', type=_positive, default=4, help='zoom of the preview PNG (default 4)')
+    s.add_argument(
+        '--draft', action='store_true', help='one sample per pixel: about 6x faster, rougher edges (iterate with it)'
+    )
     _preview_args(s)
     s.add_argument('-o', '--out')
     s.set_defaults(f=cmd_pose)
@@ -521,6 +530,11 @@ def build_parser(prog='spritekiln'):
         help='after rendering, export to a Godot project (default: $SPRITEKILN_GODOT_PROJECT)',
     )
     s.add_argument('--export', action='store_true', help="after rendering, export to the project's engine")
+    s.add_argument(
+        '--draft',
+        action='store_true',
+        help='one sample per pixel, previews only (GIFs and contact sheets in preview-draft/; no atlas, JSON, QA)',
+    )
     _preview_args(s)
     s.set_defaults(f=cmd_render)
 

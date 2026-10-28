@@ -123,13 +123,17 @@ def pose_env(sp, anim, frame, yaw=0.0):
     return frames[frame][0]
 
 
-def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=None):
-    """Render one pose in several directions side by side (zoomed PNG). Returns (png path, directions)."""
+def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=None, draft=False):
+    """Render one pose in several directions side by side (zoomed PNG). Returns (png path, directions).
+    `draft`: one sample per pixel, about 6x faster, for silhouettes and poses (rougher edges, thin parts may
+    break); the default file name ends in `_draft`."""
     from . import preview
     from .export import BG, upscale
     from .pipeline import frame_image
 
     sp = _checked(specmod.load(path))
+    if draft:
+        specmod.as_draft(sp)
     pose_env(sp, anim, frame)  # fails early on a bad anim/frame
     wanted = [w.strip() for w in dirs.split(',')] if isinstance(dirs, str) else dirs
     pool = _viewable(sp)
@@ -147,7 +151,7 @@ def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=N
     look = preview.viewer(preview.load_background(bg) if bg else None, preview.parse_tint(tint))
     shots = [frame_image(sp, pose_env(sp, anim, frame, y), y, maps=look is not None) for _, y in dl]
     imgs = [look(img, em) if look else img for img, _, em in shots]
-    out = out or os.path.join(sp['_dir'], 'out', f'pose_{anim or "rest"}_{frame}.png')
+    out = out or os.path.join(sp['_dir'], 'out', f'pose_{anim or "rest"}_{frame}{"_draft" if draft else ""}.png')
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     upscale(np.concatenate(imgs, 1), scale, None if look else BG).save(out)
     return out, [d for d, _ in dl]
@@ -183,18 +187,32 @@ def render(
     tint=None,
     progress=None,
     log=None,
+    draft=False,
 ):
-    """Render animations and write atlases, JSON, previews and qa.json. Returns a summary dict."""
+    """Render animations and write atlases, JSON, previews and qa.json. Returns a summary dict.
+    `draft`: one sample per pixel, and only the previews (GIFs and contact sheets in `preview-draft/`): no
+    atlas, JSON or QA, so a draft can never reach an engine."""
     from . import preview, qa
-    from .export import export
+    from .export import export, previews
     from .pipeline import render_all
 
     look = preview.viewer(preview.load_background(bg) if bg else None, preview.parse_tint(tint))  # fail early
     _checked(specmod.load(path, size=size))
     sp, anims, dlist, frames = render_all(
-        os.path.abspath(path), anims, dirs, jobs, force, progress=progress, size=size, log=log
+        os.path.abspath(path), anims, dirs, jobs, force, progress=progress, size=size, log=log, draft=draft
     )
     dst = out or os.path.join(sp['_dir'], 'out', sp['name'] + (f'_{size}' if size else ''))
+    if draft:
+        sheets = previews(sp, anims, dlist, frames, os.path.join(dst, 'preview-draft'), look=look)
+        return dict(
+            spec=sp,
+            dir=dst,
+            frames=len(frames),
+            animations=anims,
+            directions=[d for d, _ in dlist],
+            draft=True,
+            contact_sheets=sheets,
+        )
     export(sp, anims, dlist, frames, dst, block=block, look=look)
     rep = qa.check(sp, anims, dlist, frames)
     with open(os.path.join(dst, 'qa.json'), 'w', encoding='utf-8') as fh:

@@ -26,7 +26,15 @@ def direction_name(yaw):
     return min(DIRECTIONS8, key=lambda d: abs((float(yaw) - d[1] + 180) % 360 - 180))[0]
 
 
+def as_draft(sp):
+    """Turn a loaded spec into its draft: one sample per pixel (`pose --draft`, `render --draft`). The camera
+    is part of the render cache key, so draft frames never mix with full ones."""
+    sp['camera'] = dict(sp['camera'], **DRAFT_CAMERA)
+    return sp
+
+
 DEFAULT_CAMERA = dict(pitch=38.0, scale=0.048, center=[0.0, 1.0, 0.0], supersample=3, coverage=4)
+DRAFT_CAMERA = dict(supersample=1, coverage=1)  # one sample per pixel: about 6x faster, rougher edges
 DEFAULT_LIGHT = dict(
     dir=[-0.55, 1.0, 0.45], rim=[0.8, 0.35, -0.9], rim_strength=0.45, ambient=0.12, shadows=True, ao=True
 )

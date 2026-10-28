@@ -55,8 +55,11 @@ missing (a cape that should sway), add a channel, use it in the bone or part exp
   at the centre of that effect; the engine reads its position per frame instead of measuring sprites.
 
 ## Check
-1. `pose --anim <a> --frame <i> --dirs s,e,n,se` on the key frames before rendering.
+1. `pose --anim <a> --frame <i> --dirs s,e,n,se` on the key frames before rendering (`--draft` while
+   blocking the poses).
 2. `render --anims <a>` → open `preview/contact_<a>.png` (rows = directions, columns = frames) and the GIF.
+   To check timing and motion while iterating, `render --anims <a> --draft` is much faster and writes only
+   `preview-draft/`; judge the final look on the full render.
 3. QA: "loop seam" (last → first jumps) = a non-periodic channel; "identical frames" = a key that changes
    nothing; "clipped at the edge" = a gesture too big for the frame; a timing error = durations off target.
 4. Check the **diagonals and `n`**: a strike that reads in `s` can vanish behind the body in `n`; sometimes

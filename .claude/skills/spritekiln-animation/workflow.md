@@ -9,8 +9,8 @@ coherent directions (the same 3D model, rotated). Read [spec.md](SPEC.md) before
 spritekiln style                                      # the project's art style (first: interview the user)
 spritekiln style set --view topdown --height 48 ...   # record the answers (see style.md)
 spritekiln validate <spec.yaml>                       # after every edit; problems come with file:line:column
-spritekiln pose <spec.yaml> [--anim walk --frame 3] [--dirs all|s,se,e]   # cheap preview PNG
-spritekiln render <spec.yaml> [--anims idle,walk] [--dirs s,e] [--size 48]   # atlas, JSON, GIFs, QA
+spritekiln pose <spec.yaml> [--anim walk --frame 3] [--dirs all|s,se,e] [--draft]   # cheap preview PNG
+spritekiln render <spec.yaml> [--anims idle,walk] [--dirs s,e] [--size 48] [--draft]   # atlas, JSON, GIFs, QA
 spritekiln review <spec.yaml> [--bg floor.png --tint 0.7,0.7,1.0] [--against other.yaml] [--ref splash.png]
 spritekiln export <spec.yaml>                          # hand the render to the engine in spritekiln.toml
 spritekiln ref prep <splash.png>                       # cutout, palette and proportions of a splash art
@@ -24,6 +24,11 @@ spritekiln update [--check | --files]                  # upgrade SpriteKiln, ref
 `pose` costs about 1 s per direction. A full `render` of 3 animations × 8 directions is about 190 frames
 (minutes), so iterate with `pose` and render everything at the end. `render` picks the number of worker
 processes from the free memory; pass `--jobs 1` on a busy machine.
+
+`--draft` traces one ray per pixel instead of nine: several times faster, with rougher edges and thin parts
+that may break. Use it while shaping silhouettes and poses (`pose --draft`) or checking motion (`render
+--draft` writes only GIFs and contact sheets, in `preview-draft/`, and cannot be exported). Never judge
+final quality on a draft: look at a full `pose --dirs all` before `render`.
 
 If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or the project's wrapper).
 
@@ -41,9 +46,11 @@ If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or t
    or a script.
 3. **`validate`** and fix until OK. Warnings matter too: an unknown key ("did you mean pitch?") is ignored
    by the renderer, so a typo silently does nothing.
-4. **`pose --dirs all` and look at the image.** Check the silhouette in s, e, n and a diagonal. If you
-   cannot see images, run `review` and read the numbers instead (see [art-direction.md](art-direction.md)).
-5. Repeat 2–4. For an animation, `pose --anim X --frame i` on the key frames.
+4. **`pose --dirs all` and look at the image** (`--draft` while the shape is still changing). Check the
+   silhouette in s, e, n and a diagonal. If you cannot see images, run `review` and read the numbers
+   instead (see [art-direction.md](art-direction.md)).
+5. Repeat 2–4. For an animation, `pose --anim X --frame i` on the key frames. Before rendering, one full
+   (not draft) `pose --dirs all` to check edges and thin parts.
 6. **`render`**, then read the QA summary and the `preview/contact_<anim>.png` sheets. QA errors (sprite
    clipped at the edge, empty frame, timing target missed) block the asset.
 7. **Report**: what changed, the paths of the GIFs and contact sheets, the QA warnings left.
