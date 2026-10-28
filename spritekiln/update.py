@@ -89,7 +89,7 @@ def installation():
 
 def requirement():
     """`spritekiln` with the extras this installation has, so an upgrade keeps them."""
-    extras = [x for x, mod in (('mcp', 'mcp'), ('splash', 'rembg')) if importlib.util.find_spec(mod)]
+    extras = [x for x, mod in (('mcp', 'mcp'), ('splash', 'rembg'), ('fast', 'numba')) if importlib.util.find_spec(mod)]
     return f'spritekiln[{",".join(extras)}]' if extras else 'spritekiln'
 
 

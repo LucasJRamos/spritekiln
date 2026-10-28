@@ -1,6 +1,6 @@
 # 12. Compiled scene and fast backend
 
-**Status:** proposed · **Track:** speed, memory · **Stage:** 2 (release 0.3) · **Depends on:** 05 (go: ADR-029), 02
+**Status:** done (stage 2) · **Track:** speed, memory · **Stage:** 2 (release 0.3) · **Depends on:** 05 (go: ADR-029), 02
 
 ## Problem
 - **Ray marching dominates, even after 02.** numpy pays for every operation: temporaries for every group at
@@ -84,3 +84,16 @@ A new primitive is added to the IR once, then implemented in both evaluators aga
 - **numba lags new Python versions.** The numpy fallback keeps SpriteKiln working on day one.
 - **macOS Intel stays on numpy.** If that becomes a real complaint, revisit a Rust extension (pyo3, one abi3
   wheel per platform).
+
+## Outcome (2026-10-27): done
+- `scene_ir.py` (flat arrays with variable-length parameters per primitive), `fast.py` (the numba kernel with
+  per-ray culling of camera rays, AO taps and shadow rays, the ray setup inside), `backend.py` (`auto`,
+  `numpy`, `numba`; `--backend` and `SPRITEKILN_BACKEND`), the `[fast]` extra, `spritekiln update` keeping it.
+- The numpy closures stay the reference; every primitive is checked against the kernel on random points
+  (`tests/test_fast.py`, differences under 1e-9), and whole frames agree on every part.
+- With numba, `render` uses one process (threads); with `--jobs N` each worker gets cores / N threads. The
+  backend is part of the render cache key.
+- Measured: the Templar's full render (456 frames, uncached) in 194 s in one process with numba, peak 250 MB.
+- Not done: the numpy evaluator over the IR with screen tiles (the numpy closures were kept as they are: the
+  goldens stay exact and numba is the fast path), 4-tap normals and float32 (they would change pixels).
+

@@ -18,7 +18,7 @@ LEGACY_DIRNAME = '.pxcache'  # pickle cache of pxforge <= 0.1; never read, `cach
 DEFAULT_MAX_MB = 1024  # per spec, enforced after each render (least recently used go first)
 FORMAT = 5  # 5: the order of parts is part of the key
 
-_ENGINE_MODULES = ('expr.py', 'rig.py', 'sdf.py', 'render.py', 'pipeline.py')
+_ENGINE_MODULES = ('expr.py', 'rig.py', 'sdf.py', 'render.py', 'pipeline.py', 'scene_ir.py', 'fast.py')
 
 
 def _engine_hash():
@@ -40,8 +40,12 @@ def _plain(v):
 
 
 def key(spec, env, yaw):
-    """Hash of everything that changes geometry/lighting (not the palette, applied after the cache)."""
+    """Hash of everything that changes geometry/lighting (not the palette, applied after the cache), including
+    the backend: numba and numpy agree on all but a few pixels, and a cache never mixes them."""
+    from . import backend
+
     payload = dict(
+        backend=backend.name(),
         bones=spec['bones'],
         ik=spec['ik'],
         parts=spec['parts'],

@@ -63,11 +63,21 @@ def cmd_spec(a):
         print(outline.show(a.spec, a.paths, a.resolved))
 
 
+def _compile_note():
+    """Say why the first frame takes a while when the numba renderer compiles (first run only)."""
+    from . import backend
+
+    note = backend.note()
+    if 'compiling' in note:
+        _note(note)
+
+
 def cmd_pose(a):
     """Quick look: one pose in several directions, zoomed (cheap; use it while modelling)."""
     from . import api
 
     _spec(a.spec)
+    _compile_note()
     t = time.time()
     out, dirs, view = api.pose(
         a.spec, a.anim, a.frame, a.dirs, a.scale, a.bg, a.tint, a.out, a.draft, crop=not a.no_crop
@@ -191,6 +201,7 @@ def cmd_review(a):
     from .review import run
 
     _spec(a.spec)  # warnings first
+    _compile_note()
     rep = run(
         a.spec,
         anims=a.anims.split(',') if a.anims else None,
@@ -492,6 +503,15 @@ DIRS = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw']
 def _preview_args(s):
     s.add_argument('--bg', metavar='IMAGE', help='preview over this image (a game floor capture, tiled at 1 px = 1 px)')
     s.add_argument('--tint', metavar='LIGHT', help='scene light for previews: 0.7,0.7,1.0 or #b3b5ff (emissive stays)')
+    _backend_arg(s)
+
+
+def _backend_arg(s):
+    s.add_argument(
+        '--backend',
+        choices=['auto', 'numpy', 'numba'],
+        help='renderer: numba (spritekiln[fast], about 6x faster) or numpy; auto (default): numba if installed',
+    )
 
 
 def _positive(text):
@@ -672,6 +692,7 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--no-pitch-correction', action='store_true', help='compare: IoU against the raw reference')
     s.add_argument('--k', type=_positive, default=10)
     s.add_argument('-o', '--out')
+    _backend_arg(s)
     s.set_defaults(f=cmd_ref)
 
     s = sub.add_parser('new', help='create a spec from a template')
@@ -715,6 +736,9 @@ def main(argv=None, prog='spritekiln'):
     try:
         if a.cmd not in ('init', 'update', 'mcp'):
             _stale_note()
+        from . import backend
+
+        backend.use(getattr(a, 'backend', None))
         rc = a.f(a)
     except SpriteKilnError as e:
         print(f'error: {e}', file=sys.stderr)

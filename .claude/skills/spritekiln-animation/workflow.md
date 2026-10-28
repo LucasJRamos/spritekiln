@@ -25,7 +25,8 @@ spritekiln update [--check | --files]                  # upgrade SpriteKiln, ref
 ```
 `pose` costs about 1 s per direction. A full `render` of 3 animations × 8 directions is about 190 frames
 (minutes), so iterate with `pose` and render everything at the end. `render` picks the number of worker
-processes from the free memory; pass `--jobs 1` on a busy machine.
+processes from the free memory; pass `--jobs 1` on a busy machine. With the `[fast]` extra installed, the
+log says `renderer: numba`: about 6× faster, in one process (the first run compiles it for about 10 s).
 
 `--draft` traces one ray per pixel instead of nine: several times faster, with rougher edges and thin parts
 that may break. Use it while shaping silhouettes and poses (`pose --draft`) or checking motion (`render

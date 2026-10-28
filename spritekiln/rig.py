@@ -9,7 +9,33 @@ values as *_L for a symmetric pose.
 import numpy as np
 
 from .expr import ExprError, evaluate
-from .sdf import Group, box, cross3, cylinder, ellipsoid, rot_x, rot_y, rot_z, round_cone, sphere, torus, triangle
+from .sdf import (
+    BLENDS,
+    GROOVE,
+    SMOOTH,
+    Group,
+    bezier_path,
+    box,
+    circle,
+    cross3,
+    cylinder,
+    ellipsoid,
+    extrude,
+    modified,
+    normalize,
+    plane,
+    polygon,
+    rect,
+    revolve,
+    rot_x,
+    rot_y,
+    rot_z,
+    round_cone,
+    sphere,
+    torus,
+    triangle,
+    tube,
+)
 
 MIRROR = np.array([-1.0, 1.0, 1.0])
 
@@ -60,10 +86,20 @@ def rest_env(spec, yaw=0.0):
 
 
 class Ctx:
-    def __init__(self, spec, env):
+    def __init__(self, spec, env, notes=None):
         self.spec = spec
         self.env = env
         self.frames = {}
+        self.notes = notes  # a list to collect geometry warnings in (thin shells...), or None
+
+    def thin(self, value, where, what):
+        """Note a size under one pixel at the spec's camera scale: it can vanish or flicker."""
+        scale = float(self.spec.get('camera', {}).get('scale', 0.05))
+        if self.notes is not None and value < scale:
+            self.notes.append(
+                f'{where}: {what} {value:.3f} is {value / scale:.1f} px at camera.scale {scale:g}: it can vanish or '
+                f'flicker (make it at least {scale:.3f})'
+            )
 
     def val(self, v, where, mirror=False, vec=False):
         try:
@@ -169,6 +205,63 @@ class Ctx:
         return space.apply(self.val(v, where, m, vec=True))
 
 
+MODIFIERS = ('shell', 'elongate', 'twist', 'bend')
+PROFILES = ('circle', 'rect', 'polygon', 'bezier')
+
+
+def _crossing(pts):
+    """True when two edges of a closed polygon cross (it then has no clear inside)."""
+
+    def side(a, b, c):
+        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+    n = len(pts)
+    for i in range(n):
+        a, b = pts[i], pts[(i + 1) % n]
+        for j in range(i + 2, n):
+            if (j + 1) % n == i:
+                continue
+            c, d = pts[j], pts[(j + 1) % n]
+            if side(a, b, c) * side(a, b, d) < 0 and side(c, d, a) * side(c, d, b) < 0:
+                return True
+    return False
+
+
+def _profile(ctx, a, where, m, us):
+    """A 2D profile from its mapping: {circle: r}, {rect: [hx, hy], chamfer|round}, {polygon: [[x, y]...], round}
+    or {bezier: [P0, C0, P1, C1...]}. Lengths scale with the part's space; x is mirrored for _R twins."""
+    kinds = [k for k in PROFILES if isinstance(a, dict) and k in a]
+    if len(kinds) != 1:
+        raise ExprError(
+            f'{where}: a profile is one of {{circle: r}}, {{rect: [hx, hy]}}, {{polygon: [[x, y], ...]}} '
+            'or {bezier: [[x, y], ...]}'
+        )
+    kind = kinds[0]
+    w = f'{where}.{kind}'
+    if kind == 'circle':
+        return circle(float(ctx.val(a['circle'], w)) * us)
+    if kind == 'rect':
+        hx, hy = (float(v) for v in np.broadcast_to(np.asarray(ctx.val(a['rect'], w), float), (2,)))
+        chamfer = float(ctx.val(a.get('chamfer', 0.0), where + '.chamfer'))
+        return rect(hx * us, hy * us, chamfer * us, float(ctx.val(a.get('round', 0.0), where + '.round')) * us)
+    pts = []
+    for i, p in enumerate(a[kind]):
+        v = np.asarray(ctx.val(p, f'{w}[{i}]'), float)
+        if v.shape != (2,):
+            raise ExprError(f'{w}[{i}]: a profile point is [x, y]')
+        pts.append(v)
+    pts = np.array(pts).reshape(-1, 2) * us * [(-1.0 if m else 1.0), 1.0]
+    if kind == 'polygon':
+        if len(pts) < 3:
+            raise ExprError(f'{w}: a polygon needs at least 3 points')
+        if ctx.notes is not None and _crossing(pts):
+            ctx.notes.append(f'{w}: two edges cross, so the inside is not what it looks like: reorder the points')
+        return polygon(pts, float(ctx.val(a.get('round', 0.0), where + '.round')) * us)
+    if len(pts) < 4 or len(pts) % 2:
+        raise ExprError(f'{w}: a bezier path is P0, C0, P1, C1... (an even number of points, at least 4)')
+    return bezier_path(pts)
+
+
 def _prims(ctx, part_name, part, space, m, prim_list, where_base):
     out = []
     us = space.uscale
@@ -189,7 +282,32 @@ def _prims(ctx, part_name, part, space, m, prim_list, where_base):
                 Rb = space.R
             return Rb @ ctx.rot(a.get('rot', [0, 0, 0]), w + '.rot', m)
 
-        if kind == 'sphere':
+        if kind == 'plane':
+            if not where_base.endswith('.cut'):
+                raise ExprError(f'{w}: a plane has no end: use it under cut: to slice the part')
+            n = ctx.val(a.get('n', [0, 1, 0]), w + '.n', m, vec=True)
+            c = P('c') if 'c' in a else space.apply(normalize(n) * float(V('at', 0.0)))
+            out.append(plane(c, space.dir(n)))
+        elif kind == 'extrude':
+            prof = _profile(ctx, a.get('profile'), w + '.profile', m, us)
+            depth = float(V('depth')) * us
+            ctx.thin(depth, w + '.depth', 'depth')
+            out.append(extrude(P('c', [0, 0, 0]), rotm(), prof, depth, float(V('round', 0.0)) * us))
+        elif kind == 'revolve':
+            prof = _profile(ctx, a.get('profile'), w + '.profile', m, us)
+            ang = a.get('angle')
+            if ang is not None:
+                a0, a1 = (float(v) for v in ctx.val(ang, w + '.angle'))
+                ang = (-a1, -a0) if m else (a0, a1)
+            out.append(revolve(P('c', [0, 0, 0]), rotm(), prof, float(V('offset', 0.0)) * us, ang))
+        elif kind == 'tube':
+            pts = [ctx.point(p, space, f'{w}.pts[{j}]', m) for j, p in enumerate(a.get('pts') or [])]
+            if len(pts) < 3:
+                raise ExprError(f'{w}.pts: a tube needs at least 3 points (2 points: use a cone)')
+            r = np.broadcast_to(np.asarray(ctx.val(a['r'], w + '.r'), float), (2,)) * us
+            ctx.thin(2 * float(r.max()), w + '.r', 'diameter')  # a thin tip is intended; a thin tube is not
+            out.append(tube(pts, float(r[0]), float(r[1])))
+        elif kind == 'sphere':
             out.append(sphere(P('c'), float(V('r')) * us))
         elif kind == 'ellipsoid':
             r = np.abs(np.asarray(V('r', vec=True), float)) * space.s
@@ -233,10 +351,35 @@ def _prims(ctx, part_name, part, space, m, prim_list, where_base):
             out.append(('cuts', cuts))
         else:
             raise ExprError(
-                f'{w}: unknown prim type "{kind}" '
-                '(sphere, ellipsoid, cone, chain, box, cylinder, torus, tri, membrane, arc)'
+                f'{w}: unknown prim type "{kind}" (sphere, ellipsoid, cone, chain, box, cylinder, torus, tri, '
+                'membrane, arc, extrude, revolve, tube, plane)'
             )
+        if any(k in a for k in MODIFIERS):
+            if kind in ('chain', 'membrane', 'plane'):
+                raise ExprError(f'{w}: shell, elongate, twist and bend change one primitive, not a {kind}')
+            f = out.pop()
+            shell = float(V('shell', 0.0)) * us
+            if shell:
+                ctx.thin(shell, w + '.shell', 'shell thickness')
+            twist = float(V('twist', 0.0)) / us
+            elong = np.abs(np.asarray(ctx.val(a['elongate'], w + '.elongate'), float)) * us if 'elongate' in a else None
+            centre = P('c') if 'c' in a else np.asarray(f.bound[0])
+            out.append(modified(f, centre, rotm(), shell, elong, -twist if m else twist, float(V('bend', 0.0)) / us))
     return out
+
+
+def _blend(v, where, cut=False):
+    """(mode, k, n, groove) of `blend` / `cut_blend`: a number (smooth) or {mode, k, n} ({mode: groove, depth,
+    width} for a cut)."""
+    if not isinstance(v, dict):
+        return SMOOTH, float(v), 1, (0.0, 0.0)
+    mode = v.get('mode', 'smooth')
+    allowed = [b for b in BLENDS if cut or b != 'groove']
+    if mode not in allowed:
+        raise ExprError(f'{where}.mode: {mode!r} (use {", ".join(allowed)})')
+    if BLENDS[mode] == GROOVE:
+        return GROOVE, 0.0, 1, (float(v.get('depth', 0.02)), float(v.get('width', 0.01)))
+    return BLENDS[mode], float(v.get('k', 0.0)), max(1, int(v.get('n', 1))), (0.0, 0.0)
 
 
 def _arc_groups(ctx, name, part, space, m, a, mats, w):
@@ -266,9 +409,10 @@ def _arc_groups(ctx, name, part, space, m, a, mats, w):
     return buckets
 
 
-def build(spec, env):
-    """Return list of sdf Groups for the given channel values."""
-    ctx = Ctx(spec, env)
+def build(spec, env, notes=None):
+    """Return list of sdf Groups for the given channel values. `notes`: a list that collects geometry warnings
+    (sizes under a pixel, crossing polygons)."""
+    ctx = Ctx(spec, env, notes)
     mats = spec['materials']
     groups = []
     for name, part in spec['parts'].items():
@@ -302,17 +446,24 @@ def build(spec, env):
         cuts += _prims(ctx, name, part, space, m, part.get('cut') or [], w + '.cut')
         mat = part['material']
         M = mats[mat]
+        mode, k, n, _ = _blend(part.get('blend', 0.0), w + '.blend')
+        cmode, ck, cn, groove = _blend(part.get('cut_blend', 0.01), w + '.cut_blend', cut=True)
         groups.append(
             Group(
                 name,
                 mat,
                 prims,
-                k=float(part.get('blend', 0.0)),
+                k=k,
                 cut=cuts,
-                ck=float(part.get('cut_blend', 0.01)),
+                ck=ck,
                 line=part.get('line', M['line']),
                 emissive=M['emissive'],
                 two_sided=M['two_sided'],
+                mode=mode,
+                n=n,
+                cut_mode=cmode,
+                cut_n=cn,
+                groove=groove,
             )
         )
     return groups, ctx.frames

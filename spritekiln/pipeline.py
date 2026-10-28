@@ -9,12 +9,12 @@ from typing import NamedTuple
 
 import numpy as np
 
-from . import cache, system
+from . import backend, cache, system
 from . import spec as specmod
 from .anim import frames_of
 from .errors import RenderError
 from .pixelize import aux_maps, compose, hx
-from .render import Camera, Light, Scene, render, to_pixels
+from .render import Camera, Light, Scene, to_pixels
 from .rig import build, rest_env, socket_points
 from .sdf import rot_y
 
@@ -57,7 +57,7 @@ def render_buffers(spec, env, yaw, force=False):
     buf = None if force else cache.load(path)
     if buf is None:
         sc = Scene(groups, np.radians(yaw))
-        buf = to_pixels(*render(sc, cam, Light(**spec['light'])), len(groups), cam)
+        buf = to_pixels(*backend.render(sc, cam, Light(**spec['light'])), len(groups), cam)
         cache.save(path, buf)
     return buf, groups, frames, cam
 
@@ -253,11 +253,16 @@ def render_all(
                 if not force and os.path.exists(cache.entry(spec, dict(env, yaw=float(y)), y)):
                     cached += 1
     log = log or (lambda msg: None)
+    log(backend.note())
     if cached:
         log(f'resuming: {cached} of {len(tasks)} frames already in the cache')
-    if jobs is None:
+    if jobs is None and backend.name() == 'numba':
+        jobs = 1  # one process: the kernel already uses every core, at the memory of one interpreter
+    elif jobs is None:
         jobs, why = auto_jobs(spec, len(tasks) - cached, len(tasks))
         log(f'jobs: {jobs} (auto: {why}; use --jobs to override)')
+    if jobs > 1 and backend.name() == 'numba':  # share the cores among the worker processes
+        os.environ.setdefault('NUMBA_NUM_THREADS', str(max(1, system.cpu_count() // jobs)))
     bar = Progress(len(tasks), cached) if progress is True else progress
     on_done = bar.step if bar else (lambda: None)
 

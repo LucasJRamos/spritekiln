@@ -1,0 +1,86 @@
+spritekiln: 1
+# Golden fixture for design 13: every shape operator, modifier and join, with mirrored _L parts.
+name: shapes
+kind: character
+size: 48
+directions: 4
+camera: {pitch: 38, scale: 0.05, center: [0, 0.75, 0]}
+shadow: {rx: 9, ry: 3, alpha: 120}
+ramps:
+  steel: ["#14121c", "#3a3f52", "#6b7390", "#a7b0c8", "#e6ebf5"]
+  cloth: ["#1c0f14", "#4a2230", "#7a3a48", "#b06a6a"]
+  gold: ["#2a1806", "#6e4a12", "#b88a2a", "#f2d27a"]
+materials:
+  steel: {ramp: steel}
+  cloth: {ramp: cloth, two_sided: true, bands: [1, 3]}
+  gold: {ramp: gold, bands: [1, 3]}
+channels:
+  root: [0, 0, 0]
+  bob: 0.0
+bones:
+  hips: {parent: root, pos: "[0, 0.5 + bob, 0]"}
+  head: {parent: hips, pos: [0, 0.62, 0]}
+  hand_L: {parent: hips, pos: [0.36, 0.05, 0.12]}
+parts:
+  body:                   # revolve: a bell of a full cross-section, chamfered onto the chest
+    material: steel
+    space: hips
+    blend: {mode: chamfer, k: 0.04}
+    prims:
+      - revolve: {c: [0, 0.05, 0], profile: {polygon: [[-0.22, -0.3], [0.22, -0.3], [0.17, 0.12], [-0.17, 0.12]], round: 0.01}}
+      - box: {c: [0, 0.26, 0], half: [0.19, 0.12, 0.12], round: 0.02}
+    cut:
+      - box: {c: [0, -0.1, 0.16], half: [0.25, 0.006, 0.06]}
+    cut_blend: {mode: groove, depth: 0.02, width: 0.012}
+  helmet:                 # revolve with a bezier profile, a partial visor turn, stairs joining a crest
+    material: steel
+    space: head
+    blend: {mode: stairs, k: 0.05, n: 2}
+    prims:
+      - revolve: {c: [0, 0, 0], profile: {bezier: [[-0.15, -0.08], [0, -0.12], [0.15, -0.08], [0.2, 0.1], [0, 0.18], [-0.2, 0.1]]}}
+      - extrude: {c: [0, 0.15, 0], profile: {rect: [0.02, 0.06], round: 0.01}, depth: 0.22, rot: [0, 1.5708, 0]}
+  brim:                   # revolve of a circle away from the axis (a ring), turned only partly
+    material: gold
+    space: head
+    prims:
+      - revolve: {c: [0, -0.05, 0], profile: {circle: 0.025}, offset: 0.17, angle: [-1.2, 1.2]}
+  cape:                   # a cone shell, open at the front and cut flat at the top and the hem
+    material: cloth
+    space: hips
+    prims:
+      - cone: {a: [0, 0.38, -0.05], b: [0, -0.3, -0.12], r: [0.2, 0.32], shell: 0.05}
+    cut:
+      - plane: {n: [0, 0, 1], at: 0.0}
+      - plane: {n: [0, 1, 0], at: 0.38}
+      - plane: {n: [0, -1, 0], at: 0.28}
+  blade_L:                # an asymmetric polygon (mirrored for blade_R), curved by a bend
+    material: steel
+    space: hand_L
+    prims:
+      - extrude:
+          c: [0, 0.22, 0]
+          profile: {polygon: [[-0.03, -0.2], [0.04, -0.2], [0.05, 0.18], [0.0, 0.26], [-0.03, 0.15]]}
+          depth: 0.06
+          round: 0.012
+          bend: 0.9
+  guard_L:                # a chamfered rectangle
+    material: gold
+    space: hand_L
+    prims:
+      - extrude: {c: [0, 0, 0], profile: {rect: [0.09, 0.025], chamfer: 0.015}, depth: 0.07}
+  horn_L:                 # a tapered tube, twisted
+    material: gold
+    space: head
+    prims:
+      - tube: {pts: [[0.1, 0.05, 0], [0.24, 0.08, -0.02], [0.27, 0.2, -0.06], [0.22, 0.3, -0.1]], r: [0.04, 0.012]}
+  pillar:                 # a box twisted about its long axis, stretched by elongate
+    material: steel
+    space: hips
+    prims:
+      - box: {c: [-0.36, 0.0, -0.05], half: [0.04, 0.12, 0.04], twist: 2.5, elongate: [0, 0.1, 0]}
+animations:
+  idle:
+    frames: 2
+    ms: 200
+    channels:
+      bob: "0.02*sin(p)"

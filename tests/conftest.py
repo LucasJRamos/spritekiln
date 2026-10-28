@@ -14,6 +14,9 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GOLDEN = os.path.join(REPO, 'tests', 'golden')
 FIXTURES = os.path.join(REPO, 'tests', 'fixtures')
 
+# Goldens and hashes are the numpy reference renderer's; tests/test_fast.py checks numba against it.
+os.environ['SPRITEKILN_BACKEND'] = 'numpy'
+
 # Off the platform that produced the goldens, float differences may flip a few pixels.
 TOLERANCE = 0.005
 

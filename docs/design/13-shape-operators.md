@@ -1,6 +1,6 @@
 # 13. Shape operators
 
-**Status:** proposed · **Track:** forms · **Stage:** 2 (release 0.3) · **Depends on:** 12 (the compiled scene
+**Status:** done (stage 2; showcase port pending) · **Track:** forms · **Stage:** 2 (release 0.3) · **Depends on:** 12 (the compiled scene
 comes first, so each new primitive is written once)
 
 ## Problem
@@ -157,3 +157,21 @@ hat:
   axis? Decide on the first recipes.
 - **Blends between parts of different materials** (a smooth joint between helmet and hood) are out of scope:
   groups are combined with a hard minimum, and each pixel has one part.
+
+## Outcome (2026-10-27): done, showcase port pending
+- Primitives `extrude`, `revolve` (with `offset` and `angle`), `tube`, `plane`; profiles `circle`, `rect`
+  (`chamfer`, `round`), `polygon` (`round`), `bezier`; modifiers `shell`, `elongate`, `twist`, `bend`; joins
+  `chamfer`, `round`, `stairs` and the `groove` cut. In numpy (sdf.py, the reference) and in the numba kernel,
+  checked against each other and against known shapes (an extruded rectangle is a box, a revolved rectangle a
+  cylinder, a revolved circle a torus, a straight tube a capsule, an elongated sphere a capsule: equal to
+  1e-15), with distance gradients of length 1 for the exact ones.
+- The generic `round` modifier was dropped: `box`, `cylinder`, `extrude` and the profiles have their own
+  `round`, and every other primitive is already round. `moon` and `vesica` profiles were not added: a `bezier`
+  profile draws them. A `revolve` profile is the whole cross-section through the axis (IQ's convention).
+- Mirroring: `_R` twins are exact mirror images (tested on an asymmetric bent blade, a chamfered guard, a tube).
+- `validate` warns about pieces under a pixel and crossing polygons; planes outside `cut:`, odd Bezier point
+  counts, unknown join modes and modifiers on a `chain` or `membrane` are errors.
+- Docs: the spec reference, a "which shape for what" table and eight recipes (sword, axe, shield, hat, hood,
+  cape, pauldron, horn) checked on the humanoid template. Golden fixture `tests/fixtures/shapes`.
+- Pending: porting the showcase (Templar, Huntress, gargoyle) on a branch with before/after sheets.
+

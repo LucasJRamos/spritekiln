@@ -11,6 +11,28 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   depends on the geometry only. Assets rendered again are lighter where those false shadows used to fall,
   so they do not match renders of 0.2 pixel for pixel.
 
+### Shapes beyond rounded primitives
+- New primitives: `extrude` (a 2D profile pushed along local z: blades, axe heads, shields, plates), `revolve`
+  (a cross-section turned about local y, fully or partly: helmets, hats, bottles, pauldrons), `tube` (a smooth
+  tapered tube through control points: horns, tails, straps, hair) and `plane` (a flat cut, under `cut:`).
+- Profiles for `extrude` and `revolve`: `circle`, `rect` with `chamfer` or `round`, `polygon` and `bezier`
+  (closed quadratic curves).
+- Modifiers on any single primitive: `shell` (hollow: capes, hoods, sleeves), `elongate`, `twist` and `bend`.
+- Joins: `blend: {mode: chamfer|round|stairs, k, n}` and `cut_blend: {mode: groove, depth, width}` (a line
+  engraved where a cutter crosses the part). The smooth union stays the default and renders as before.
+- `_L` parts with these shapes mirror correctly to `_R`, asymmetric profiles and bends included.
+- `validate` warns about a shell, an extrusion or a tube thinner than one pixel and about polygons whose edges
+  cross. The knowledge files have a "which shape for what" table and eight recipes checked on the humanoid
+  template.
+
+### A compiled renderer: the `[fast]` extra
+- `pipx install "spritekiln[mcp,fast]"` adds a numba renderer that SpriteKiln uses whenever it is installed:
+  whole frames about 4-6× faster (the Templar's full render, 456 frames: 194 s in one process), using every
+  core in one process instead of several numpy processes. It agrees with the numpy renderer on every part and
+  on all but a handful of pixels per frame; the render cache keeps the two apart. `--backend numpy|numba|auto`
+  on `pose`, `render`, `review` and `ref`, or `SPRITEKILN_BACKEND`. The first run compiles it (about 10 s,
+  once). No Intel Mac build: there the numpy renderer stays. `spritekiln update` keeps the extra.
+
 ### Draft previews
 - `pose --draft` (MCP `pose(draft=true)`) traces one ray per pixel instead of nine: an 8-direction pose of the
   Templar takes 5 s instead of 15 s, for shaping silhouettes and poses. Files end in `_draft`.

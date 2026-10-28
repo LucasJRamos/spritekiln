@@ -277,11 +277,31 @@ def check(spec):
         from .anim import timing_problems
 
         errors = timing_problems(spec)
+    if not errors:
+        warnings += geometry_notes(spec)
     try:
         marks = schema.marks(spec['_path'], _Loader)
     except (OSError, yaml.YAMLError):
         marks = {}
     return [_located(m, spec, marks) for m in errors], [_located(m, spec, marks) for m in warnings]
+
+
+def geometry_notes(spec):
+    """Warnings found while building the rest pose: sizes under a pixel, polygons whose edges cross."""
+    from .rig import build, rest_env
+
+    notes = []
+    try:
+        build(spec, rest_env(spec, spec['directions'][0][1]), notes)
+    except Exception:  # noqa: BLE001 - errors are reported by _problems
+        return []
+    seen, out = set(), []
+    for n in notes:  # a mirrored _R twin repeats its _L source's note
+        key = re.sub(r'_R(?![A-Za-z0-9])', '_L', n)
+        if key not in seen:
+            seen.add(key)
+            out.append(n)
+    return out
 
 
 def quick_errors(spec):

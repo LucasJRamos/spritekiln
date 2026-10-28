@@ -17,6 +17,82 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
 - **Consistency:** never change one asset's camera `pitch`, `light` or density (`camera.scale`); the
   whole game shares them. A bigger creature gets a bigger `size`.
 
+## Which shape for what
+Pixel artists draw plates, blades and brims with crisp edges. Rounded primitives blended together make
+"inflated" forms, so pick the primitive that already has the shape ([spec.md](SPEC.md) has the fields):
+
+| what | use |
+|---|---|
+| limbs, torso, head, round masses | `ellipsoid`, `cone`, `sphere` with `blend` |
+| a blade, an axe head, a shield, a plate, a buckle, a leaf | `extrude` of a `polygon`, `rect` (`chamfer`) or `bezier` profile |
+| a helmet, a hat (crown and brim), a bottle, a bell, a skirt | `revolve` of the cross-section |
+| a pauldron, a hood's opening, half a dome | `revolve` with `angle`, or `shell` plus `plane` cuts |
+| a cape, a hood, a sleeve, a coat skirt | a `cone` or `ellipsoid` with `shell`, cut by `plane` |
+| a horn, a tail, a tentacle, a strap, a hair lock | `tube` (tapered with `r: [start, end]`; `twist` for a ram's horn) |
+| a curved blade, a scimitar | `extrude` with `bend` |
+| armour joints, a stepped pedestal | `blend: {mode: chamfer}` or `{mode: stairs}` |
+| a line engraved on armour | `cut` with `cut_blend: {mode: groove}` |
+
+Recipes, checked on the humanoid template (`spritekiln new`): its frames `wrist_R`, `wrist_L`, `head`,
+`shoulder_L` and `pelvis`, `scale: 0.048`. Adapt the sizes; keep the idea.
+```yaml
+sword:         # the blade along the hand frame's y, tilted like the template's sword
+  material: steel
+  space: wrist_R
+  prims:
+    - extrude: {c: [0, 0.26, 0.19], rot: [0.52, 0, 0], depth: 0.05, round: 0.012,
+                profile: {polygon: [[-0.03, -0.24], [0.03, -0.24], [0.03, 0.17], [0, 0.26], [-0.03, 0.17]]}}
+    - extrude: {c: [0, 0.048, 0.068], rot: [0.52, 0, 0], depth: 0.05, profile: {rect: [0.075, 0.018], chamfer: 0.012}}
+axe:           # a haft and a curved head turned to face sideways
+  material: steel
+  space: wrist_R
+  prims:
+    - cylinder: {a: [0, -0.05, 0.05], b: [0, 0.5, 0.33], r: 0.022}
+    - extrude: {c: [0, 0.44, 0.3], rot: [0.52, 1.5708, 0], depth: 0.05, round: 0.012,
+                profile: {bezier: [[0, -0.06], [0.08, -0.16], [0.17, -0.12], [0.21, 0], [0.17, 0.12], [0.08, 0.16],
+                                   [0, 0.06], [-0.03, 0]]}}
+shield:        # a heater shield on the outside of the left forearm
+  material: steel
+  space: wrist_L
+  prims:
+    - extrude: {c: [0.07, 0, -0.08], rot: [0, 1.5708, 0], depth: 0.05, round: 0.015,
+                profile: {polygon: [[-0.2, 0.22], [0.2, 0.22], [0.2, -0.04], [0, -0.28], [-0.2, -0.04]], round: 0.02}}
+hat:           # a brim and a crown in one cross-section through the axis
+  material: leather
+  space: head
+  prims:
+    - revolve: {c: [0, 0.2, 0], profile: {polygon: [[-0.25, 0], [0.25, 0], [0.25, 0.02], [0.16, 0.035], [0.14, 0.24],
+                                                     [-0.14, 0.24], [-0.16, 0.035], [-0.25, 0.02]], round: 0.006}}
+hood:          # a hollow egg around the head, open at the face
+  material: cloth
+  space: head
+  prims:
+    - ellipsoid: {c: [0, 0.13, -0.02], r: [0.21, 0.23, 0.22], shell: 0.05}
+  cut:
+    - plane: {n: [0, -0.2, 1], at: 0.07}
+cape:          # a cone shell from the shoulders, open at the front, flat top and hem
+  material: cloth
+  space: pelvis
+  prims:
+    - cone: {a: [0, 0.6, -0.04], b: [0, -0.35, -0.14], r: [0.21, 0.34], shell: 0.05}
+  cut:
+    - plane: {n: [0, 0, 1], at: 0.0}
+    - plane: {n: [0, 1, 0], at: 0.6}
+    - plane: {n: [0, -1, 0], at: 0.35}
+pauldron_L:    # a flat dome over the shoulder, tilted outwards (mirrored to the right one)
+  material: steel
+  space: shoulder_L
+  prims:
+    - revolve: {c: [0.02, 0.03, 0], rot: [0, 0, -0.5], profile: {bezier: [[-0.15, 0], [0, 0.12], [0.15, 0], [0, 0.07]]}}
+horn_L:        # tapered and curling back
+  material: leather
+  space: head
+  prims:
+    - tube: {pts: [[0.09, 0.22, 0], [0.2, 0.3, -0.02], [0.24, 0.42, -0.1], [0.18, 0.5, -0.2]], r: [0.04, 0.01]}
+```
+Keep every piece at least a pixel thick (`validate` warns), look at a full `pose --dirs all`, and prefer one
+shaped primitive to a stack of blended ellipsoids plus cuts.
+
 ## Side view (`view: side`)
 - The silhouette is the **profile**: what reads is the outline seen from the side (nose, hat brim,
   weapon length, cape, tail). Thickness along the line of sight (z) does not show; extend shapes along x
@@ -30,8 +106,9 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
    [splash-to-model.md](SKILL.md)).
 2. **Big masses first**: world scale (total height 1.6–2.0 for a human), pelvis height, IK lengths, then
    torso, head, hips and legs as ellipsoids and cones only.
-3. Add the striking shapes one at a time (`chain` horns, `membrane` capes and wings, `box`/`cylinder`
-   weapons in a hand frame, hair as blended ellipsoids). After each: `validate`, `pose --dirs all`, look.
+3. Add the striking shapes one at a time with the primitive that has their form (see "Which shape for
+   what": `extrude` blades and plates, `revolve` helmets and hats, `tube` horns and tails, `shell` capes and
+   hoods, `membrane` wings). After each: `validate`, `pose --dirs all` (`--draft` while shaping), look.
 4. Check **all 8 directions**, not only the reference's: the back and the profiles must make sense. Invent
    what the reference does not show, coherently, and write the decision in `brief`.
 5. Materials and palette last-but-not-least: 3–6 materials plus one emissive; tune ramps with

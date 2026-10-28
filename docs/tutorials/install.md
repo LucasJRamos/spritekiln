@@ -113,6 +113,21 @@ line, `pipx install spritekiln` is enough; the instructions files that `spriteki
 without it. Keep the quotes around `"spritekiln[mcp]"`: zsh, the default shell on macOS, reads the brackets
 as a file pattern otherwise.
 
+## The `[fast]` extra: about 6× faster renders
+
+`[fast]` adds a compiled renderer (numba): frames render about 6× faster, in one process that uses every
+core, with less memory than several numpy processes. Install both extras together:
+
+```
+pipx install --force "spritekiln[mcp,fast]"      # or: uv tool install --force "spritekiln[mcp,fast]"
+```
+
+SpriteKiln uses it whenever it is installed (`--backend numpy` turns it off for one command; the
+`SPRITEKILN_BACKEND` environment variable sets it for every command). The first render after installing
+compiles the renderer, which takes about 10 seconds once. The two renderers agree on every part and on all
+but a handful of pixels per frame. numba takes about 150 MB of disk and has no build for Intel Macs: there
+the extra installs nothing and SpriteKiln keeps the numpy renderer.
+
 ## Upgrade
 
 In your game folder:
@@ -122,7 +137,7 @@ spritekiln update
 ```
 
 It checks PyPI, installs the new version the way you installed this one (pipx, uv or a virtual environment,
-keeping the `[mcp]` extra) and then refreshes the files your AI reads in that folder: `.spritekiln/agent/`,
+keeping the `[mcp]` and `[fast]` extras) and then refreshes the files your AI reads in that folder: `.spritekiln/agent/`,
 the skills and agents, and SpriteKiln's block in `AGENTS.md`, `CLAUDE.md` and the like. `spritekiln.toml`
 (with the project's art style), your specs and renders are not touched.
 

@@ -264,12 +264,12 @@
         "material": {"type": "string"},
         "materials": {"type": "array", "items": {"type": "string"}, "minItems": 1, "description": "Smear arcs: tail to core."},
         "space": {"type": "string", "default": "root"},
-        "blend": {"$ref": "#/$defs/expr", "description": "Smooth union radius between the primitives."},
+        "blend": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "object", "additionalProperties": false, "properties": {"mode": {"enum": ["smooth", "chamfer", "round", "stairs"]}, "k": {"type": "number"}, "n": {"type": "integer", "minimum": 1}}}], "description": "How the primitives join: a radius (smooth), or {mode: smooth|chamfer|round|stairs, k, n}."},
         "line": {"type": "boolean"},
         "when": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "boolean"}], "description": "Render only when true."},
         "prims": {"type": "array", "items": {"$ref": "#/$defs/prim"}, "minItems": 1},
         "cut": {"type": "array", "items": {"$ref": "#/$defs/prim"}},
-        "cut_blend": {"$ref": "#/$defs/expr"}
+        "cut_blend": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "object", "additionalProperties": false, "properties": {"mode": {"enum": ["smooth", "chamfer", "round", "stairs", "groove"]}, "k": {"type": "number"}, "n": {"type": "integer", "minimum": 1}, "depth": {"type": "number"}, "width": {"type": "number"}}}], "description": "How the cuts carve: a radius (smooth), {mode: chamfer|round|stairs, k, n}, or {mode: groove, depth, width}."}
       }
     },
     "prim": {
@@ -284,24 +284,29 @@
         {"type": "object", "required": ["torus"], "additionalProperties": false, "properties": {"torus": {"$ref": "#/$defs/torus"}}},
         {"type": "object", "required": ["tri"], "additionalProperties": false, "properties": {"tri": {"$ref": "#/$defs/tri"}}},
         {"type": "object", "required": ["membrane"], "additionalProperties": false, "properties": {"membrane": {"$ref": "#/$defs/membrane"}}},
-        {"type": "object", "required": ["arc"], "additionalProperties": false, "properties": {"arc": {"$ref": "#/$defs/arc"}}}
+        {"type": "object", "required": ["arc"], "additionalProperties": false, "properties": {"arc": {"$ref": "#/$defs/arc"}}},
+        {"type": "object", "required": ["extrude"], "additionalProperties": false, "properties": {"extrude": {"$ref": "#/$defs/extrude"}}},
+        {"type": "object", "required": ["revolve"], "additionalProperties": false, "properties": {"revolve": {"$ref": "#/$defs/revolve"}}},
+        {"type": "object", "required": ["tube"], "additionalProperties": false, "properties": {"tube": {"$ref": "#/$defs/tube"}}},
+        {"type": "object", "required": ["plane"], "additionalProperties": false, "properties": {"plane": {"$ref": "#/$defs/plane"}}}
       ]
     },
     "sphere": {
       "type": "object", "additionalProperties": false, "required": ["c", "r"],
-      "properties": {"c": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/expr"}}
+      "properties": {"c": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/expr"}, "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}}
     },
     "ellipsoid": {
       "type": "object", "additionalProperties": false, "required": ["c", "r"],
       "properties": {
         "c": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/vec"}, "rot": {"$ref": "#/$defs/vec"},
-        "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2}
+        "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2},
+        "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}
       }
     },
     "cone": {
       "type": "object", "additionalProperties": false, "required": ["a", "b", "r"],
       "description": "Tapered capsule from a to b; r is one radius or [r_a, r_b].",
-      "properties": {"a": {"$ref": "#/$defs/point"}, "b": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/vec"}}
+      "properties": {"a": {"$ref": "#/$defs/point"}, "b": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/vec"}, "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}}
     },
     "chain": {
       "type": "object", "additionalProperties": false, "required": ["pts", "r"],
@@ -318,14 +323,16 @@
       "properties": {
         "c": {"$ref": "#/$defs/point"}, "half": {"$ref": "#/$defs/vec"}, "rot": {"$ref": "#/$defs/vec"},
         "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2},
-        "round": {"$ref": "#/$defs/expr"}
+        "round": {"$ref": "#/$defs/expr"},
+        "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}
       }
     },
     "cylinder": {
       "type": "object", "additionalProperties": false, "required": ["a", "b", "r"],
       "properties": {
         "a": {"$ref": "#/$defs/point"}, "b": {"$ref": "#/$defs/point"}, "r": {"$ref": "#/$defs/expr"},
-        "round": {"$ref": "#/$defs/expr"}
+        "round": {"$ref": "#/$defs/expr"},
+        "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}
       }
     },
     "torus": {
@@ -333,14 +340,16 @@
       "properties": {
         "c": {"$ref": "#/$defs/point"}, "R": {"$ref": "#/$defs/expr"}, "r": {"$ref": "#/$defs/expr"},
         "rot": {"$ref": "#/$defs/vec"},
-        "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2}
+        "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2},
+        "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}
       }
     },
     "tri": {
       "type": "object", "additionalProperties": false, "required": ["a", "b", "c"],
       "properties": {
         "a": {"$ref": "#/$defs/point"}, "b": {"$ref": "#/$defs/point"}, "c": {"$ref": "#/$defs/point"},
-        "th": {"$ref": "#/$defs/expr"}
+        "th": {"$ref": "#/$defs/expr"},
+        "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}
       }
     },
     "membrane": {
@@ -354,6 +363,53 @@
         "scallop_depth": {"type": "number"},
         "fill_root": {"type": "boolean"}
       }
+    },
+    "profile": {
+      "description": "A closed 2D shape: {circle: r}, {rect: [hx, hy], chamfer | round}, {polygon: [[x, y], ...], round} or {bezier: [P0, C0, P1, C1, ...]}.",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "circle": {"$ref": "#/$defs/expr"},
+        "rect": {"$ref": "#/$defs/vec", "description": "Half width and half height."},
+        "polygon": {"type": "array", "items": {"$ref": "#/$defs/vec"}, "minItems": 3},
+        "bezier": {"type": "array", "items": {"$ref": "#/$defs/vec"}, "minItems": 4, "description": "Quadratic segments P0 -> C0 -> P1, P1 -> C1 -> P2... back to P0."},
+        "chamfer": {"$ref": "#/$defs/expr", "description": "rect: cut the corners at 45 degrees."},
+        "round": {"$ref": "#/$defs/expr", "description": "rect: round the corners (same size); polygon: round them by growing the outline."}
+      }
+    },
+    "extrude": {
+      "type": "object", "additionalProperties": false, "required": ["profile", "depth"],
+      "description": "A 2D profile in the local x-y plane pushed `depth` along local z: blades, plates, shields, axe heads.",
+      "properties": {
+        "c": {"$ref": "#/$defs/point"}, "rot": {"$ref": "#/$defs/vec"}, "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2},
+        "profile": {"$ref": "#/$defs/profile"}, "depth": {"$ref": "#/$defs/expr"},
+        "round": {"$ref": "#/$defs/expr", "description": "Round the edges of the front and back faces (same size)."},
+        "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}
+      }
+    },
+    "revolve": {
+      "type": "object", "additionalProperties": false, "required": ["profile"],
+      "description": "A 2D cross-section through the local y axis (x = distance from the axis, both sides) turned about local y: helmets, hats, bottles, bells.",
+      "properties": {
+        "c": {"$ref": "#/$defs/point"}, "rot": {"$ref": "#/$defs/vec"}, "align": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 2, "maxItems": 2},
+        "profile": {"$ref": "#/$defs/profile"},
+        "offset": {"$ref": "#/$defs/expr", "description": "Move the profile away from the axis (a ring)."},
+        "angle": {"$ref": "#/$defs/vec", "description": "[a0, a1] radians from local +z towards +x: a partial turn (pauldrons, a hood's opening)."},
+        "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}
+      }
+    },
+    "tube": {
+      "type": "object", "additionalProperties": false, "required": ["pts", "r"],
+      "description": "A smooth round tube from the first point to the last, bending towards the others: horns, tails, straps, hair locks.",
+      "properties": {
+        "pts": {"type": "array", "items": {"$ref": "#/$defs/point"}, "minItems": 3},
+        "r": {"$ref": "#/$defs/vec", "description": "One radius, or [start, end]."},
+        "shell": {"$ref": "#/$defs/expr", "description": "Hollow it: a shell this thick around its surface."}, "elongate": {"$ref": "#/$defs/vec", "description": "Stretch its middle: half lengths added along local x, y, z."}, "twist": {"$ref": "#/$defs/expr", "description": "Twist about local y, radians per unit."}, "bend": {"$ref": "#/$defs/expr", "description": "Bend in the local x-y plane, radians per unit along x."}
+      }
+    },
+    "plane": {
+      "type": "object", "additionalProperties": false,
+      "description": "Only under cut: removes the side `n` points to, from the plane `at` along n (or through `c`).",
+      "properties": {"n": {"$ref": "#/$defs/vec"}, "at": {"$ref": "#/$defs/expr"}, "c": {"$ref": "#/$defs/point"}}
     },
     "arc": {
       "type": "object", "additionalProperties": false, "required": ["r", "a0", "a1"],

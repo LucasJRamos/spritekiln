@@ -162,3 +162,13 @@ def test_godot_addon_follows_the_package(tmp_path, monkeypatch):
     assert config.load(str(root))['ai'] == ['codex']
     shutil.rmtree(root / 'addons')
     assert update.refresh(str(root))['addon'] is None  # not installed: left alone
+
+
+def test_an_upgrade_keeps_the_extras(monkeypatch):
+    import importlib.util
+
+    from spritekiln import update
+
+    present = {'mcp', 'numba'}
+    monkeypatch.setattr(importlib.util, 'find_spec', lambda name, *a: object() if name in present else None)
+    assert update.requirement() == 'spritekiln[mcp,fast]'

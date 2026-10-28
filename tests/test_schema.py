@@ -71,7 +71,8 @@ def test_typos_are_warnings_with_positions(tmp_path):
     assert 'spec.yaml:7:22: materials.body.outlne: unknown key "outlne" (did you mean "outline"?)' in text
     assert 'spec.yaml:20:21: animations.idle.chanels: unknown key "chanels" (did you mean "channels"?)' in text
     assert 'spec.yaml:18:9: parts.torso.prims[1].blob: unknown key "blob" (expected one of: arc, box, chain' in text
-    assert 'spec.yaml:17:32: parts.torso.prims[0].sphere.radius: unknown key "radius" (expected one of: c, r)' in text
+    radius = 'parts.torso.prims[0].sphere.radius: unknown key "radius" (expected one of: bend, c, elongate, r, shell'
+    assert f'spec.yaml:17:32: {radius}, twist)' in text
     assert 'spec.yaml:17:9: parts.torso.prims[0].sphere: missing required key "r"' in '\n'.join(errors)
 
 

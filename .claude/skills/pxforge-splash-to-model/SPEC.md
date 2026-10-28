@@ -154,6 +154,32 @@ Primitives (each item is a one-key mapping):
 | `tri` | `a, b, c, th` |
 | `membrane` | `hub, ring: [...], th, scallop: [idx...], scallop_depth, fill_root` (wings, capes, sails) |
 | `arc` | `c, r, a0, a1, width, fade, dip, segments`: smear VFX; use `materials: [tail, mid, core]` |
+| `extrude` | `c, rot` or `align, profile, depth, round`: a 2D profile in the local x-y plane pushed `depth` along local z (blades, axe heads, shields, plates, buckles); `round` rounds the edges of the front and back faces |
+| `revolve` | `c, rot` or `align, profile, offset, angle: [a0, a1]`: a cross-section turned about local y (helmets, hat crowns and brims, bottles, bells); `angle` (radians from local +z towards +x) for a partial turn (pauldrons, a hood's opening) |
+| `tube` | `pts: [...], r` or `r: [start, end]`: a smooth round tube from the first point to the last, bending towards the points between (horns, tails, straps, hair locks) |
+| `plane` | `n, at` or `n, c`: **only under `cut:`**; removes the side `n` points to (a flat cut: the hem of a cape, an open front) |
+
+**Profiles** (`extrude`, `revolve`), in the primitive's local frame, scaled with the part's space:
+`{circle: r}`, `{rect: [hx, hy]}` with `chamfer: 0.02` (45° corners) or `round: 0.02` (both keep the size),
+`{polygon: [[x, y], ...]}` with `round` (grows the outline by that much) and `{bezier: [P0, C0, P1, C1, ...]}`
+(quadratic segments from each P through its C to the next P, the last back to P0; curves, leaves, cloth).
+A `revolve` profile is the **whole cross-section through the axis** (x = distance from it, both sides, like a
+slice of the object), or one side with `offset` for a ring.
+
+**Modifiers** on any single primitive (not `chain`, `membrane`, `plane`), in its frame (its `c` and `rot` or
+`align`, or the part's space): `shell: 0.05` hollows it into a shell that thick (capes, hoods, sleeves, open
+helmets, with `plane` cuts); `elongate: [x, y, z]` stretches its middle by those half lengths and keeps the
+ends (long plates, belts); `twist: 2` turns it about local y, radians per unit (twisted horns, ropes);
+`bend: 1` curves it in the local x-y plane, radians per unit along x (curved blades, a cape's fall). Twisted
+and bent parts take shorter ray-marching steps.
+
+**Joins**: `blend: 0.05` is the smooth union (as before); `blend: {mode: chamfer|round|stairs, k: 0.04, n: 3}`
+joins the primitives with a 45° bevel, a fillet or `n` steps. `cut_blend` takes the same, or `{mode: groove,
+depth: 0.02, width: 0.01}`: a channel engraved where each cutter's surface crosses the part, which keeps its
+volume (a `box` or `plane` cutter draws a groove line across armour).
+
+`validate` warns when a shell, an extrusion or a tube is thinner than one pixel at the spec's `camera.scale`
+(it can vanish or flicker) and when a polygon's edges cross.
 
 ## animations
 **Expression cycles** (loops: idle, walk, run, fly):

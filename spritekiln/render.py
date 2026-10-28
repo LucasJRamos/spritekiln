@@ -125,15 +125,23 @@ def soft_shadow(scene, P, L, steps=28):
     return np.clip(res, 0, 1)
 
 
-def render(scene, cam, light):
-    """Supersampled buffers: gid, val (0..1 light), depth, normal (world)."""
+def camera_rays(cam):
+    """Origins of the supersampled camera rays, row by row (every ray goes along cam.D)."""
     S = cam.size
     N = S * cam.ss
     o = (np.arange(N) + 0.5) / cam.ss
     px, py = np.meshgrid(o, o)
     u = (px - S / 2) * cam.scale
     v = (S / 2 - py) * cam.scale
-    ro = cam.center + u.reshape(-1, 1) * cam.R + v.reshape(-1, 1) * cam.U - cam.D * 20
+    return cam.center + u.reshape(-1, 1) * cam.R + v.reshape(-1, 1) * cam.U - cam.D * 20
+
+
+def render(scene, cam, light):
+    """Supersampled buffers: gid, val (0..1 light), depth, normal (world). The numpy reference; fast.render
+    is the compiled one (backend.py picks)."""
+    S = cam.size
+    N = S * cam.ss
+    ro = camera_rays(cam)
     rd = np.broadcast_to(cam.D, ro.shape).copy()
     # ray / bounding sphere -> skip empty space and rays that miss everything
     oc = ro - scene.bc
