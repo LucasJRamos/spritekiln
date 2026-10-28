@@ -170,6 +170,83 @@ def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=N
     return out, [d for d, _ in dl], dict(scale=k, crop=[x0, y0, x1, y1])
 
 
+def style_preview(path=None, fields=None, direction='se', anim=None, frame=0, scale=4, out=None, start=None):
+    """The same pose under every choice of the style's look fields, one row per field, the project's style (or the
+    defaults) for the other fields: to choose a style by looking. Without a spec, the humanoid template. Renders
+    come from the geometry cache except for light presets that move the light (their shadows are traced). Returns
+    (png path, rows: [{field, choices, current}]); the current choice is marked with * in the image."""
+    import tempfile
+
+    from PIL import Image
+
+    from . import preview
+    from . import style as S
+    from .export import BG, font, label, upscale
+    from .pipeline import render_frame
+
+    fields = list(fields or S.PREVIEW_FIELDS)
+    unknown = [f for f in fields if f not in S.PREVIEW_FIELDS]
+    if unknown:
+        raise SpriteKilnError(f'fields: {", ".join(unknown)} (use {", ".join(S.PREVIEW_FIELDS)})')
+    if direction not in dict(specmod.DIRECTIONS8):
+        raise SpriteKilnError(f'direction {direction!r}: use one of {", ".join(dict(specmod.DIRECTIONS8))}')
+    cfg = config.load(start or path)
+    st = cfg.get('style') or {} if cfg else {}
+    current = {**specmod.RENDER, **{k: st[k] for k in specmod.STYLE_RENDER if st.get(k) not in (None, '')}}
+    tmp = None
+    if path is None:  # a copy, so that its render cache does not land in the installed package
+        tmp = tempfile.mkdtemp(prefix='spritekiln-style-')
+        path = shutil.copy(resources.template('humanoid'), os.path.join(tmp, 'humanoid.yaml'))
+    yaw = dict(specmod.DIRECTIONS8)[direction]
+    rows, cells = [], []
+    try:
+        for field in fields:
+            choices = [True, False] if field == 'highlights' else list(S.CHOICES[field])
+            for c in choices:
+                sp = _checked(specmod.load(path, style={**current, field: c}))
+                cells.append(render_frame(sp, pose_env(sp, anim, frame, yaw), yaw, maps=False).img)
+            rows.append(dict(field=field, choices=choices, current=current[field]))
+    finally:
+        if tmp:
+            shutil.rmtree(tmp, ignore_errors=True)
+    box = preview.content_box(cells)
+    cells = preview.crop(cells, box)
+    h, w = cells[0].shape[:2]
+
+    def name(r, c):
+        return (('yes' if c else 'no') if isinstance(c, bool) else c) + (' *' if c == r['current'] else '')
+
+    names = [[name(r, c) for c in r['choices']] for r in rows]
+    widest = max(font().getlength(n) for row in names for n in row) + 8
+    left, head, gap = 76, 16, 6
+    ncol = max(len(r['choices']) for r in rows)
+
+    def col(k):
+        return max(w * k, int(widest)) + gap
+
+    def size_at(k):
+        return left + ncol * col(k), gap + len(rows) * (head + h * k + gap)
+
+    k = preview.fit_scale(size_at, scale)
+    im = Image.new('RGBA', size_at(k), BG)
+    i = 0
+    for r, row in enumerate(rows):
+        y = gap + r * (head + h * k + gap)
+        label(im, row['field'], (4, y + head + 2))
+        for c, name in enumerate(names[r]):
+            x = left + c * col(k)
+            label(im, name, (x, y + 1))
+            im.alpha_composite(upscale(cells[i], k, None), (x, y + head))
+            i += 1
+    if out is None:
+        where = os.path.join(os.path.dirname(os.path.abspath(path)), 'out') if tmp is None else None
+        where = where or os.path.join(cfg['specs'] if cfg else os.getcwd(), 'out')
+        out = os.path.join(where, 'style_preview.png')
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    im.save(out)
+    return out, rows
+
+
 def _checked(sp):
     """The spec, or SpriteKilnError with the problems found without building poses."""
     errors = specmod.quick_errors(sp)

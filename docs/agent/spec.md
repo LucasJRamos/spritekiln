@@ -49,12 +49,50 @@ symmetric designs: a sword in the right hand switches hands in the mirrored dire
 comes from the other side.
 
 ## Light
-`light` sets the direction (`dir`), the rim light (`rim`, `rim_strength`), `ambient`, `shadows` and `ao`. The
-render cache keeps the geometry of each frame (parts, depth, normals, shadows, occlusion) and applies the light,
+`light` sets the direction (`dir`), the rim light (`rim`, `rim_strength`), `ambient`, `shadows` and `ao`; its
+keys win over the light preset of the project's style (below). The render cache keeps the geometry of each frame (parts, depth, normals, shadows, occlusion) and applies the light,
 materials and palette afterwards, so changing `ambient`, `rim_strength`, a ramp or a material re-renders a whole
 asset in seconds; changing `dir` traces the shadows again. `mode: flat` draws every material in one tone
 (`flat_band`, default the upper middle of its `bands`) for games that light the sprite at run time through the
 normal map.
+
+## render (the look, from the project's style)
+The project's style (`[style]` of `spritekiln.toml`, recorded with `spritekiln style set`, see style.md) decides
+how every asset is drawn; a spec repeats none of it. A top-level `render:` block overrides it for one asset (an
+exception: write why in `brief:`; `spritekiln style` lists such specs), and a material's own fields win over
+both.
+```yaml
+render: {outline: none, crease_angle: 50, min_run: 2}
+```
+- `outline`: `selective` (each material outlined in its own darkest tone, the default), `dark` (one colour
+  around the whole sprite: `outline_color`, default the darkest first tone of the ramps), `colored` (each
+  material's line tone, `line_band`: a softer coloured outline) or `none`. A material's `line_color` sets its
+  own outline colour; `outline: false` on a material leaves it out.
+- `shading`: `soft` (every tone of the ramp, the default), `flat` (a material's two lightest tones) or `toon`
+  (its three lightest, in hard steps at light 0.3 and 0.6). A material that sets `bands` or `thresholds`
+  keeps them; a highlight keeps the top tone.
+- `lines`: `depth` (inner lines where parts overlap, the default), `depth+normal` (also at folds inside a
+  part: `crease: true` on every material that does not say otherwise) or `none` (`line: false` everywhere).
+- `highlights`: `false` drops the highlights the finishes add (a material's own `highlight` stays).
+- `dither`: `none`, `bayer2` (a checker) or `bayer4` (finer): an ordered pattern mixes two neighbouring tones
+  near their border, only inside regions (edges and details of 1-2 px stay solid), anchored on each part so it
+  moves with the part. `dither: false` on a material turns it off; `dither: true` turns it on (bayer2).
+- `light`: a preset for the light; keys of the spec's `light:` win over it.
+
+  | preset | |
+  |---|---|
+  | `classic` | the default: from the top left, in front |
+  | `top` | from above: short shadows, a bit more ambient |
+  | `dramatic` | low from the side: strong contrast, little ambient, strong rim |
+  | `soft` | high ambient, low contrast |
+  | `flat` | `mode: flat`: one tone per material, for games that light the sprite through the normal map |
+
+- `snap: true`: `snap: [root, torso_rot]` (just `[root]` without that bone) when the spec has no `snap:` list.
+- `crease_angle`, `min_run`: the fold lines (materials, below).
+
+Everything here except `light` presets that move the light and `snap` is applied after the render cache:
+switching the style re-renders a whole asset in seconds. `spritekiln style preview <spec>` shows each choice
+side by side.
 
 ## Units and axes
 - The world is in "game metres": a human is 1.6–1.9 tall. The ground is `y = 0`.
@@ -105,6 +143,8 @@ How a material answers light:
 - `edge_highlight: true`: one tone up along convex edges that face the light (the bevels of plates and blocks).
 - A top-level `render: {crease_angle: 50, min_run: 2}` tunes both: line runs shorter than `min_run` pixels are
   dropped.
+- `line_color: "#2a1a10"`: this material's outer outline colour (default: from the style's `outline`).
+- `dither: false | true`: leave this material out of the style's dither, or dither it when the style does not.
 
 Ramps come from `palette:`: a file path relative to the spec, a name in the project's palettes folder
 (`<specs>/palettes/<name>.yaml` of `spritekiln.toml`), a built-in name (`gothic`), or a list of them (later

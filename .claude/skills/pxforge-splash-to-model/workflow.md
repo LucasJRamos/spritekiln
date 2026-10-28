@@ -8,6 +8,7 @@ coherent directions (the same 3D model, rotated). Read [spec.md](SPEC.md) before
 ```
 python -m pxforge style                                      # the project's art style (first: interview the user)
 python -m pxforge style set --view topdown --height 48 ...   # record the answers (see style.md)
+python -m pxforge style preview [<spec.yaml>] [--field light]   # the style's look choices side by side
 python -m pxforge validate <spec.yaml>                       # after every edit; problems come with file:line:column
 spritekiln spec outline <spec.yaml>                   # map of the file: each part/animation with its lines
 spritekiln spec show <spec.yaml> parts.helm animations.walk   # numbered lines of the blocks you edit
@@ -95,4 +96,4 @@ instructions; commands print a note when they come from another version.
 
 ## Tools for AIs
 `python -m pxforge mcp` serves the same operations over the Model Context Protocol (style, validate, pose,
-render, review, ref_compare, export, new), returning images and JSON. Use it when your AI client supports MCP.
+render, review, ref_compare, export, new, style_preview), returning images and JSON. Use it when your AI client supports MCP.

@@ -1,6 +1,6 @@
 # 11. Render style presets
 
-**Status:** proposed · **Track:** quality, tokens · **Stage:** 3 (release 0.3) · **Depends on:** 06, 07, 08, 09, 10
+**Status:** done (stage 3) · **Track:** quality, tokens · **Stage:** 3 (release 0.3) · **Depends on:** 06, 07, 08, 09, 10
 
 ## Problem
 The project style (`[style]` in `spritekiln.toml`, `spritekiln/style.py`) records `outline` (selective, dark,
@@ -82,3 +82,34 @@ snap = false                # whole-pixel snapping of root and torso (10)
 - **Too many knobs.** Presets come first; single fields are for experts. Should there be named bundles?
   For example, `preset = "crisp-16bit"` setting several fields at once, inspired by dddpix's "Clean Pixel",
   "Dithered Retro" and "Strong Outline". Decide after trying the fields on the showcase.
+
+## Outcome (2026-10-28): done
+- `spec.load` resolves `render` = built-in defaults < the project style < (`style preview`'s choice) < the
+  spec's `render:` block, and turns it into material defaults (`outline`, `line`, `crease`, the finishes'
+  highlights, `bands`/`thresholds`, `dither`, `line_color`), the light preset and `snap`. A material's own fields
+  win. Defaults equal the old look: no golden changed.
+- Outline modes: `dark` takes `outline_color` or the darkest first tone of the spec's ramps, chosen by its
+  brightest channel (by luma a dark red beat the palette's near-black on the Templar); `colored` takes each
+  material's `line_band` tone; a material's `line_color` wins in every mode.
+- `shading: flat` takes a material's two lightest tones, `toon` its three lightest with steps at 0.3 and 0.6;
+  the top tone stays a highlight's. On 5-6 tone ramps flat lightens the shadow side: contrast moves between
+  materials, as flat pixel art has it.
+- Dither: ordered Bayer (2x2, 4x4) with an amplitude of half a tone (values within a quarter tone of a border
+  mix), after the orphan cleanup (which would take a checker for noise), only on pixels whose four neighbours
+  are the same part and material (dithering 1 px gold trims made them dotted). The pattern is indexed by
+  screen pixels from each part's projected origin, not by part-local coordinates as proposed: a pattern in 3D
+  coordinates sampled on the pixel grid aliases on slanted surfaces, and anchoring on the origin already makes
+  it move with the part (a ball moved 2 px renders identical, dither included). The `local` channel planned
+  for it in [09](09-surface-paint.md) was dropped.
+- Light presets are a table of `dir`, `rim_strength`, `ambient` and `mode`; the spec's `light:` keys win.
+- `snap = true` gives specs without a `snap:` list `[root, torso_rot]` (`[root]` without that bone).
+- `spritekiln style preview [spec] [--field ...]` and the MCP tool `style_preview`: one row per field, a column
+  per choice, the current one marked; the humanoid template (copied to a temporary folder, so no cache lands
+  in the package) without a spec. Switching the Templar's style re-renders its 64 idle frames from a warm cache
+  in 0.03-0.04 s per frame (target 0.3).
+- `style` lists specs whose `render:` block sets a look field to another value than the style's.
+- Tests (`tests/test_render_style.py`): no style no change, precedence, shading tones, outline colours, dither
+  near borders only and moving with the part, snap, recording the new fields, a record made before them, and a
+  golden of the minimal fixture under every choice.
+- Open: named bundles (`preset = "crisp-16bit"`) were not added; the fields are few enough with the preview.
+

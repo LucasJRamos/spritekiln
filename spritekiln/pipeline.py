@@ -89,6 +89,13 @@ def shadow_for(spec, env, yaw, cam):
     return (cx, cy + 0.5, sh.get('rx', 13.5) * lift, sh.get('ry', 4.5) * lift, rgba)
 
 
+def anchors(groups, yaw, cam):
+    """Each part's origin on screen in whole pixels (x, y): where its dither pattern starts."""
+    R = rot_y(np.radians(yaw))  # model -> world, as render.Scene
+    pts = [cam.project(R @ (g.frame[0] if getattr(g, 'frame', None) else np.zeros(3))) for g in groups]
+    return np.round(np.array(pts, float).reshape(-1, 2)).astype(int)
+
+
 class Frame(NamedTuple):
     """One rendered frame of one direction."""
 
@@ -149,6 +156,7 @@ def render_frame(spec, env, yaw, force=False, maps=True):
         spec.get('render'),
         gb.paint.astype(int),
         layers_of(groups),
+        anchors(groups, yaw, cam) if any(m.get('dither') for m in mats.values()) else None,
     )
     layers = layers_of(groups)
     P = gb.paint.astype(int)

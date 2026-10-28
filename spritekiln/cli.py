@@ -271,6 +271,21 @@ def cmd_init(a):
 def cmd_style(a):
     from . import style as S
 
+    if a.spec and a.action != 'preview':
+        raise SpriteKilnError(f'style {a.action}: only `style preview` takes a spec')
+    if a.action == 'preview':
+        from .api import style_preview
+
+        out, rows = style_preview(a.spec, a.field, a.dir, a.anim, a.frame, a.zoom, a.out)
+        print(f'style preview: {out}')
+        for r in rows:
+            names = [
+                (('yes' if c else 'no') if isinstance(c, bool) else c) + (' *' if c == r['current'] else '')
+                for c in r['choices']
+            ]
+            print(f'  {r["field"]:<11} ' + ', '.join(names))
+        print('* = the current style; record a choice with `spritekiln style set --<field> <choice>`')
+        return
     if a.action == 'set':
         answers = {k: getattr(a, k) for k in S.FIELDS}
         if all(v is None for v in answers.values()):
@@ -526,6 +541,9 @@ def _positive(text):
 
 
 def build_parser(prog='spritekiln'):
+    from .style import CHOICES as STYLE_CHOICES
+    from .style import PREVIEW_FIELDS
+
     p = argparse.ArgumentParser(
         prog=prog, description='Procedural SDF models in YAML -> animated 8-direction pixel art'
     )
@@ -636,7 +654,8 @@ def build_parser(prog='spritekiln'):
     s.set_defaults(f=cmd_init)
 
     s = sub.add_parser('style', help="show or record the project's art style (asked before the first asset)")
-    s.add_argument('action', nargs='?', default='show', choices=['show', 'set'])
+    s.add_argument('action', nargs='?', default='show', choices=['show', 'set', 'preview'])
+    s.add_argument('spec', nargs='?', help='preview: the spec to show (default: the humanoid template)')
     g = s.add_argument_group('answers (set)')
     g.add_argument('--view', choices=['topdown', 'side'], help='top-down 3/4 or side-scroller')
     g.add_argument('--height', type=_positive, help='px on screen of a human-sized character (sets camera.scale)')
@@ -646,12 +665,25 @@ def build_parser(prog='spritekiln'):
     g.add_argument('--mirror', choices=['yes', 'no'], help='render only right-facing directions; engines flip')
     g.add_argument('--palette', help='palette for new specs: built-in name, project palette or file')
     g.add_argument('--colors', help='the colour mood in a few words (e.g. "dark, desaturated")')
-    g.add_argument('--outline', choices=['selective', 'dark', 'none'])
-    g.add_argument('--shading', choices=['soft', 'flat'])
-    g.add_argument('--proportions', choices=['stylized', 'chibi', 'realistic'])
-    g.add_argument('--animation', choices=['fluid', 'snappy'])
+    g.add_argument('--outline', choices=STYLE_CHOICES['outline'], help='outer outline (applied by the renderer)')
+    g.add_argument('--outline-color', help='the one outline colour of --outline dark (default: darkest ramp tone)')
+    g.add_argument('--shading', choices=STYLE_CHOICES['shading'], help='soft (all tones), flat (2), toon (3, hard)')
+    g.add_argument('--lines', choices=STYLE_CHOICES['lines'], help='inner lines: between parts, + folds, or none')
+    g.add_argument('--highlights', choices=['yes', 'no'], help='material finishes add highlights')
+    g.add_argument('--dither', choices=STYLE_CHOICES['dither'], help='ordered dither between tones')
+    g.add_argument('--light', choices=STYLE_CHOICES['light'], help='light preset')
+    g.add_argument('--proportions', choices=STYLE_CHOICES['proportions'])
+    g.add_argument('--animation', choices=STYLE_CHOICES['animation'])
+    g.add_argument('--snap', choices=['yes', 'no'], help='root and torso move in whole pixels (less boiling)')
     g.add_argument('--references', nargs='+', metavar='REF', help='games, artists or image paths to match')
     g.add_argument('--notes', help='anything else the style must respect')
+    pg = s.add_argument_group('preview')
+    pg.add_argument('--field', action='append', choices=PREVIEW_FIELDS, help='only these rows (repeatable)')
+    pg.add_argument('--dir', default='se', choices=DIRS, help='direction (default se)')
+    pg.add_argument('--anim', help='a pose of this animation instead of the rest pose')
+    pg.add_argument('--frame', type=int, default=0)
+    pg.add_argument('--zoom', type=_positive, default=4, help='largest zoom (default 4)')
+    pg.add_argument('-o', '--out')
     s.set_defaults(f=cmd_style)
 
     s = sub.add_parser('update', help="upgrade SpriteKiln and refresh this project's AI files")

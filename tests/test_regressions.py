@@ -66,7 +66,7 @@ def test_project_palettes_folder(tmp_path):
     text = open(spec, encoding='utf-8').read().replace('palette: gothic', 'palette: mygame')
     open(spec, 'w', encoding='utf-8').write(text)
     sp = S.load(spec)
-    assert sp['_files'] == [str(pal)]
+    assert sp['_files'] == [str(tmp_path / 'game' / 'spritekiln.toml'), str(pal)]  # the style, then the palette
 
 
 def test_in_process_spec_cache_sees_palette_edits(tmp_path):

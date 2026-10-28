@@ -84,9 +84,12 @@ def build():
         session. Without `answers`: the recorded style (follow it), or `recorded: false` with suggested answers;
         then interview the user with the questions of guide('style') before generating anything, confirm a
         summary, and call style(answers={...}) with view (topdown|side), height (px of a human-sized character
-        on screen), directions (8|4|2), mirror (yes|no), palette, colors, outline (selective|dark|none), shading
-        (soft|flat), proportions (stylized|chibi|realistic), animation (fluid|snappy), references (list), notes.
-        A recorded style changes only when the user explicitly asks: then pass only the changed answers."""
+        on screen), directions (8|4|2), mirror (yes|no), palette, colors, outline (selective|dark|colored|none),
+        outline_color, shading (soft|flat|toon), lines (depth|depth+normal|none), highlights (yes|no), dither
+        (none|bayer2|bayer4), light (classic|top|dramatic|soft|flat), proportions (stylized|chibi|realistic),
+        animation (fluid|snappy), snap (yes|no), references (list), notes. The renderer applies the look fields
+        to every asset (style_preview shows them). A recorded style changes only when the user explicitly asks:
+        then pass only the changed answers."""
         from . import style as S
         from .update import stale_note
 
@@ -95,6 +98,22 @@ def build():
         if note:
             res['note'] = note
         return res
+
+    @tool
+    def style_preview(
+        spec: str | None = None,
+        fields: str | None = None,
+        direction: str = 'se',
+        anim: str | None = None,
+        frame: int = 0,
+        scale: int = 4,
+    ) -> list:
+        """The same pose under every choice of the style's look fields (outline, shading, lines, highlights,
+        dither, light; comma-separated `fields` for some), one row per field, the project's style for the rest
+        (* marks it). Without `spec`, the humanoid template: show it to the user during the style interview so
+        they choose by looking."""
+        out, rows = api.style_preview(spec, _split(fields), direction, anim, frame, scale)
+        return [{'image': out, 'rows': rows}, *_pngs(out)]
 
     @tool
     def new(

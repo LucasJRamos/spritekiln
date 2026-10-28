@@ -11,6 +11,21 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   depends on the geometry only. Assets rendered again are lighter where those false shadows used to fall,
   so they do not match renders of 0.2 pixel for pixel.
 
+### The project's style drives the render
+- The look of the art style is applied by the renderer to every asset of the project: `outline` (selective,
+  dark, and new: colored, with `outline_color` for dark), `shading` (soft, flat, and new: toon), and new fields
+  `lines` (depth, depth+normal, none), `highlights`, `dither` (none, bayer2, bayer4: ordered, inside regions,
+  anchored on each part), `light` (presets classic, top, dramatic, soft, flat) and `snap`. Specs no longer
+  repeat it in their materials; a spec's `render:` block overrides it for one asset and a material's own
+  fields win over both. `spritekiln style` lists the specs whose `render:` block differs.
+- Projects whose style says `outline = "dark"` or `shading = "flat"` now get them from the renderer: materials
+  that set `bands` or `outline` themselves keep them, the others change. A project without a recorded style,
+  or with selective outlines and soft shading, renders as before.
+- `spritekiln style preview [spec]` (MCP: `style_preview`): a pose under each choice side by side, from the
+  render cache (the Templar switches style in 0.03-0.04 s per frame), for choosing with the user by looking.
+  The interview gets a question about lines, highlights, dither and light, and one about snapping.
+- `style set` takes `--outline-color`, `--lines`, `--highlights`, `--dither`, `--light` and `--snap`.
+
 ### Surface paint
 - `paint:` on a part colours regions of its surface with other materials, without new geometry: a volume of
   primitives, or `stripes`, `rings`, `grid` (rivets), `spots` (noise) and `checker` patterns in the part's own

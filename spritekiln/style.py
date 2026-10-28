@@ -6,6 +6,10 @@ and its camera pitch, `camera.scale` and `size` from the height of a character o
 mirroring and the palette. The rest (colours, outline, shading, proportions, animation, references, notes)
 guides whoever models and animates. `spritekiln style` shows the record, or suggests answers from the
 specs a project already has, and lists the specs that no longer match it.
+
+The look fields (outline, outline_color, shading, lines, highlights, dither, light, snap) are applied by the
+renderer to every spec of the project (spec.RENDER; a spec's `render:` block and a material's own fields win),
+and `spritekiln style preview` shows their choices side by side.
 """
 
 import datetime
@@ -14,6 +18,7 @@ from collections import Counter
 
 from . import config
 from .errors import SpriteKilnError
+from .spec import RENDER, RENDER_CHOICES, STYLE_RENDER
 
 FIELDS = (
     'view',
@@ -25,25 +30,45 @@ FIELDS = (
     'palette',
     'colors',
     'outline',
+    'outline_color',
     'shading',
+    'lines',
+    'highlights',
+    'dither',
+    'light',
     'proportions',
     'animation',
+    'snap',
     'references',
     'notes',
 )
 CHOICES = {
     'view': ('topdown', 'side'),
-    'outline': ('selective', 'dark', 'none'),
-    'shading': ('soft', 'flat'),
+    **RENDER_CHOICES,
     'proportions': ('stylized', 'chibi', 'realistic'),
     'animation': ('fluid', 'snappy'),
 }
-RECOMMENDED = dict(outline='selective', shading='soft', proportions='stylized', animation='fluid')
+YES_NO = ('mirror', 'highlights', 'snap')
+RECOMMENDED = dict(
+    outline='selective',
+    outline_color='',
+    shading='soft',
+    lines='depth',
+    highlights=True,
+    dither='none',
+    light='classic',
+    proportions='stylized',
+    animation='fluid',
+    snap=False,
+)
 NOTES = {
     'height': 'px on screen of a human-sized character',
     'scale': 'camera.scale of every asset (from height)',
     'size': 'frame px for that character',
+    'outline_color': 'with outline "dark"; empty: the darkest tone of the ramps',
+    'snap': 'root and torso move in whole pixels',
 }
+PREVIEW_FIELDS = ('outline', 'shading', 'lines', 'highlights', 'dither', 'light')
 PITCH = {'topdown': 38, 'side': 0}
 # How tall the template humanoid stands on screen in world units (its height in pixels x camera.scale),
 # measured on the templates; the 38 degree pitch of the top-down view shortens it.
@@ -167,20 +192,25 @@ def record(answers, start=None, today=None):
 
 
 def describe(st):
-    """Readable lines of a recorded style."""
+    """Readable lines of a recorded style (a record made before a field existed shows its default)."""
     refs = '; '.join(st.get('references') or []) or '-'
     dirs = st.get('directions')
     mirror = ', mirrored (the engine flips the left-facing ones)' if st.get('mirror') else ''
     view = st.get('view')
+    r = {**RENDER, **{k: st[k] for k in STYLE_RENDER if st.get(k) not in (None, '')}}
+    color = f' ({r["outline_color"]})' if r['outline'] == 'dark' and r['outline_color'] else ''
+    snap = ', root and torso snapped to whole pixels' if r['snap'] else ''
     return [
         f'  view         {view} (camera pitch {PITCH.get(view, "?")})',
         f'  characters   {st.get("height")} px tall (camera.scale {st.get("scale")}), frame {st.get("size")} px',
         f'  directions   {dirs}{mirror}',
         f'  palette      {st.get("palette")}' + (f'   colours: {st["colors"]}' if st.get('colors') else ''),
-        f'  outline      {st.get("outline")}',
-        f'  shading      {st.get("shading")}',
+        f'  outline      {r["outline"]}{color}',
+        f'  shading      {r["shading"]}; lines {r["lines"]}; highlights {"yes" if r["highlights"] else "no"}; '
+        f'dither {r["dither"]}',
+        f'  light        {r["light"]}',
         f'  proportions  {st.get("proportions")}',
-        f'  animation    {st.get("animation")}',
+        f'  animation    {st.get("animation")}{snap}',
         f'  references   {refs}',
         f'  notes        {st.get("notes") or "-"}',
     ]
@@ -209,16 +239,17 @@ def _clean(given):
             out['scale'] = float(out['scale'])
         except (TypeError, ValueError):
             raise SpriteKilnError(f'scale: give a number (got {out["scale"]!r})') from None
-    if 'mirror' in out and not isinstance(out['mirror'], bool):
-        text = str(out['mirror']).strip().lower()
-        if text not in ('yes', 'no', 'true', 'false'):
-            raise SpriteKilnError(f'mirror: yes or no (got {out["mirror"]!r})')
-        out['mirror'] = text in ('yes', 'true')
+    for k in YES_NO:
+        if k in out and not isinstance(out[k], bool):
+            text = str(out[k]).strip().lower()
+            if text not in ('yes', 'no', 'true', 'false'):
+                raise SpriteKilnError(f'{k}: yes or no (got {out[k]!r})')
+            out[k] = text in ('yes', 'true')
     if 'references' in out:
         refs = out['references']
         out['references'] = [refs] if isinstance(refs, str) else [str(r) for r in refs]
         out['references'] = [r.strip() for r in out['references'] if r.strip()]
-    for k in ('view', 'palette', 'colors', 'notes', *CHOICES):
+    for k in ('view', 'palette', 'colors', 'notes', 'outline_color', *CHOICES):
         if k in out:
             out[k] = str(out[k]).strip()
     if 'palette' in out:
@@ -244,6 +275,13 @@ def _check(st):
         )
     if not st['palette']:
         raise SpriteKilnError('palette: give a palette name or file')
+    if st.get('outline_color'):
+        from .pixelize import hx
+
+        try:
+            hx(st['outline_color'])
+        except ValueError:
+            raise SpriteKilnError(f'outline_color {st["outline_color"]!r}: a colour like "#120d16"') from None
 
 
 def _defaults(defaults, st):
@@ -312,12 +350,17 @@ def suggest(specs, cfg):
 
 
 def off_style(specs, st, defaults):
-    """Specs whose view, camera pitch or density differ from the style: [{spec, differs: {key: [have, want]}}]."""
+    """Specs whose view, camera pitch or density differ from the style, or whose `render:` block sets a look
+    field to something else: [{spec, differs: {key: [have, want]}}]."""
     out = []
     pitch = (defaults.get('camera') or {}).get('pitch', PITCH.get(st.get('view')))
-    want = dict(view=st.get('view'), pitch=pitch, scale=st.get('scale'))
+    fixed = dict(view=st.get('view'), pitch=pitch, scale=st.get('scale'))
+    look = {k: st.get(k, RENDER[k]) for k in STYLE_RENDER}
     for s in specs:
         have = dict(view=s['view'], pitch=s['pitch'], scale=s['scale'])
+        own = {k: v for k, v in s['render'].items() if k in look}
+        have.update(own)
+        want = {**fixed, **{k: look[k] for k in own}}
         differs = {}
         for k, w in want.items():
             h = have[k]
@@ -378,6 +421,7 @@ def _spec_facts(folder, root):
                     palette=_palette_name(data.get('palette')),
                     directions=len(dirs) if isinstance(dirs, list) else dirs if dirs in (1, 4, 8) else None,
                     mirror=data.get('mirror') if isinstance(data.get('mirror'), bool) else None,
+                    render=data.get('render') if isinstance(data.get('render'), dict) else {},
                 )
             )
     return facts

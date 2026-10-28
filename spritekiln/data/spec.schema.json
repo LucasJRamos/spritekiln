@@ -36,7 +36,15 @@
       ]
     },
     "ramps": {"$ref": "#/$defs/ramps", "description": "Extra ramps defined in the spec (override the palette)."},
-    "render": {"type": "object", "additionalProperties": false, "description": "Render settings of this spec (the project style sets the defaults).", "properties": {
+    "render": {"type": "object", "additionalProperties": false, "description": "How this spec is drawn. The project's style ([style] of spritekiln.toml) sets the defaults; set a field here only for an exception (spritekiln style lists such specs).", "properties": {
+      "outline": {"enum": ["selective", "dark", "colored", "none"], "description": "Outer outline: each material's darkest tone (selective), one dark colour (dark), each material's line tone (colored) or none."},
+      "outline_color": {"$ref": "#/$defs/color", "description": "The one colour of outline: dark (default: the darkest first tone of the ramps)."},
+      "shading": {"enum": ["soft", "flat", "toon"], "description": "Tones per material when it sets no bands: all (soft), its two lightest (flat), three in hard steps (toon)."},
+      "lines": {"enum": ["depth", "depth+normal", "none"], "description": "Inner lines: where parts overlap (depth), also at folds inside a part (depth+normal: crease on every material), or none."},
+      "highlights": {"type": "boolean", "description": "Material finishes add their highlights (default true)."},
+      "dither": {"enum": ["none", "bayer2", "bayer4"], "description": "Ordered dither between neighbouring tones, inside regions, anchored on each part."},
+      "light": {"enum": ["classic", "top", "dramatic", "soft", "flat"], "description": "Light preset; keys of light: win over it."},
+      "snap": {"type": "boolean", "description": "Snap root and torso_rot to whole pixels when the spec has no snap: list."},
       "crease_angle": {"type": "number", "description": "Degrees between neighbouring normals that make a crease line (default 50)."},
       "min_run": {"type": "integer", "minimum": 1, "description": "Crease line runs shorter than this many pixels are dropped (default 2)."}
     }},
@@ -222,8 +230,8 @@
             "thresholds": {"type": "array", "items": {"type": "number"}, "minItems": 1, "description": "Light values where the tone steps up (toon shading), instead of gamma."},
             "crease": {"type": "boolean", "description": "Lines where the surface folds inwards inside one part."},
             "edge_highlight": {"type": "boolean", "description": "One tone up along convex edges facing the light."},
-            "dither": {"type": "boolean", "description": "Dither between neighbouring tones (when the style has dither)."},
-            "line_color": {"$ref": "#/$defs/color", "description": "Outline colour with style outline = colored."},
+            "dither": {"type": "boolean", "description": "false: never dithered; true: dithered even when the style has none (bayer2)."},
+            "line_color": {"$ref": "#/$defs/color", "description": "This material's outer outline colour, in every outline style but none (default: from the style)."},
             "glow": {
               "anyOf": [
                 {"$ref": "#/$defs/color"},

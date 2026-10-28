@@ -17,9 +17,10 @@ def hx(s):
     return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
 
 
-def band_of(M, v, flat=False):
+def band_of(M, v, flat=False, dither=None):
     """light value (0..1) -> ramp index for material M. `flat`: one tone per material, `flat_band` (default the
-    upper middle of its bands), for games that light sprites themselves through the normal map."""
+    upper middle of its bands), for games that light sprites themselves through the normal map. `dither`: an
+    offset per value, in tones (ordered dithering near the borders between tones)."""
     n = len(M['colors'])
     if M['emissive'] or n == 1:
         b = M['band'] if M['band'] is not None else n - 1
@@ -34,10 +35,15 @@ def band_of(M, v, flat=False):
         return np.clip(lo + np.searchsorted(np.asarray(M['thresholds'], float), np.clip(v, 0, 1), 'right'), lo, hi)
     levels = hi - lo + 1
     g = np.clip(v, 0, 1) ** M['gamma']
-    return np.clip(lo + np.floor(g * levels * 0.999).astype(int), lo, hi)
+    return np.clip(lo + np.floor(g * levels * 0.999 + (0 if dither is None else dither)).astype(int), lo, hi)
 
 
 N4 = ((0, 1), (0, -1), (1, 0), (-1, 0))
+BAYER = {
+    'bayer2': np.array([[0, 2], [3, 1]]),
+    'bayer4': np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]),
+}
+DITHER = 0.5  # tones: values within a quarter of a tone of a border mix the two tones
 
 
 def shift(a, dy, dx, fill):
@@ -136,17 +142,22 @@ def compose(
     opts=None,
     paint=None,
     layers=None,
+    anchor=None,
 ):
     """-> RGBA uint8 image. shadow: (cx, cy, rx, ry, rgba) or None; flat: see band_of; ndh: render.facing, for the
     materials' highlights; normal, cam, light_dir: for creases and edge highlights (folds); opts: the spec's
     `render:` settings (crease_angle, min_run); paint, layers: the paint layer of each pixel (render.GBuffer)
-    and the frame's paint.Layer list: a painted pixel takes the layer's material."""
+    and the frame's paint.Layer list: a painted pixel takes the layer's material; anchor: [groups, 2] whole
+    pixels (x, y) where each part's dither pattern starts (materials with `dither`)."""
     H, W = gid.shape
     names = list(materials)
     mid = {n: i for i, n in enumerate(names)}
     RAMPS = {mid[n]: [hx(c) for c in materials[n]['colors']] for n in names}
     EMISSIVE = {mid[n] for n in names if materials[n]['emissive']}
     NO_OUTLINE = {mid[n] for n in names if not materials[n]['outline']}
+    OUTLINE = {  # the outer outline's colour: the material's `line_color` (from the style), or its darkest tone
+        mid[n]: hx(materials[n]['line_color']) if materials[n].get('line_color') else RAMPS[mid[n]][0] for n in names
+    }
     mats = np.array([mid[g.mat] for g in groups] + [-1])
     line_ok = np.array([bool(g.line) for g in groups] + [False])
     mat = np.where(gid >= 0, mats[gid], -1)
@@ -162,6 +173,7 @@ def compose(
             band[sel] = band_of(materials[n], val[sel], flat)
 
     # --- 1. remove orphan band pixels (pillow noise) ---
+    band0 = band.copy()
     for _ in range(2):
         nb = np.stack([shift(band, dy, dx, -9) for dy, dx in N4])
         ng = np.stack([shift(gid, dy, dx, -9) for dy, dx in N4])
@@ -177,7 +189,26 @@ def compose(
                     u, c = np.unique(vals, return_counts=True)
                     band[y, x] = u[c.argmax()]
 
-    # --- 1a. creases and edge highlights from the normals, inside one part ---
+    # --- 1a. dither near the borders between tones, after the cleanup (which would take it for noise), in a
+    # pattern anchored on each part so that it moves with the part instead of crawling under it; only inside a
+    # region (thin details and edges stay solid) ---
+    if anchor is not None and not flat and any(materials[n].get('dither') for n in names):
+        yy, xx = np.mgrid[0:H, 0:W]
+        ax = np.asarray(anchor, int).reshape(-1, 2)[np.where(gid >= 0, gid, 0)]
+        inner = gid >= 0
+        for dy, dx in N4:
+            inner &= (shift(gid, dy, dx, -9) == gid) & (shift(mat, dy, dx, -9) == mat)
+        for n in names:
+            pattern = materials[n].get('dither')
+            sel = (mat == mid[n]) & inner & (band == band0)
+            if not pattern or not sel.any():
+                continue
+            B = BAYER[pattern]
+            k = len(B)
+            t = (B[(yy[sel] - ax[sel, 1]) % k, (xx[sel] - ax[sel, 0]) % k] + 0.5) / k**2
+            band[sel] = band_of(materials[n], val[sel], flat, DITHER * (t - 0.5))
+
+    # --- 1b. creases and edge highlights from the normals, inside one part ---
     crease = np.zeros((H, W), bool)
     crease_on = np.array([bool(materials[g.mat].get('crease')) for g in groups] + [False])
     edge_on = np.array([bool(materials[g.mat].get('edge_highlight')) for g in groups] + [False])
@@ -203,7 +234,7 @@ def compose(
                 top = len(M['colors']) - 1 - (1 if M.get('highlight') else 0)  # the highlight keeps its tone
                 band[sel] = np.minimum(band[sel] + 1, max(top, 0))
 
-    # --- 1b. highlights: a small hard cluster where the surface faces between the light and the camera ---
+    # --- 1c. highlights: a small hard cluster where the surface faces between the light and the camera ---
     hl_colors = []
     if ndh is not None and not flat:
         for n in names:
@@ -254,7 +285,7 @@ def compose(
     for sel, col in hl_colors:
         img[sel & ~line, :3] = col
 
-    # --- 4. outer outline (selout: tinted by neighbour material) ---
+    # --- 4. outer outline (selout: tinted by neighbour material, or its `line_color` from the style) ---
     solid = gid >= 0
     out = np.zeros((H, W), bool)
     owner = np.full((H, W), -1)
@@ -292,7 +323,7 @@ def compose(
         m = owner[y, x]
         if m < 0:
             continue
-        img[y, x, :3] = RAMPS[m][0]
+        img[y, x, :3] = OUTLINE[m]
         img[y, x, 3] = 255
 
     # --- 5. glow: emissive materials tint neighbouring pixels of other materials ---

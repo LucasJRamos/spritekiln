@@ -2,7 +2,8 @@
 
 Every asset of a game shares one look. SpriteKiln records it once per project, in the `[style]` table of
 `spritekiln.toml`, from a short interview with the user. `spritekiln new` applies its numeric part (view,
-density, frame size, directions, palette) to every new spec; the rest (outline, shading, proportions,
+density, frame size, directions, palette) to every new spec; the renderer applies its look (outline, shading,
+lines, highlights, dither, light, snap) to every asset at render time; the rest (colours, proportions,
 animation, references) is how you model and animate every asset of the project.
 
 ## Before the first asset: interview the user
@@ -18,8 +19,8 @@ Subagents cannot talk to the user: the main session runs the interview, and an a
 recorded stops and reports that.
 
 ### How to interview: grill the user, briefly
-- Ask the eight questions below in your own words and in the user's language, **at most four at a time**
-  (two rounds). Give each one its options with the recommended one first; "I don't know" takes the
+- Ask the nine questions below in your own words and in the user's language, **at most four at a time**
+  (three rounds). Give each one its options with the recommended one first; "I don't know" takes the
   recommendation. In Claude Code use the question tool (AskUserQuestion), one question per item, options
   with short descriptions; elsewhere, a numbered list in the chat that the user can answer in one line
   ("1a 2: 32 3a ...").
@@ -38,7 +39,8 @@ recorded stops and reports that.
 ```
 spritekiln style set --view topdown --height 48 --directions 8 --mirror no --palette gothic \
     --colors "dark, desaturated, one warm accent" --outline selective --shading soft \
-    --proportions stylized --animation fluid --references "Hyper Light Drifter" "art/refs/mood.png" \
+    --lines depth --highlights yes --dither none --light classic \
+    --proportions stylized --animation fluid --snap no --references "Hyper Light Drifter" "art/refs/mood.png" \
     --notes "enemies glow red; no blood"
 ```
 
@@ -67,15 +69,27 @@ given; `--scale` sets the density directly for an expert who knows it.
    from `spritekiln palette ramp "#hex" --steps 5`, or `spritekiln palette extract <image> -o
    <specs>/palettes/<name>.yaml`) and record its name.
 5. **Outline and shading.** Outline: selective (each part outlined in its own darkest tone; recommended),
-   dark (one near-black line around the whole sprite, the classic look), or none (soft, painterly). Shading:
-   soft (4–6 tones per material, smooth light; recommended) or flat (2–3 tones, cel shading, strong
-   contrast). → `--outline selective|dark|none --shading soft|flat`.
+   dark (one near-black line around the whole sprite, the classic look; `--outline-color` picks the colour),
+   colored (each material outlined in a lighter tone of its own colour: soft, modern) or none (painterly).
+   Shading: soft (all the tones of a ramp, smooth light; recommended), flat (two tones per material, clean
+   areas) or toon (three tones in hard steps, cel shading). → `--outline selective|dark|colored|none
+   --shading soft|flat|toon`.
 6. **Proportions.** Stylized (head 1.2–1.4× real size, 2–3 striking shapes; recommended), chibi (head
    1.6–2×, short limbs, few details) or realistic (head about 1×, slender; needs 64 px or more)? →
    `--proportions stylized|chibi|realistic`.
 7. **Animation.** Fluid (8-frame walks, in-between frames, overlapping motion; recommended) or snappy
-   (4–6-frame cycles, held poses, a retro feel)? → `--animation fluid|snappy`.
-8. **References (optional).** Games, artists or images whose look to match, and anything else every asset
+   (4–6-frame cycles, held poses, a retro feel)? And should the body move in whole pixels (less shimmering
+   on slow idles, steps instead of drift; recommended no, yes suits snappy)? → `--animation fluid|snappy
+   --snap yes|no`.
+8. **Finish and light.** Render `spritekiln style preview` (MCP: `style_preview`; without a spec it uses the
+   humanoid template), give the user the image (its path) and let them choose by looking. Inner lines: depth (between parts; recommended),
+   depth+normal (also at folds of armour and stone: crisper) or none. Highlights on metal and gems: yes
+   (recommended) or no. Dither: none (recommended), bayer2 (a checker between tones, retro) or bayer4
+   (finer). Light: classic (top left; recommended), top, dramatic (low side light, strong contrast), soft
+   (bright, low contrast) or flat (the game lights the sprites through normal maps). → `--lines
+   depth|depth+normal|none --highlights yes|no --dither none|bayer2|bayer4 --light
+   classic|top|dramatic|soft|flat`.
+9. **References (optional).** Games, artists or images whose look to match, and anything else every asset
    must respect ("enemies glow red", "no blood", "readable on a small phone"). → `--references ...` and
    `--notes "..."`. Open the images the user names and let them inform the answers above.
 
@@ -83,11 +97,9 @@ given; `--scale` sets the density directly for an expert who knows it.
 | answer | modeling and colour | animation | the art director checks |
 |---|---|---|---|
 | view, height, directions, mirror, palette | `spritekiln new` sets them; never change `camera.scale`, `camera.pitch` or the view of one asset | | the spec matches (`spritekiln style` lists the specs that do not) |
-| outline `selective` | materials as the templates have them (`outline` on; ramp index 0 is the material's darkest tone) | | |
-| outline `dark` | index 0 of every ramp is the same near-black (e.g. `#120d16`) | | one dark line around the silhouette in every direction |
-| outline `none` | `outline: false` on every material; `line: false` too for no inner lines | | no dark ring around the sprite |
-| shading `soft` | ramps of 5–6 tones; materials use 3–5 of them (`bands: [1, 4]`) | | gradual light, no banding noise |
-| shading `flat` | ramps of 3–4 tones; 2–3 bands per material (`bands: [2, 3]`) | | flat, clean areas; strong value contrast between materials |
+| outline, shading, lines, highlights, dither, light, snap | nothing: the renderer applies them to every spec (spec.md, "render"). Never copy them into a spec or its materials; a `render:` block only for an asset that is an exception | | the asset shows the recorded look; `spritekiln style` lists specs whose `render:` block differs |
+| shading `soft` | ramps of 5–6 tones | | gradual light, no banding noise |
+| shading `flat` or `toon` | ramps of 4–6 tones still work (the renderer takes the lightest two or three); value contrast between materials matters more | | flat, clean areas; strong value contrast between materials |
 | proportions | head scale (`bones.head` `scale`): stylized 1.2–1.4, chibi 1.6–2.0, realistic 1.0–1.1; limb lengths to match | | the proportions match the other assets |
 | animation `fluid` | | walk and run 8 frames, idle 6–8, tweens on actions, overlap and follow-through | |
 | animation `snappy` | | walk and run 4–6 frames, idle 2–4, held keys, few or no tweens | |
@@ -100,7 +112,7 @@ stays, and `style` lists the existing specs that no longer match. Ask whether to
 them; do not do it on your own.
 
 A request about one asset is not a style change. "Make this boss twice as big" means a bigger model and a
-bigger `size` for that spec, with the same density; "this ghost has no outline" means `outline: false` on
-its materials. Write the exception in that spec's `brief:` so later sessions keep it. When a request
+bigger `size` for that spec, with the same density; "this ghost has no outline" means `render: {outline:
+none}` in its spec. Write the exception in that spec's `brief:` so later sessions keep it. When a request
 seems to contradict the style without saying so, ask whether it is an exception for this asset or a new
 style for the project.

@@ -66,6 +66,37 @@ FINISHES = {
     'metal': dict(highlight=dict(size=0.95, max_px=4), rim=0.6),
     'glossy': dict(highlight=dict(size=0.975, max_px=2), rim=0.45),
 }
+# The project style's render fields (design 11, `[style]` of spritekiln.toml) and the spec's `render:` block. A
+# spec's own block wins over the style, a material's own fields over both; these defaults render as before.
+RENDER = dict(
+    outline='selective',
+    outline_color=None,
+    shading='soft',
+    lines='depth',
+    highlights=True,
+    dither='none',
+    light='classic',
+    snap=False,
+    crease_angle=50.0,
+    min_run=2,
+)
+STYLE_RENDER = ('outline', 'outline_color', 'shading', 'lines', 'highlights', 'dither', 'light', 'snap')
+RENDER_CHOICES = dict(
+    outline=('selective', 'dark', 'colored', 'none'),
+    shading=('soft', 'flat', 'toon'),
+    lines=('depth', 'depth+normal', 'none'),
+    dither=('none', 'bayer2', 'bayer4'),
+    light=('classic', 'top', 'dramatic', 'soft', 'flat'),
+)
+# light presets: the fields of DEFAULT_LIGHT they change (keys of the spec's own `light:` win)
+LIGHTS = {
+    'classic': {},
+    'top': dict(dir=[-0.2, 1.0, 0.25], rim_strength=0.3, ambient=0.16),
+    'dramatic': dict(dir=[-1.0, 0.45, 0.3], rim_strength=0.7, ambient=0.03),
+    'soft': dict(dir=[-0.45, 1.0, 0.6], rim_strength=0.25, ambient=0.32),
+    'flat': dict(mode='flat'),
+}
+TOON = (0.3, 0.6)  # light values where `shading: toon` steps up a tone
 
 _SIDE = re.compile(r'_L(?![A-Za-z0-9])')
 
@@ -165,8 +196,9 @@ def _read_yaml(path):
         raise SpecError(f'{path}:{m.line + 1}:{m.column + 1}: YAML syntax: {e.problem}') from None
 
 
-def load(path, size=None):
-    """Read a spec. `size` re-renders it at another frame size, keeping the framing (`render --size`)."""
+def load(path, size=None, style=None):
+    """Read a spec. `size` re-renders it at another frame size, keeping the framing (`render --size`). `style`:
+    render fields that replace the project style's (`style preview`); the spec's `render:` block still wins."""
     raw = _read_yaml(path)
     if not isinstance(raw, dict):
         raise SpecError(f'{path}: spec must be a YAML mapping')
@@ -182,6 +214,7 @@ def load(path, size=None):
     s['_warnings'] = warnings
     s['_path'] = os.path.abspath(path)
     s['_dir'] = base
+    s['_files'] = []  # files read (palettes, the project's style), so long-running processes notice changes
     s.setdefault('name', os.path.splitext(os.path.basename(path))[0])
     s.setdefault('kind', 'character')
     s.setdefault('size', 64)
@@ -205,7 +238,9 @@ def load(path, size=None):
             sh['ry'] = sh.get('ry', 4.5 * s['size'] / 64) * k
             s['shadow'] = sh
         s['size'] = new
+    r = _render(s, base, style)
     li = dict(DEFAULT_LIGHT)
+    li.update(LIGHTS[r['light']])
     li.update(s.get('light') or {})
     s['light'] = li
 
@@ -232,7 +267,6 @@ def load(path, size=None):
         s['directions'] = [(n, y) for n, y in s['directions'] if n not in s['mirrors']]
 
     ramps = {}
-    s['_files'] = []  # palette files read, so long-running processes notice when they change
     for p in (s.get('palette') or []) if isinstance(s.get('palette'), list) else [s.get('palette')]:
         if p:
             ramps.update(load_palette(p, base, s['_files']))
@@ -242,9 +276,12 @@ def load(path, size=None):
     mats = {}
     for name, m in (s.get('materials') or {}).items():
         mm = dict(DEFAULT_MATERIAL)
+        mm['outline'] = r['outline'] != 'none'
+        mm['line'] = r['lines'] != 'none'
+        mm['crease'] = True if r['lines'] == 'depth+normal' else None
         mm.update(m or {})
         for k, v in FINISHES.get(mm['finish'], {}).items():
-            if not (m and k in m):
+            if not (m and k in m) and not (k == 'highlight' and not r['highlights']):
                 mm[k] = copy.deepcopy(v)
         if mm['highlight'] is True:
             mm['highlight'] = dict(FINISHES['metal']['highlight'])
@@ -259,8 +296,13 @@ def load(path, size=None):
         if mm['emissive']:
             mm['outline'] = m.get('outline', False) if m else False
             mm['line'] = m.get('line', False) if m else False
+        _shading(mm, m or {}, r['shading'])
+        mm['dither'] = None if mm['emissive'] else _dither(m or {}, r['dither'])
         mats[name] = mm
+    _outline_colors(mats, r)
     s['materials'] = mats
+    if r['snap'] and 'snap' not in raw:  # the style snaps root and the templates' torso
+        s['snap'] = ['root'] + (['torso_rot'] if 'torso_rot' in (raw.get('bones') or {}) else [])
 
     s['channels'] = mirror_section(s.get('channels'))
     for k in list(s['channels']):
@@ -276,6 +318,71 @@ def load(path, size=None):
     elif isinstance(s['shadow'], dict):  # `shadow: {alpha: 90}`: the radii default to the frame size
         s['shadow'] = {'rx': 13.5 * s['size'] / 64, 'ry': 4.5 * s['size'] / 64, **s['shadow']}
     return s
+
+
+def _render(s, base, override=None):
+    """The spec's render settings: built-in defaults < the project style < `override` < its own `render:`."""
+    from . import config
+
+    r = dict(RENDER)
+    cfg = config.load(base)
+    if cfg:
+        s['_files'].append(cfg['path'])
+        st = cfg['style'] or {}
+        r.update({k: st[k] for k in STYLE_RENDER if st.get(k) not in (None, '')})
+    r.update({k: v for k, v in (override or {}).items() if v is not None})
+    own = s.get('render') if isinstance(s.get('render'), dict) else {}
+    r.update(own)
+    for k, allowed in RENDER_CHOICES.items():
+        if r[k] not in allowed:
+            where = 'render' if k in own else "the project's style (spritekiln.toml)"
+            raise SpecError(f'{k} {r[k]!r} in {where}: use one of {", ".join(allowed)}')
+    s['render'] = r
+    return r
+
+
+def _shading(mm, own, shading):
+    """A material's tones under `shading: flat` (its two lightest) or `toon` (three, in hard steps), unless it
+    sets `bands` or `thresholds` itself. A highlight keeps the top tone."""
+    if shading == 'soft' or mm['emissive'] or 'bands' in own or 'thresholds' in own:
+        return
+    n = len(mm['colors'])
+    top = n - 1 - (1 if mm.get('highlight') and n > 3 else 0)
+    lo = max(1 if n > 2 else 0, top - (1 if shading == 'flat' else 2))
+    mm['bands'] = [lo, top]
+    if shading == 'toon' and top > lo:
+        mm['thresholds'] = list(TOON[: top - lo])
+
+
+def _dither(own, style):
+    """The dither pattern of a material: the style's, unless it says `dither: false`; `dither: true` asks for
+    one when the style has none (bayer2)."""
+    if own.get('dither') is False:
+        return None
+    if own.get('dither') is True:
+        return style if style != 'none' else 'bayer2'
+    return None if style == 'none' else style
+
+
+def _darkness(color):
+    """Sort key of the darkest colour: its brightest channel (a near-black beats a dark red), then luma."""
+    r, g, b = hx(color)
+    return max(r, g, b), 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _outline_colors(mats, r):
+    """Each material's outline colour (`line_color`): its own when it sets one; under `outline: dark` one colour
+    for all (the style's `outline_color`, or the darkest first tone of the spec's ramps, a near-black in most
+    palettes); under `colored` its line tone (`line_band`); under `selective`, None: its darkest tone, as
+    before."""
+    if r['outline'] not in ('dark', 'colored'):
+        return
+    solid = [m for m in mats.values() if not m['emissive']]
+    shared = r.get('outline_color') or min((m['colors'][0] for m in solid), key=_darkness, default=None)
+    for m in mats.values():
+        if m['line_color'] is None:
+            line = m['colors'][min(m['line_band'], len(m['colors']) - 1)]
+            m['line_color'] = shared if r['outline'] == 'dark' else line
 
 
 def validate(spec):

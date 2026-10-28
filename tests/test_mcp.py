@@ -12,7 +12,19 @@ pytest.importorskip('mcp')
 from mcp import ClientSession, StdioServerParameters  # noqa: E402
 from mcp.client.stdio import stdio_client  # noqa: E402
 
-EXPECTED_TOOLS = {'guide', 'style', 'new', 'validate', 'pose', 'render', 'review', 'ref_compare', 'export', 'schema'}
+EXPECTED_TOOLS = {
+    'guide',
+    'style',
+    'style_preview',
+    'new',
+    'validate',
+    'pose',
+    'render',
+    'review',
+    'ref_compare',
+    'export',
+    'schema',
+}
 
 
 async def _session(cwd, steps):

@@ -98,6 +98,7 @@ look at the image, fix, and only then `render`, `review` and `export`.
 |---|---|
 | `guide` | a knowledge file (for clients that cannot read the project's files) |
 | `style` | the project's art style, or the questions to ask when none is recorded; records the answers |
+| `style_preview` | a pose under each choice of the style's look (outline, shading, lines, dither, light) |
 | `new` | a spec created from a template |
 | `validate` | errors and warnings with `file:line:column` |
 | `pose` | the pose sheet image in the chosen directions |
