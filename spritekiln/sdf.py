@@ -565,7 +565,10 @@ class Group:
         min_cover=None,
     ):
         self.name = name
-        self.priority, self.min_cover = float(priority), min_cover  # the pixel vote (render.to_pixels)
+        self.priority, self.min_cover = float(priority), min_cover  # the pixel vote (render.to_gbuffer)
+        self.paint = []  # paint.Layer list (design 09)
+        self.frame = None  # (origin, rotation, scale) of the part's space: paint patterns, dithering
+        self.mirror = False  # an automatic _R twin: its space is mirrored
         self.mat = mat
         self.prims = prims
         self.k = k

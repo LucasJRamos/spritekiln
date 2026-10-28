@@ -134,10 +134,13 @@ def compose(
     cam=None,
     light_dir=None,
     opts=None,
+    paint=None,
+    layers=None,
 ):
     """-> RGBA uint8 image. shadow: (cx, cy, rx, ry, rgba) or None; flat: see band_of; ndh: render.facing, for the
     materials' highlights; normal, cam, light_dir: for creases and edge highlights (folds); opts: the spec's
-    `render:` settings (crease_angle, min_run)."""
+    `render:` settings (crease_angle, min_run); paint, layers: the paint layer of each pixel (render.GBuffer)
+    and the frame's paint.Layer list: a painted pixel takes the layer's material."""
     H, W = gid.shape
     names = list(materials)
     mid = {n: i for i, n in enumerate(names)}
@@ -147,6 +150,11 @@ def compose(
     mats = np.array([mid[g.mat] for g in groups] + [-1])
     line_ok = np.array([bool(g.line) for g in groups] + [False])
     mat = np.where(gid >= 0, mats[gid], -1)
+    painted = None
+    if paint is not None and layers:
+        pm = np.array([mid[layer.material] for layer in layers] + [-1])
+        painted = (gid >= 0) & (paint >= 0)
+        mat = np.where(painted, pm[np.where(paint >= 0, paint, -1)], mat)
     band = np.zeros((H, W), int)
     for n in names:
         sel = mat == mid[n]
@@ -157,7 +165,8 @@ def compose(
     for _ in range(2):
         nb = np.stack([shift(band, dy, dx, -9) for dy, dx in N4])
         ng = np.stack([shift(gid, dy, dx, -9) for dy, dx in N4])
-        same = ng == gid[None]
+        nm = np.stack([shift(mat, dy, dx, -9) for dy, dx in N4])
+        same = (ng == gid[None]) & (nm == mat[None])  # same part and material (paint splits a part)
         for y, x in zip(*np.nonzero(gid >= 0)):
             if mat[y, x] in EMISSIVE:
                 continue
@@ -221,6 +230,11 @@ def compose(
             cand &= nd < depth - 0.25  # diagonals only for big depth jumps
         line |= cand
     line |= crease
+    if painted is not None and any(layer.edge for layer in layers):  # a line where an edged paint meets the rest
+        edged = np.array([layer.edge for layer in layers] + [False])[np.where(paint >= 0, paint, -1)] & painted
+        for dy, dx in N4:
+            other = shift(paint, dy, dx, -9)
+            line |= edged & (shift(gid, dy, dx, -1) == gid) & (other != paint) & (other != -9)
     # never line emissive pixels
     line &= ~np.isin(mat, list(EMISSIVE))
 
@@ -317,9 +331,10 @@ def compose(
     return img
 
 
-def aux_maps(img, gid, nrm, groups, materials, cam):
+def aux_maps(img, gid, nrm, groups, materials, cam, paint=None, layers=None):
     """Normal map (camera space, RGB) and emissive mask aligned with the sprite.
-    Outline pixels inherit the normal of the nearest sprite pixel."""
+    Outline pixels inherit the normal of the nearest sprite pixel; painted pixels are emissive when their paint's
+    material is."""
     H, W = gid.shape
     n_cam = np.stack([nrm @ cam.R, nrm @ cam.U, -(nrm @ cam.D)], -1)
     has = gid >= 0
@@ -341,5 +356,8 @@ def aux_maps(img, gid, nrm, groups, materials, cam):
     emis = np.zeros((H, W, 4), np.uint8)
     em_g = np.array([materials[g.mat]['emissive'] for g in groups] + [False])
     e = has & em_g[np.where(has, gid, -1)]
+    if paint is not None and layers:
+        em_p = np.array([materials[layer.material]['emissive'] for layer in layers] + [False])
+        e = np.where(has & (paint >= 0), em_p[np.where(paint >= 0, paint, -1)], e)
     emis[e] = img[e]
     return normal, emis

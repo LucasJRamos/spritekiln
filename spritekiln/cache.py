@@ -16,7 +16,7 @@ import numpy as np
 DIRNAME = '.kilncache'
 LEGACY_DIRNAME = '.pxcache'  # pickle cache of pxforge <= 0.1; never read, `cache clear --legacy` removes it
 DEFAULT_MAX_MB = 1024  # per spec, enforced after each render (least recently used go first)
-FORMAT = 6  # 6: a geometry buffer (render.GBuffer); light intensities are applied after the cache
+FORMAT = 7  # 7: the geometry buffer has each pixel's paint layer
 
 _ENGINE_MODULES = ('expr.py', 'rig.py', 'sdf.py', 'render.py', 'pipeline.py', 'scene_ir.py', 'fast.py')
 

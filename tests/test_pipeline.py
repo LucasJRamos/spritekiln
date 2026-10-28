@@ -22,7 +22,8 @@ def _buf():
     g = rng.integers(-1, 5, (8, 8)).astype(np.int16)
     d = np.where(g >= 0, rng.random((8, 8)), np.inf).astype(np.float32)
     u8 = lambda: rng.integers(0, 256, (8, 8)).astype(np.uint8)  # noqa: E731
-    return GBuffer(g, d, rng.random((8, 8, 3)).astype(np.float16), u8(), u8(), u8())
+    paint = rng.integers(-1, 3, (8, 8)).astype(np.int16)
+    return GBuffer(g, d, rng.random((8, 8, 3)).astype(np.float16), u8(), u8(), u8(), paint)
 
 
 def test_cache_roundtrip_is_exact(tmp_path):

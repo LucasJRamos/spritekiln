@@ -13,6 +13,7 @@ from . import backend, cache, system
 from . import spec as specmod
 from .anim import frames_of
 from .errors import RenderError
+from .paint import layers_of, surface
 from .pixelize import aux_maps, compose, hx
 from .render import Camera, Light, Scene, facing, shade, to_gbuffer
 from .rig import build, rest_env, socket_points
@@ -66,7 +67,8 @@ def render_buffers(spec, env, yaw, force=False):
     buf = None if force else cache.load(path)
     if buf is None:
         sc = Scene(groups, np.radians(yaw))
-        buf = to_gbuffer(backend.render(sc, cam, Light(**spec['light'])), len(groups), cam, *_votes(groups, cam))
+        samples = backend.render(sc, cam, Light(**spec['light']))
+        buf = to_gbuffer(samples, len(groups), cam, *_votes(groups, cam), surface(sc, cam, samples))
         cache.save(path, buf)
     return buf, groups, frames, cam
 
@@ -145,12 +147,18 @@ def render_frame(spec, env, yaw, force=False, maps=True):
         cam,
         light.L,
         spec.get('render'),
+        gb.paint.astype(int),
+        layers_of(groups),
     )
-    nm, em = aux_maps(img, G, gb.normal.astype(float), groups, spec['materials'], cam) if maps else (None, None)
+    layers = layers_of(groups)
+    P = gb.paint.astype(int)
+    nm, em = aux_maps(img, G, gb.normal.astype(float), groups, mats, cam, P, layers) if maps else (None, None)
     mats = {}
     if groups:
-        names = np.array([g.mat for g in groups] + [''])
-        visible = names[np.where(G >= 0, G, -1)][(G >= 0) & (img[..., 3] == 255)]
+        names = np.array([g.mat for g in groups] + [''])[np.where(G >= 0, G, -1)]
+        if layers:  # painted pixels count for the paint's material
+            names = np.where(P >= 0, np.array([lay.material for lay in layers] + [''])[np.where(P >= 0, P, -1)], names)
+        visible = names[(G >= 0) & (img[..., 3] == 255)]
         u, c = np.unique(visible, return_counts=True)
         mats = {str(k): int(v) for k, v in zip(u, c)}
     return Frame(img, nm, em, sockets=sockets_2d(spec, env, yaw, frames, cam), materials=mats)

@@ -248,11 +248,44 @@ primitives (boxes, extrusions). `cut_blend` takes the same, or `{mode: groove, d
 channel engraved where each cutter's surface crosses the part, which keeps its volume (a thin `box` or a
 `plane` cutter draws a groove line across armour).
 
-Inner lines are drawn only where two **parts** meet, so a step inside one part (a pauldron's lames) reads only
-through its shading: make it at least 1-1.5 px. `validate` warns when a shell, an extrusion, a tube or a
+Inner lines are drawn only where two **parts** meet (and at folds inside a part whose material has `crease:
+true`), so a step inside one part (a pauldron's lames) reads only through its shading: make it at least 1-1.5
+px. `validate` warns when a shell, an extrusion, a tube or a
 profile is thinner than one pixel at the spec's `camera.scale` (it can vanish or flicker), in the numbers the
 spec uses, and when a polygon's edges cross. `validate` also counts the primitives and cuts the rest pose
 builds.
+
+**Paint**: `paint:` colours regions of a part's surface with another material, without new geometry (crosses,
+bands, trims, rivets, stains). It cannot change the silhouette: a trim that sticks out still needs a part.
+```yaml
+  cape:
+    material: cape_linen
+    space: capebase
+    prims: [...]
+    paint:                          # later layers win
+      - material: cross             # a volume: the surface inside these primitives
+        prims:
+          - box: {c: [0, -0.55, -0.4], half: [0.075, 0.4, 0.4]}
+          - box: {c: [0, -0.38, -0.4], half: [0.24, 0.07, 0.4]}
+      - material: gold
+        stripes: {axis: y, at: [-1.05], width: 0.035}    # a band around the hem
+        edge: true                  # a 1 px line where this paint meets the rest of the part
+```
+Each layer is a `material` plus one of these, all in the part's `space` (they move with the bone and stay in
+place from frame to frame; an `_R` twin gets them mirrored):
+
+| pattern | fields |
+|---|---|
+| `prims` | any primitives and modifiers: the part's surface inside them is painted, so make them thick enough to enclose it (a box through a cape shell paints both faces) |
+| `stripes` | `axis`, `width` and `period` (repeating, `offset` shifts them) or `at: [...]` (positions along the axis): bands across the axis, e.g. around an arm or a column at some heights |
+| `rings` | `axis`, `width`, `period` or `at`: concentric bands by distance from the axis (a target on a shield, the end of a log) |
+| `grid` | `axes: [x, y]`, `spacing: [sx, sy]`, `r`, `offset`: dots on a lattice (rivets, studs) |
+| `spots` | `scale`, `density` (about the share of the surface painted), `seed`: noise blotches (moss, stains, freckles) |
+| `checker` | `size` |
+
+A painted pixel keeps the part's light (normal, shadow, occlusion) and takes the paint material's ramp, outline
+colour, emissive flag and pixel count in `review`. `edge: true` lines use the paint material's `line_band`.
+`validate` warns when a stripe, ring or dot is narrower than one pixel.
 
 ## animations
 **Expression cycles** (loops: idle, walk, run, fly):

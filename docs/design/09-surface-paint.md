@@ -1,6 +1,6 @@
 # 09. Surface paint
 
-**Status:** proposed · **Track:** quality, speed, tokens · **Stage:** 3 (release 0.3) · **Depends on:** 06
+**Status:** done (stage 3) · **Track:** quality, speed, tokens · **Stage:** 3 (release 0.3) · **Depends on:** 06
 
 ## Problem
 Surface detail is modeled as geometry. In the templar, 13 of its 36 groups exist mainly to put a colour on a
@@ -85,3 +85,25 @@ parts:
   [10](10-thin-parts-and-stability.md) help.
 - **Should paint also offer `normal` tweaks?** For example, a painted groove that darkens like a crease.
   Not now; [08](08-lines-from-normals.md) covers real creases.
+
+## Outcome (2026-10-28): done
+- `spritekiln/paint.py`: layers of a volume (`prims`) or a pattern (`stripes`, `rings`, `grid`, `spots`,
+  `checker`) evaluated on hit samples after either backend, in the part's own space (`Group.frame`, mirrored
+  for `_R` twins). The geometry buffer gains `paint`, the majority layer among the winner's samples (cache
+  format 7). A per-pixel part-local position was tried for [11](11-render-style.md)'s dithering and dropped:
+  dither anchors on the part's projected origin instead, which keeps the pattern a clean pixel grid.
+- `compose` takes the paint's material for ramp, highlight, lines, selout and the orphan-pixel cleanup (which
+  now needs the same part and the same material); `aux_maps` makes emissive paint glow; `review` counts
+  painted pixels for the paint's material; `spec outline` lists a part's paint layers.
+- `edge: true` lines use the paint material's `line_band` (not the darker of the two materials: the line sits
+  on the painted side, which is the region the layer outlines).
+- `rings` are concentric by distance from the axis; a band around an arm or a column at some height is
+  `stripes` along that axis (the first test confused the two).
+- Templar demo (crosses only, a box volume through the cloth for each): 40 → 37 parts, 25 → 14 cuts, 496 →
+  482 lines, the same picture in the 8 directions; geometry pass 0.463 → 0.407 s/frame with numba (-12 %),
+  2.35 → 1.74 s with numpy (-26 %). The estimate of 36 → 28 groups assumed porting the trims and bands too:
+  the showcase stays as Hunt Tower ships it, so the port of the rest waits for a showcase update.
+- Tests (`tests/test_paint.py`): bands at the same rows in all 8 directions, no new group, mirroring, every
+  pattern, emissive paint, unknown material and the 1 px width warning. No paint, no change: goldens and the
+  showcase hashes unchanged.
+

@@ -11,6 +11,15 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   depends on the geometry only. Assets rendered again are lighter where those false shadows used to fall,
   so they do not match renders of 0.2 pixel for pixel.
 
+### Surface paint
+- `paint:` on a part colours regions of its surface with other materials, without new geometry: a volume of
+  primitives, or `stripes`, `rings`, `grid` (rivets), `spots` (noise) and `checker` patterns in the part's own
+  space; `edge: true` draws a line around a region. A painted pixel keeps the part's light and takes the
+  paint's ramp, outline colour and emissive flag. The Templar's three crosses as paint: 3 parts and 11 cuts
+  fewer, the same picture, frames traced 12 % (numba) to 26 % (numpy) faster.
+- The render cache format goes to 7 (the geometry buffer keeps each pixel's paint layer and its position in its
+  part's space): caches of earlier versions are rendered again.
+
 ### Lines and edge lights inside a part
 - `crease: true` on a material draws a line where a part folds inwards or over itself, and `edge_highlight:
   true` lights its convex edges facing the light; inner lines used to appear only between two parts. A spec's

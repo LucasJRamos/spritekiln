@@ -158,6 +158,7 @@ class GBuffer(NamedTuple):
     shadow: np.ndarray  # [S, S] uint8, 255 = lit
     ao: np.ndarray  # [S, S] uint8, 255 = open
     cover: np.ndarray  # [S, S] uint8: how many samples the winner had
+    paint: np.ndarray  # [S, S] int16: the paint layer (paint.layers_of order) of the pixel, -1 for none
 
 
 def render(scene, cam, light):
@@ -221,11 +222,12 @@ def render(scene, cam, light):
     )
 
 
-def to_gbuffer(samples, nG, cam, weight=None, min_cover=None):
+def to_gbuffer(samples, nG, cam, weight=None, min_cover=None, paint=None):
     """Samples -> GBuffer (size x size): a pixel is filled when enough samples hit (cam.cover) and goes to the
     group with the most samples; depth is the winner's nearest, normal, shadow and AO the winner's average.
     `weight`: per group, how much each of its samples counts in the vote (a part's `priority`); `min_cover`: per
-    group, how many of its samples fill a pixel even below the camera's coverage (thin weapons, antennae)."""
+    group, how many of its samples fill a pixel even below the camera's coverage (thin weapons, antennae).
+    `paint`: per sample (paint.surface); a pixel's paint is the majority of the winner's samples."""
     S, k = cam.size, cam.ss
 
     def blk(a):
@@ -254,6 +256,15 @@ def to_gbuffer(samples, nG, cam, weight=None, min_cover=None):
     def unit(a):  # a 0..1 average as 0..255
         return np.where(filled, np.round((a * m).sum(-1) / c1 * 255), 255).astype(np.uint8)
 
+    out_p = np.full((S, S), -1, np.int16)
+    if paint is not None:
+        pp = blk(paint)
+        ids = [int(i) for i in np.unique(pp[m]) if i >= 0]
+        if ids:
+            votes = np.stack([((pp == i) & m).sum(-1) for i in [-1, *ids]], -1)
+            out_p = np.array([-1, *ids], np.int16)[votes.argmax(-1)]
+            out_p[~filled] = -1
+
     return GBuffer(
         out_g.astype(np.int16),
         np.where(filled, np.where(m, dd, np.inf).min(-1), np.inf).astype(np.float32),
@@ -261,6 +272,7 @@ def to_gbuffer(samples, nG, cam, weight=None, min_cover=None):
         unit(ss),
         unit(aa),
         cnt.astype(np.uint8),
+        out_p,
     )
 
 

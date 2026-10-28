@@ -98,6 +98,12 @@ def _part(name, part):
         bits.append(' '.join(f'{k}x{n}' if n > 1 else k for k, n in kinds.items()))
     if part.get('cut'):
         bits.append(f'{len(part["cut"])} cuts')
+    paint = [p for p in part.get('paint') or [] if isinstance(p, dict)]
+    if paint:
+        from .paint import PATTERNS
+
+        kinds = ' '.join(f'{next((k for k in PATTERNS if k in p), "?")} {p.get("material")}' for p in paint)
+        bits.append(f'paint: {kinds}')
     if 'when' in part:
         bits.append('conditional')
     if specmod._SIDE.search(name):

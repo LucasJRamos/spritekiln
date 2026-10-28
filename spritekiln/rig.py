@@ -391,6 +391,49 @@ def _prims(ctx, part_name, part, space, m, prim_list, where_base):
     return out
 
 
+def _paint(ctx, part_name, part, space, m, where):
+    """The part's `paint:` layers (paint.Layer), in order (later ones win)."""
+    from . import paint as P
+
+    out = []
+    us = space.uscale
+    for i, item in enumerate(part.get('paint') or []):
+        w = f'{where}.paint[{i}]'
+        kinds = [k for k in P.PATTERNS if isinstance(item, dict) and k in item]
+        if not isinstance(item, dict) or 'material' not in item or len(kinds) != 1:
+            raise ExprError(f'{w}: a paint layer is a material plus one of {", ".join(P.PATTERNS)}')
+        kind = kinds[0]
+        a = item[kind]
+        thin = None
+        if kind == 'prims':
+            prims = [p for p in _prims(ctx, part_name, part, space, m, a, w + '.prims') if not isinstance(p, tuple)]
+            mask = P.volume(prims)
+        else:
+            a = a or {}
+
+            def v(key, d=None, a=a, w=w, kind=kind):
+                return ctx.val(a[key], f'{w}.{kind}.{key}') if key in a else d
+
+            if kind in ('stripes', 'rings'):
+                if v('period') is None and v('at') is None:
+                    raise ExprError(f'{w}.{kind}: give `period` (repeating) or `at` (positions)')
+                width = float(v('width', 0.04))
+                mask = getattr(P, kind)(a.get('axis', 'y'), width, v('period'), v('at'), float(v('offset', 0.0)))
+                thin = width
+            elif kind == 'grid':
+                r = float(v('r', 0.015))
+                mask = P.grid(a.get('axes', ('x', 'y')), v('spacing', (0.1, 0.1)), r, v('offset', (0.0, 0.0)))
+                thin = 2 * r
+            elif kind == 'spots':
+                mask = P.spots(float(v('scale', 0.1)), float(v('density', 0.3)), int(v('seed', 0)))
+            else:
+                mask = P.checker(float(v('size', 0.1)))
+        if thin is not None:
+            ctx.thin(thin * us, f'{w}.{kind}', 'width', us)
+        out.append(P.Layer(item['material'], mask, item.get('edge', False), thin))
+    return out
+
+
 def _blend(v, where, cut=False):
     """(mode, k, n, groove) of `blend` / `cut_blend`: a number (smooth) or {mode, k, n} ({mode: groove, depth,
     width} for a cut)."""
@@ -491,6 +534,10 @@ def build(spec, env, notes=None):
                 min_cover=part.get('min_cover'),
             )
         )
+        g = groups[-1]
+        g.paint = _paint(ctx, name, part, space, m, w)
+        g.frame = (space.o, space.R, space.s)
+        g.mirror = bool(m)
     return groups, ctx.frames
 
 

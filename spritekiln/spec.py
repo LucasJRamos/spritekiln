@@ -396,6 +396,12 @@ def _static_problems(spec):
         for m in mats:
             if m not in spec['materials']:
                 problems.append(f'parts.{name}.material: unknown material "{m}" (define it under materials:)')
+        for i, layer in enumerate(p.get('paint') or []):
+            m = layer.get('material') if isinstance(layer, dict) else None
+            if m not in spec['materials']:
+                problems.append(
+                    f'parts.{name}.paint[{i}].material: unknown material "{m}" (define it under materials:)'
+                )
         if not p.get('prims'):
             problems.append(f'parts.{name}: no prims')
     from .review import check_review_block

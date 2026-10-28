@@ -296,6 +296,19 @@
         "when": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "boolean"}], "description": "Render only when true."},
         "prims": {"type": "array", "items": {"$ref": "#/$defs/prim"}, "minItems": 1},
         "cut": {"type": "array", "items": {"$ref": "#/$defs/prim"}},
+        "paint": {"type": "array", "description": "Colour regions on the part without new geometry (later layers win).", "items": {
+          "type": "object", "additionalProperties": false, "required": ["material"],
+          "properties": {
+            "material": {"type": "string"},
+            "edge": {"type": "boolean", "description": "A 1 px line where this paint meets the rest of the part."},
+            "prims": {"type": "array", "items": {"$ref": "#/$defs/prim"}, "description": "A volume: the surface inside these primitives is painted."},
+            "stripes": {"$ref": "#/$defs/paint_bands"},
+            "rings": {"$ref": "#/$defs/paint_bands"},
+            "grid": {"type": "object", "additionalProperties": false, "properties": {"axes": {"type": "array", "items": {"enum": ["x", "y", "z"]}, "minItems": 2, "maxItems": 2}, "spacing": {"$ref": "#/$defs/vec"}, "r": {"$ref": "#/$defs/expr"}, "offset": {"$ref": "#/$defs/vec"}}},
+            "spots": {"type": "object", "additionalProperties": false, "properties": {"scale": {"$ref": "#/$defs/expr"}, "density": {"$ref": "#/$defs/expr"}, "seed": {"type": "integer"}}},
+            "checker": {"type": "object", "additionalProperties": false, "properties": {"size": {"$ref": "#/$defs/expr"}}}
+          }
+        }},
         "priority": {"type": "number", "exclusiveMinimum": 0, "description": "Weight of its samples in the pixel vote (default 1); 2-3 keeps thin weapons visible."},
         "min_cover": {"type": "integer", "minimum": 1, "description": "Samples of this part that fill a pixel even below the camera coverage (thin details: 1 or 2)."},
         "cut_blend": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "object", "additionalProperties": false, "properties": {"mode": {"enum": ["smooth", "chamfer", "round", "stairs", "groove"]}, "k": {"type": "number"}, "n": {"type": "integer", "minimum": 1}, "depth": {"type": "number"}, "width": {"type": "number"}}}], "description": "How the cuts carve: a radius (smooth), {mode: chamfer|round|stairs, k, n}, or {mode: groove, depth, width}."}
@@ -439,6 +452,11 @@
       "type": "object", "additionalProperties": false,
       "description": "Only under cut: removes the side `n` points to, from the plane `at` along n (or through `c`).",
       "properties": {"n": {"$ref": "#/$defs/vec"}, "at": {"$ref": "#/$defs/expr"}, "c": {"$ref": "#/$defs/point"}}
+    },
+    "paint_bands": {
+      "type": "object", "additionalProperties": false,
+      "description": "Bands across an axis of the part (stripes: around an arm or a column at some heights) or concentric by distance from it (rings): `period` repeats them, `at` lists positions.",
+      "properties": {"axis": {"enum": ["x", "y", "z"]}, "width": {"$ref": "#/$defs/expr"}, "period": {"$ref": "#/$defs/expr"}, "at": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "array", "items": {"$ref": "#/$defs/expr"}, "minItems": 1}]}, "offset": {"$ref": "#/$defs/expr"}}
     },
     "arc": {
       "type": "object", "additionalProperties": false, "required": ["r", "a0", "a1"],

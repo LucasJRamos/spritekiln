@@ -42,6 +42,7 @@ Pixel artists draw plates, blades and brims with crisp edges. Rounded primitives
 | a curved blade, a scimitar | `extrude` with `bend` (it curves the outline, not the plate) |
 | armour joints, a stepped pedestal | `blend: {mode: chamfer}` or `{mode: stairs}` on flat-faced primitives |
 | a line engraved on armour | `cut` with `cut_blend: {mode: groove}` |
+| a cross, a band, a flat trim, rivets, stains | `paint:` on the part that carries it (below) |
 
 What the showcase port taught:
 - **Change a part only if it reads better** at the sprite's size in all 8 directions; at 64-96 px lapels,
@@ -113,6 +114,17 @@ horn_L:        # tapered and curling back
 ```
 Keep every piece at least a pixel thick (`validate` warns), look at a full `pose --dirs all`, and prefer one
 shaped primitive to a stack of blended ellipsoids plus cuts.
+
+## Paint before geometry
+A colour on a surface is `paint:` on that part ([spec.md](SPEC.md)), not a new part: a cross on a tabard, a gold
+band, a belt drawn on a coat, rivets, moss. A painted region costs nothing to ray-march, cannot poke through the
+surface when it moves, gets no stray inner line from a depth offset and does not lose the pixel vote like a
+thin overlay. On the Templar, its three crosses as paint (box volumes through the cloth) replaced 3 parts
+and 11 cuts with the same picture, and frames trace 12 % faster (numba) to 26 % (numpy).
+
+Detail still needs geometry when it changes the silhouette or casts a shadow: a buckle or a trim that sticks
+out, a belt that rides over folds, a raised rim. Paint follows the part's surface only: it cannot be wider than
+the part, and a volume must enclose the surface it paints (a box through a cape shell paints its inside too).
 
 ## Side view (`view: side`)
 - The silhouette is the **profile**: what reads is the outline seen from the side (nose, hat brim,
