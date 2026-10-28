@@ -361,6 +361,15 @@ def _static_problems(spec):
             problems.append(f'bones.{name}.parent: unknown frame "{par}"')
         if b.get('at') and b['at'] not in frames_known:
             problems.append(f'bones.{name}.at: unknown frame "{b["at"]}"')
+    for i, name in enumerate(spec.get('snap') or []):
+        if name != 'root' and name not in spec['bones']:
+            problems.append(f'snap[{i}]: "{name}" is not root or a bone (IK joints follow their bones)')
+    for name, p in spec['parts'].items():
+        mc = p.get('min_cover')
+        if mc is not None and not (isinstance(mc, int) and 1 <= mc <= spec['camera']['supersample'] ** 2):
+            problems.append(f"parts.{name}.min_cover: {mc!r} (a whole number of samples, 1 to the pixel's count)")
+        if p.get('priority') is not None and not (isinstance(p['priority'], (int, float)) and p['priority'] > 0):
+            problems.append(f'parts.{name}.priority: {p["priority"]!r} (a number above 0)')
     for name, p in spec['parts'].items():
         mats = p.get('materials') or [p.get('material')]
         for m in mats:

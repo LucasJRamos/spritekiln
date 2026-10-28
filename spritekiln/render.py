@@ -201,8 +201,10 @@ def render(scene, cam, light):
     return gid.reshape(N, N), val.reshape(N, N), depth.reshape(N, N), nrm.reshape(N, N, 3)
 
 
-def to_pixels(gid, val, depth, nrm, nG, cam):
-    """Supersampled buffers -> size x size gid / val / depth / normal (majority coverage)."""
+def to_pixels(gid, val, depth, nrm, nG, cam, weight=None, min_cover=None):
+    """Supersampled buffers -> size x size gid / val / depth / normal (majority coverage).
+    `weight`: per group, how much each of its samples counts in the vote (a part's `priority`); `min_cover`: per
+    group, how many of its samples fill a pixel even below the camera's coverage (thin weapons, antennae)."""
     S, k = cam.size, cam.ss
 
     def blk(a):
@@ -218,8 +220,10 @@ def to_pixels(gid, val, depth, nrm, nG, cam):
     if nG == 0:
         return out_g, out_v, out_d, out_n
     counts = np.stack([(g == j).sum(-1) for j in range(nG)], -1)
-    best = counts.argmax(-1)
+    best = (counts if weight is None else counts * weight).argmax(-1)
     filled = hits >= cam.cover
+    if min_cover is not None:
+        filled |= (counts >= min_cover).any(-1)
     m = (g == best[..., None]) & filled[..., None]
     cnt = np.maximum(m.sum(-1), 1)
     out_g[filled] = best[filled]

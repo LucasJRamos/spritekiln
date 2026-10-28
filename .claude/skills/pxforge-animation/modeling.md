@@ -7,6 +7,8 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
   weapon, a cape, a hat). Details smaller than about 2 px (0.1 world units at `scale: 0.05`) vanish or turn
   into noise.
 - **Thin parts:** a radius of at least ~0.025 at `scale: 0.05` (claws, blades); thinner breaks into dots.
+  When a detail must stay thinner (a staff, a rapier, antennae), give its part `min_cover: 1` or `2` and,
+  when it crosses in front of the body, `priority: 2`–`3` ([spec.md](SPEC.md)).
 - **Colours:** one ramp per material, 4–6 tones; few materials (3–6). Emissives (eyes, magic) are the
   accent. Value contrast between neighbouring materials matters more than hue.
 - **Perspective:** things that stick out backwards or away rise on the screen. Check the diagonals: a thin

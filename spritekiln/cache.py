@@ -48,6 +48,7 @@ def key(spec, env, yaw):
         backend=backend.name(),
         bones=spec['bones'],
         ik=spec['ik'],
+        snap=spec.get('snap'),
         parts=spec['parts'],
         order=list(spec['parts']),  # the cached group ids follow the order of the parts
         camera=spec['camera'],

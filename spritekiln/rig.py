@@ -86,11 +86,30 @@ def rest_env(spec, yaw=0.0):
 
 
 class Ctx:
-    def __init__(self, spec, env, notes=None):
+    def __init__(self, spec, env, notes=None, snap=True):
         self.spec = spec
         self.env = env
         self.frames = {}
         self.notes = notes  # a list to collect geometry warnings in (thin shells...), or None
+        self.snap = set(spec.get('snap') or []) if snap else set()
+        self.rest = None  # the rest pose's frames, for snapping
+
+    def snapped(self, name, frame):
+        """A frame listed in the spec's `snap`, moved so that its screen offset from the rest pose is a whole
+        number of pixels: small bobs become whole-pixel steps and the sprite stops boiling."""
+        if name not in self.snap:
+            return frame
+        from .render import Camera
+
+        yaw = float(self.env.get('yaw', 0.0))
+        if self.rest is None:
+            self.rest = Ctx(self.spec, rest_env(self.spec, yaw), snap=False)
+        cam = Camera.from_spec(self.spec)
+        Ry = rot_y(np.radians(yaw))  # model -> world, as render.Scene
+        w = Ry @ (frame.o - self.rest.frame(name, f'snap: {name}').o)
+        sx, sy = (w @ cam.R) / cam.scale, -(w @ cam.U) / cam.scale
+        fix = cam.R * (np.floor(sx + 0.5) - sx) * cam.scale - cam.U * (np.floor(sy + 0.5) - sy) * cam.scale
+        return Frame(frame.o + Ry.T @ fix, frame.R, frame.s)
 
     def thin(self, value, where, what):
         """Note a size under one pixel at the spec's camera scale: it can vanish or flicker."""
@@ -133,7 +152,7 @@ class Ctx:
         sp = self.spec
         if name == 'root':
             r = self.env.get('root', [0, 0, 0])
-            self.frames['root'] = Frame(np.asarray(r, float))
+            self.frames['root'] = self.snapped('root', Frame(np.asarray(r, float)))
             return
         if name in sp['bones']:
             self._bone(name, sp['bones'][name])
@@ -159,7 +178,7 @@ class Ctx:
             o = self.frame(b['at'], w + '.at').o + par.R @ (par.s * pos)
         else:
             o = par.apply(pos)
-        self.frames[name] = Frame(o, Rp @ R, sp_ * sc)
+        self.frames[name] = self.snapped(name, Frame(o, Rp @ R, sp_ * sc))
         self._stack = self._stack - {name}
 
     def _ik(self, name, ik):
@@ -464,6 +483,8 @@ def build(spec, env, notes=None):
                 cut_mode=cmode,
                 cut_n=cn,
                 groove=groove,
+                priority=float(part.get('priority', 1.0)),
+                min_cover=part.get('min_cover'),
             )
         )
     return groups, ctx.frames

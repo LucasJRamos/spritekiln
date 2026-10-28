@@ -1,0 +1,34 @@
+spritekiln: 1
+# Fixture for design 10: a staff much thinner than a pixel, crossing in front of a body.
+name: thin
+kind: character
+size: 48
+directions: 8
+camera: {pitch: 38, scale: 0.05, center: [0, 0.75, 0]}
+shadow: null
+ramps:
+  body: ["#1a1020", "#3b2a4a", "#5d4f6c", "#8a7a9a", "#c0b3cc"]
+  wood: ["#20140c", "#5a3a1c", "#8c5a2a", "#c08a48"]
+materials:
+  body: {ramp: body}
+  wood: {ramp: wood}
+channels:
+  root: [0, 0, 0]
+  bob: 0.0
+bones:
+  hips: {parent: root, pos: "[0, 0.6 + bob, 0]"}
+parts:
+  body:
+    material: body
+    space: hips
+    prims: [{ellipsoid: {c: [0, 0.15, 0], r: [0.24, 0.42, 0.18]}}]
+  staff:
+    material: wood
+    space: hips
+    prims: [{cylinder: {a: [-0.32, -0.45, 0.24], b: [0.3, 0.75, 0.2], r: 0.007}}]
+animations:
+  idle:
+    frames: 4
+    ms: 150
+    channels:
+      bob: "0.012*sin(p)"

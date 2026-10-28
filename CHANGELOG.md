@@ -25,6 +25,15 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   cross. The knowledge files have a "which shape for what" table and eight recipes checked on the humanoid
   template.
 
+### Thin parts and steady pixels
+- Parts take `priority` (the weight of their samples in the pixel vote) and `min_cover` (how many samples fill
+  a pixel even below the camera's coverage): a staff thinner than a third of a pixel, which used to vanish, now
+  shows in all 8 directions. Defaults keep every existing spec as it was.
+- `snap: [root, torso_rot]` rounds the on-screen movement of those frames to whole pixels: on the showcase idles
+  it halves the shading that blinks from frame to frame.
+- QA measures that blinking (`boil` in `qa.json`, per animation and direction) and warns when it passes 4 % of
+  the inside while the silhouette barely moves.
+
 ### A compiled renderer: the `[fast]` extra
 - `pipx install "spritekiln[mcp,fast]"` adds a numba renderer that SpriteKiln uses whenever it is installed:
   whole frames about 4-6× faster (the Templar's full render, 456 frames: 194 s in one process), using every

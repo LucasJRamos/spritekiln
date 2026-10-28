@@ -93,7 +93,9 @@ A new primitive is added to the IR once, then implemented in both evaluators aga
   (`tests/test_fast.py`, differences under 1e-9), and whole frames agree on every part.
 - With numba, `render` uses one process (threads); with `--jobs N` each worker gets cores / N threads. The
   backend is part of the render cache key.
-- Measured: the Templar's full render (456 frames, uncached) in 194 s in one process with numba, peak 250 MB.
+- Measured, the Templar's full render (456 frames, uncached) on the development machine with 1-2 GB free:
+  numba 194 s in one process (peak 250 MB); numpy took 1372 s, limited by the free memory to one worker
+  (the machine was also running tests; about 870 s without them, 456 frames x 1.9 s).
 - Not done: the numpy evaluator over the IR with screen tiles (the numpy closures were kept as they are: the
   goldens stay exact and numba is the fast path), 4-tap normals and float32 (they would change pixels).
 

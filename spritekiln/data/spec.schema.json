@@ -36,6 +36,7 @@
       ]
     },
     "ramps": {"$ref": "#/$defs/ramps", "description": "Extra ramps defined in the spec (override the palette)."},
+    "snap": {"type": "array", "items": {"type": "string"}, "description": "Frames (root, bones) whose movement is rounded to whole pixels on screen, so small bobs do not make the sprite boil."},
     "camera": {
       "type": "object",
       "additionalProperties": false,
@@ -269,6 +270,8 @@
         "when": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "boolean"}], "description": "Render only when true."},
         "prims": {"type": "array", "items": {"$ref": "#/$defs/prim"}, "minItems": 1},
         "cut": {"type": "array", "items": {"$ref": "#/$defs/prim"}},
+        "priority": {"type": "number", "exclusiveMinimum": 0, "description": "Weight of its samples in the pixel vote (default 1); 2-3 keeps thin weapons visible."},
+        "min_cover": {"type": "integer", "minimum": 1, "description": "Samples of this part that fill a pixel even below the camera coverage (thin details: 1 or 2)."},
         "cut_blend": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "object", "additionalProperties": false, "properties": {"mode": {"enum": ["smooth", "chamfer", "round", "stairs", "groove"]}, "k": {"type": "number"}, "n": {"type": "integer", "minimum": 1}, "depth": {"type": "number"}, "width": {"type": "number"}}}], "description": "How the cuts carve: a radius (smooth), {mode: chamfer|round|stairs, k, n}, or {mode: groove, depth, width}."}
       }
     },

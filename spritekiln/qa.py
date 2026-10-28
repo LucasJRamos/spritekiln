@@ -4,9 +4,41 @@ import numpy as np
 
 from .anim import is_loop, timing_problems
 
+BOIL_WARN = 0.04  # share of the inside blinking for one frame (A B A)...
+STILL_IOU = 0.95  # ...while the silhouette stays this similar: pixels boil
+
 
 def _opaque(img):
     return img[..., 3] == 255
+
+
+def _inner(op):
+    """Opaque pixels whose four neighbours are opaque too (not the outline)."""
+    pd = np.pad(op, 1)
+    return op & pd[:-2, 1:-1] & pd[2:, 1:-1] & pd[1:-1, :-2] & pd[1:-1, 2:]
+
+
+def boil(frames, loop):
+    """(boil, silhouette IoU): the share of inner pixels that change colour for one frame and change back the
+    next (A B A, a blink), and how much consecutive silhouettes overlap, averaged over the frames (around the
+    seam in a loop). Measured on the showcase idles: 2-5 % (half that with `snap`), runs 8-14 %. Emissive pixels
+    may flicker on purpose: left out."""
+    n = len(frames)
+    if n < 3:
+        return 0.0, 1.0
+    share, iou = [], []
+    for i in range(n) if loop else range(1, n - 1):
+        fa, fb, fc = frames[i - 1], frames[i], frames[(i + 1) % n]
+        a, b, c = fa.img, fb.img, fc.img
+        oa, ob = _opaque(a), _opaque(b)
+        inner = _inner(oa) & _inner(ob) & _inner(_opaque(c))
+        for f in (fa, fb, fc):
+            if f.emissive is not None:
+                inner &= f.emissive[..., 3] == 0
+        back = (a[..., :3] == c[..., :3]).all(-1) & (b[..., :3] != a[..., :3]).any(-1)
+        share.append((inner & back).sum() / max(int(inner.sum()), 1))
+        iou.append((oa & ob).sum() / max(int((oa | ob).sum()), 1))
+    return float(np.mean(share)), float(np.mean(iou))
 
 
 def check(spec, anims, dlist, out):
@@ -67,6 +99,13 @@ def check(spec, anims, dlist, out):
                         f'{a}/{d}: loop seam (last->first) jumps more than the other frames '
                         f'({seam:.2f} vs mean {step:.2f})'
                     )
+            share, still = boil([out[(a, d, i)] for i in range(n)], loop)
+            rep['info'].setdefault('boil', {})[f'{a}/{d}'] = round(share, 3)
+            if still >= STILL_IOU and share >= BOIL_WARN:
+                rep['warnings'].append(
+                    f'{a}/{d}: {share:.0%} of the inside blinks for one frame while the silhouette barely moves '
+                    f'(pixels boil): snap the moving frames to whole pixels (`snap: [root, ...]`) and check again'
+                )
             same = [i for i in range(n - 1) if np.array_equal(frames[i], frames[i + 1])]
             if same:
                 rep['warnings'].append(f'{a}/{d}: identical frames at {same} (the pose does not change)')

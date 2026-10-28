@@ -1,6 +1,6 @@
 # 10. Thin parts and frame stability
 
-**Status:** proposed · **Track:** quality · **Stage:** 2 (release 0.3) · **Depends on:** nothing
+**Status:** done (stage 2) · **Track:** quality · **Stage:** 2 (release 0.3) · **Depends on:** nothing
 
 ## Problem
 **1. Thin parts vanish.** A pixel is filled when 4 of its 9 samples hit (`coverage`), and the group with the
@@ -58,3 +58,19 @@ direction in `qa.json`, with a warning threshold. `docs/agent/art-direction.md` 
 - **Snapping changes the feel of slow motion** (steps instead of drift). It stays opt-in; the style interview
   asks for it with the animation question ("fluid" vs "snappy").
 - Should the snap also round rotations of small parts? Not now.
+
+## Outcome (2026-10-27): done
+- `priority` and `min_cover` per part (`render.to_pixels` weights the vote; the default path is unchanged).
+  Fixture `tests/fixtures/thin`: a staff of radius 0.007 at `scale: 0.05` showed 0-4 px per direction; with
+  `priority: 3, min_cover: 2` it shows 6-26 px in every direction (`min_cover: 1` alone: 8-28 px).
+- `snap: [frames]` (top level, `root` and bones; spelled as a list rather than `{frames: [...]}`): the frame's
+  screen offset from the rest pose is rounded to whole pixels in the rig, so its children, the parts and the
+  sockets follow; it is part of the render cache key.
+- `boil` in QA is the share of inner pixels that change colour for one frame and change back (A B A, emissive
+  pixels left out); a warning at 4 % when consecutive silhouettes overlap at least 95 %. Measured (8
+  directions): idles 3.0-5.2 %, runs 8-14 % (silhouettes moving: no warning). With `snap: [root, torso_rot]`:
+  Templar idle 3.0 % -> 1.6 %, Huntress idle 4.1 % -> 1.9 %, gargoyle idle 5.2 % -> 6.7 % (its wings move on
+  their own): snapping stays opt-in and the docs say to check the number. A simple "share of pixels that
+  change" was tried first and dropped: it counts real motion (20-55 % everywhere).
+- Not done: the style question about snapping (design 11, stage 3).
+

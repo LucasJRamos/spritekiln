@@ -61,7 +61,10 @@ missing (a cape that should sway), add a channel, use it in the bone or part exp
    To check timing and motion while iterating, `render --anims <a> --draft` is much faster and writes only
    `preview-draft/`; judge the final look on the full render.
 3. QA: "loop seam" (last → first jumps) = a non-periodic channel; "identical frames" = a key that changes
-   nothing; "clipped at the edge" = a gesture too big for the frame; a timing error = durations off target.
+   nothing; "clipped at the edge" = a gesture too big for the frame; a timing error = durations off target;
+   "pixels boil" = shading that blinks for one frame because the body moves by fractions of a pixel (`qa.json`
+   `info.boil` has the share per animation and direction): add `snap: [root, torso_rot]` (spec.md) or make the
+   movement at least a pixel, and check the number again.
 4. Check the **diagonals and `n`**: a strike that reads in `s` can vanish behind the body in `n`; sometimes
    the smear arc must grow or the hand rise.
 

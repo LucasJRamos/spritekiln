@@ -89,6 +89,13 @@ ones win). A top-level `ramps:` mapping adds or overrides ramps for this spec al
 Animatable values with defaults, scalars or vectors. Everything an animation changes goes through a
 channel. `root` (vector) is special: it moves the `root` frame (lunge, jump) and the shadow follows it.
 
+## snap
+`snap: [root, torso_rot]` (top level; `root` and bone names) rounds the on-screen movement of those frames
+from the rest pose to whole pixels, frame by frame; their children follow. A bob of a fraction of a pixel then
+becomes a clean 1 px step instead of shading that flickers. Arms, wings and capes that move on their own are
+not rounded. QA reports `boil` (below); check it before and after: on the showcase idles snapping halves it,
+on a gargoyle whose wings flap it did not help.
+
 ## Mirroring `_L` / `_R`
 Write **only the `_L` side (positive x)**. Every bone, IK chain, part, channel and socket whose name has
 `_L` gets an automatic `_R` twin (renaming `_L` → `_R` everywhere, expressions included). In the twin, local
@@ -134,9 +141,16 @@ parts:
     blend: 0.09            # smooth union between the part's primitives
     line: true             # inner lines where this part overlaps another
     when: "smear_w > 0"    # conditional part
+    priority: 3            # its samples weigh 3x in the pixel vote (default 1): thin weapons stay visible
+    min_cover: 2           # 2 of its samples fill a pixel even below the camera's coverage (thin details)
     prims: [...]
     cut: [...]             # subtracted primitives (cut_blend)
 ```
+A pixel is filled when enough of its samples (3×3 by default, `camera.coverage` = 4) hit, and the part with
+the most samples wins it, so a blade or antenna thinner than about a third of a pixel disappears or breaks into
+dots. `priority` and `min_cover` keep it: `min_cover: 1` or `2` for details outside the body's silhouette,
+`priority: 2`–`3` for details crossing in front of it. Do not raise them on big parts: they would look fatter
+than modelled.
 Points can be `[x, y, z]` (in `space`), `"@frame"` (a frame's origin), `{at: frame, off: [x, y, z]}` or
 `{between: ["@a", "@b"], t: 0.45}`.
 

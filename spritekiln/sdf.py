@@ -561,8 +561,11 @@ class Group:
         cut_mode=SMOOTH,
         cut_n=1,
         groove=(0.0, 0.0),
+        priority=1.0,
+        min_cover=None,
     ):
         self.name = name
+        self.priority, self.min_cover = float(priority), min_cover  # the pixel vote (render.to_pixels)
         self.mat = mat
         self.prims = prims
         self.k = k

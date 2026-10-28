@@ -50,6 +50,14 @@ def _frames(path, size, anim, yaw, draft=False):
     return spec, _FRAMES_CACHE[key]
 
 
+def _votes(groups, cam):
+    """(weight, min_cover) of the pixel vote: None when every part keeps the defaults (priority 1, the camera's
+    coverage), so the usual path stays exactly as it was."""
+    w = np.array([g.priority for g in groups], float)
+    mc = np.array([g.min_cover or cam.cover for g in groups], int)
+    return (None if (w == 1).all() else w), (None if (mc >= cam.cover).all() else mc)
+
+
 def render_buffers(spec, env, yaw, force=False):
     cam = Camera.from_spec(spec)
     path = cache.entry(spec, env, yaw)
@@ -57,7 +65,7 @@ def render_buffers(spec, env, yaw, force=False):
     buf = None if force else cache.load(path)
     if buf is None:
         sc = Scene(groups, np.radians(yaw))
-        buf = to_pixels(*backend.render(sc, cam, Light(**spec['light'])), len(groups), cam)
+        buf = to_pixels(*backend.render(sc, cam, Light(**spec['light'])), len(groups), cam, *_votes(groups, cam))
         cache.save(path, buf)
     return buf, groups, frames, cam
 

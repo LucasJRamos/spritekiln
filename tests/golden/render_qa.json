@@ -1,9 +1,21 @@
 {
  "errors": [],
- "warnings": [],
+ "warnings": [
+  "idle/n: 17% of the inside blinks for one frame while the silhouette barely moves (pixels boil): snap the moving frames to whole pixels (`snap: [root, ...]`) and check again"
+ ],
  "info": {
   "colors_used": 16,
   "palette_size": 23,
+  "boil": {
+   "idle/s": 0.126,
+   "idle/e": 0.181,
+   "idle/n": 0.166,
+   "idle/w": 0.154,
+   "attack/s": 0.12,
+   "attack/e": 0.14,
+   "attack/n": 0.081,
+   "attack/w": 0.131
+  },
   "idle_area_ratio_min_max": 0.74,
   "attack_area_ratio_min_max": 0.82
  },
