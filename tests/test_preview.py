@@ -57,3 +57,80 @@ def test_pose_over_a_background(tmp_path):
     img = np.asarray(Image.open(out).convert('RGBA'))
     assert img.shape == (32, 64, 4) and (img[..., 3] == 255).all()
     assert tuple(img[0, 0, :3]) == (40, 30, 60)  # the floor, untinted, shows around the sprite
+
+
+# ---------------------------------------------------------------- size: crop and whole zooms
+
+
+def _frame(h, w, box=None, rng=None):
+    f = np.zeros((h, w, 4), np.uint8)
+    if box:
+        y0, y1, x0, x1 = box
+        f[y0:y1, x0:x1] = (rng or np.random.default_rng(0)).integers(1, 255, (y1 - y0, x1 - x0, 4))
+        f[y0:y1, x0:x1, 3] = 255
+    return f
+
+
+def test_content_box_is_the_union_with_a_margin():
+    frames = [_frame(32, 32, (10, 14, 5, 8)), _frame(32, 32, (12, 20, 6, 9))]
+    assert preview.content_box(frames, margin=2) == (8, 22, 3, 11)
+    assert preview.content_box([_frame(32, 32, (0, 3, 30, 32))], margin=2) == (0, 5, 28, 32)  # kept inside
+
+
+def test_content_box_keeps_empty_and_opaque_frames_whole():
+    assert preview.content_box([_frame(16, 24)]) == (0, 16, 0, 24)
+    floor = _frame(16, 24, (0, 16, 0, 24))  # a preview drawn over a background
+    assert preview.content_box([floor]) == (0, 16, 0, 24)
+
+
+def test_fit_scale_takes_the_largest_whole_zoom_within_budget():
+    assert preview.fit_scale(lambda k: (500 * k, 100 * k), 4) == 3  # 2000 px would be too long
+    assert preview.fit_scale(lambda k: (900 * k, 900 * k), 3) == 1  # 1800 x 1800 is too many pixels
+    assert preview.fit_scale(lambda k: (5000 * k, 10 * k), 3) == 1  # too large even at 1: callers split
+
+
+def test_tiles_cut_without_resampling():
+    rng = np.random.default_rng(3)
+    big = Image.fromarray(rng.integers(0, 255, (300, 4000, 4), dtype=np.uint8))
+    pieces = preview.tiles(big)
+    assert len(pieces) > 1
+    for p in pieces:
+        assert max(p.size) <= preview.MAX_SIDE and p.size[0] * p.size[1] <= preview.MAX_AREA
+    rebuilt = np.concatenate([np.asarray(p) for p in pieces], 1)  # one row of pieces here
+    assert np.array_equal(rebuilt, np.asarray(big))
+    small = Image.new('RGBA', (100, 50))
+    assert len(preview.tiles(small)) == 1
+
+
+def _blocks_are_uniform(img, k):
+    h, w = img.shape[:2]
+    assert h % k == 0 and w % k == 0
+    return np.array_equal(img, np.repeat(np.repeat(img[::k, ::k], k, 0), k, 1))
+
+
+def test_contact_sheet_is_cropped_and_pixel_exact():
+    from spritekiln.export import contact_sheet
+
+    rng = np.random.default_rng(1)
+    rows = [[_frame(96, 96, (30, 80, 40, 60), rng) for _ in range(12)] for _ in range(8)]
+    sheet = np.asarray(contact_sheet(rows, list('abcdefgh'), 12, 3))
+    assert max(sheet.shape[:2]) <= preview.MAX_SIDE and sheet.shape[0] * sheet.shape[1] <= preview.MAX_AREA
+    # first cell: 18 * 3 px of labels on the left, 18 px on top; cropped to 20 + 2 * 2 px wide
+    k = (sheet.shape[1] - 54) // (12 * 24)
+    cell = sheet[18 : 18 + 54 * k, 54 : 54 + 24 * k]
+    assert k >= 1 and _blocks_are_uniform(cell, k)
+    assert np.array_equal(cell[::k, ::k][2:52, 2:22], rows[0][0][30:80, 40:60])  # the sprite, unchanged
+
+
+def test_pose_is_cropped_and_zoomed_by_whole_steps(tmp_path):
+    from spritekiln import api
+
+    spec = stage_spec(tmp_path, os.path.join(FIXTURES, 'minimal', 'minimal.yaml'))
+    out, dirs, view = api.pose(spec, dirs='all', scale=4, out=str(tmp_path / 'p.png'))
+    img = np.asarray(Image.open(out).convert('RGBA'))
+    k, (x0, y0, x1, y1) = view['scale'], view['crop']
+    assert img.shape[:2] == ((y1 - y0) * k, len(dirs) * (x1 - x0) * k)
+    assert _blocks_are_uniform(img, k)
+    assert (x1 - x0, y1 - y0) != (32, 32)  # cropped around the sprite
+    full = api.pose(spec, dirs='s', scale=1, out=str(tmp_path / 'f.png'), crop=False)[2]
+    assert full['crop'] == [0, 0, 32, 32]

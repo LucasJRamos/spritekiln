@@ -38,7 +38,7 @@ def test_draft_and_full_poses_do_not_share_cache_entries(tmp_path):
 
 def test_pose_draft_file_name(tmp_path):
     path = stage_spec(tmp_path, MINIMAL)
-    out, dirs = api.pose(path, dirs='s', draft=True)
+    out, dirs, _ = api.pose(path, dirs='s', draft=True)
     assert os.path.basename(out) == 'pose_rest_0_draft.png'
     assert os.path.basename(api.pose(path, dirs='s')[0]) == 'pose_rest_0.png'
 

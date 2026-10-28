@@ -252,8 +252,22 @@ def compare_masks(ref_mask, spr_mask, pitch=None):
 
 
 def sheet(ref_img, sprite, turn, iou_grids, ref_colors, spec_mats, out_path, title=''):
-    """Side-by-side review sheet for the agent: reference | sprite 6x | overlay | 8-dir turnaround | palettes."""
-    big = upscale(sprite, 6)
+    """Side-by-side review sheet for the agent: reference | sprite | overlay | 8-dir turnaround | palettes. The
+    sprite (zoom 2k) and the turnaround (zoom k) are cropped to what they show, with the largest whole k up
+    to 3 that keeps the sheet within an AI's image budget."""
+    from . import preview
+
+    sprite = preview.crop([sprite], preview.content_box([sprite]))[0]
+    turn = preview.crop(turn, preview.content_box(turn))
+    sh, sw = sprite.shape[:2]
+    th, tw = turn[0].shape[:2]
+
+    def size_at(k):
+        H = sh * 2 * k
+        return max(int(H * 1.2) + sw * 2 * k + H + 40, len(turn) * tw * k + 20), H + th * k + 110
+
+    k = preview.fit_scale(size_at, 3)
+    big = upscale(sprite, 2 * k)
     H = big.size[1]
     r = ref_img.copy()
     r.thumbnail((int(H * 1.2), H))
@@ -263,7 +277,7 @@ def sheet(ref_img, sprite, turn, iou_grids, ref_colors, spec_mats, out_path, tit
     ov[b & ~a] = (70, 120, 230, 255)
     ov[a & b] = (170, 120, 210, 255)
     ov_im = Image.fromarray(ov).resize((H, H), Image.NEAREST)
-    trow = upscale(np.concatenate(turn, 1), 3)
+    trow = upscale(np.concatenate(turn, 1), k)
     W = max(r.size[0] + big.size[0] + ov_im.size[0] + 40, trow.size[0] + 20)
     im = Image.new('RGBA', (W, H + trow.size[1] + 110), BG)
     d = ImageDraw.Draw(im)

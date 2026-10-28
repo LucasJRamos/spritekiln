@@ -64,6 +64,7 @@ def test_tools_and_a_character_from_scratch(tmp_path):
     assert out['validate']['ok'] and out['validate']['summary']['name'] == 'hero'
     texts, images = out['pose']
     assert texts[0]['directions'] == ['s', 'e'] and images[0].startswith(b'\x89PNG')
+    assert texts[0]['zoom'] >= 1 and len(texts[0]['crop']) == 4
     texts, images = out['render']
     assert texts[0]['frames'] == 12 and texts[0]['qa']['ok'] and len(images) == 1
     assert sorted(p.split('game')[-1].replace('\\', '/') for p in out['export']['files']) == [

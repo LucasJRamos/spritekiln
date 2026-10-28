@@ -69,6 +69,11 @@ sockets; see the output format at https://github.com/LucasJRamos/spritekiln/blob
 `<name>_normal.png`, `<name>_emissive.png`, `preview/<anim>_<n>dir.gif` (`_8dir`, `_2dir` for a side view),
 `preview/contact_<anim>.png` and `qa.json`. Outputs are generated: never edit them by hand.
 
+Previews (`pose`, contact sheets, GIFs, `review` and `ref compare` sheets) are cropped to what the sprite
+shows and zoomed by whole factors that fit an AI's image budget (about 1500 px and 1.15 megapixels), so every
+sprite pixel is a clean square. `--scale` is the largest zoom. `pose --no-crop` shows the whole frame; over a
+`--bg` the whole frame always shows. Atlases are never cropped.
+
 ## Top-down or side-scroller
 Specs are top-down 3/4 by default (`view: topdown`). For a platformer or side-scroller use `view: side`
 (camera at 0°, directions `e` and `w`, no ground shadow): `spritekiln new <name> --view side`, or

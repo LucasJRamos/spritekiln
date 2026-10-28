@@ -108,12 +108,24 @@ def _rest(spec, dirs):
     return {d: render_frame(spec, rest_env(spec, y), y) for d, y in dirs}
 
 
+CAPTION_W = 110  # px a caption needs under each frame
+
+
 def _strip(frames, look, scale, captions):
-    """Frames side by side over the scene, upscaled, with a caption under each."""
+    """Frames side by side over the scene, cropped to what they show, zoomed by the largest whole factor up to
+    `scale` that fits an AI's image budget, with a caption under each."""
+    from . import preview
+
     shown = [look(f.img, f.emissive) if look else f.img for f in frames]
-    strip = upscale(np.concatenate(shown, 1), scale, None if look else BG)
-    w = shown[0].shape[1] * scale
+    shown = preview.crop(shown, preview.content_box(shown))
+    h, w0 = shown[0].shape[:2]
     lines = max(len(c) for c in captions)
+    k = preview.fit_scale(lambda k: (len(shown) * max(w0 * k, CAPTION_W), h * k + 14 * lines + 6), scale)
+    if w0 * k < CAPTION_W:  # widen the cells so the captions do not overlap
+        side = -(-CAPTION_W // k) - w0
+        shown = [np.pad(f, ((0, 0), (side // 2, side - side // 2), (0, 0))) for f in shown]
+    strip = upscale(np.concatenate(shown, 1), k, None if look else BG)
+    w = shown[0].shape[1] * k
     out = Image.new('RGBA', (strip.width, strip.height + 14 * lines + 6), BG)
     out.alpha_composite(strip.convert('RGBA'))
     d = ImageDraw.Draw(out)
@@ -261,7 +273,7 @@ def run(
     for a, by_dir in clips.items():
         rows = [[(look(f.img, f.emissive) if look else f.img) for f in by_dir[d]] for d in by_dir]
         p = os.path.join(out_dir, f'clip_{a}.png')
-        contact_sheet(rows, list(by_dir), max(len(r) for r in rows), spec['size'], scale).save(p)
+        contact_sheet(rows, list(by_dir), max(len(r) for r in rows), scale).save(p)
         paths['clips'][a] = p
     report['files'] = paths
     with open(paths['json'], 'w', encoding='utf-8') as fh:

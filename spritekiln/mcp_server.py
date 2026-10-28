@@ -21,20 +21,21 @@ follows the recorded style. Then guide('workflow') and guide('spec'). Loop: edit
 -> pose (look at the image) -> repeat; render only at the end, then export. If you cannot see images, use
 review numbers."""
 
-MAX_SIDE = 1600  # images larger than this are scaled down before they are sent
 
-
-def _png(path_or_img, max_side=MAX_SIDE):
+def _pngs(path_or_img):
+    """An image as MCP images. Previews are already sized to an AI's image budget (preview.MAX_SIDE); a larger
+    one is cut into pieces rather than shrunk, because shrinking by a fraction distorts pixel art."""
     from mcp.server.mcpserver import Image
 
+    from . import preview
+
     im = PILImage.open(path_or_img) if isinstance(path_or_img, str) else path_or_img
-    im = im.convert('RGBA')
-    k = max(im.size) / max_side
-    if k > 1:
-        im = im.resize((max(1, round(im.width / k)), max(1, round(im.height / k))), PILImage.NEAREST)
-    buf = io.BytesIO()
-    im.save(buf, 'PNG')
-    return Image(data=buf.getvalue(), format='png')
+    out = []
+    for piece in preview.tiles(im.convert('RGBA')):
+        buf = io.BytesIO()
+        piece.save(buf, 'PNG')
+        out.append(Image(data=buf.getvalue(), format='png'))
+    return out
 
 
 def _split(value):
@@ -132,9 +133,14 @@ def build():
         """Render one pose (rest, or `anim` at `frame`) in several directions side by side and return the image.
         Cheap (about 1 s per direction): use it after every edit. `draft`: one sample per pixel, about 6x
         faster, for silhouettes and poses (rougher edges); look at a full pose before `render`. `bg`/`tint`:
-        preview over the game's floor under the scene light."""
-        out, dl = api.pose(spec, anim, frame, dirs, scale, bg, tint, draft=draft)
-        return [{'image': out, 'directions': dl, 'draft': draft}, _png(out)]
+        preview over the game's floor under the scene light. The image is cropped around the sprite and zoomed by
+        a whole factor up to `scale` that fits an image budget: `zoom` and `crop` ([x0, y0, x1, y1] in frame
+        pixels) map its pixels back to the frame."""
+        out, dl, view = api.pose(spec, anim, frame, dirs, scale, bg, tint, draft=draft)
+        return [
+            {'image': out, 'directions': dl, 'draft': draft, 'zoom': view['scale'], 'crop': view['crop']},
+            *_pngs(out),
+        ]
 
     @tool
     def render(
@@ -154,7 +160,7 @@ def build():
         summary = {k: v for k, v in res.items() if k != 'spec'}
         out = [summary]
         if sheets:
-            out += [_png(p) for p in list(res['contact_sheets'].values())[:3]]
+            out += [im for p in list(res['contact_sheets'].values())[:3] for im in _pngs(p)]
         return out
 
     @tool
@@ -176,14 +182,14 @@ def build():
 
         rep = run(spec, _split(anims), _split(dirs), bg, preview.parse_tint(tint), against, ref, ref_dir)
         slim = {k: v for k, v in rep.items() if k != 'poses'}
-        return [slim, _png(rep['files']['sheet'])]
+        return [slim, *_pngs(rep['files']['sheet'])]
 
     @tool
     def ref_compare(spec: str, image: str, dir: str = 's', anim: str | None = None, frame: int = 0) -> list:
         """Compare the model with a splash art seen from `dir`: silhouette IoU (corrected for the camera pitch,
         plus the raw value), hints on which height is too wide or narrow, and the comparison sheet."""
         res = api.ref_compare(spec, image, dir, anim, frame)
-        return [{k: v for k, v in res.items() if k not in ('ref', 'render')}, _png(res['sheet'])]
+        return [{k: v for k, v in res.items() if k not in ('ref', 'render')}, *_pngs(res['sheet'])]
 
     @tool
     def export(

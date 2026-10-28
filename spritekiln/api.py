@@ -123,10 +123,13 @@ def pose_env(sp, anim, frame, yaw=0.0):
     return frames[frame][0]
 
 
-def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=None, draft=False):
-    """Render one pose in several directions side by side (zoomed PNG). Returns (png path, directions).
-    `draft`: one sample per pixel, about 6x faster, for silhouettes and poses (rougher edges, thin parts may
-    break); the default file name ends in `_draft`."""
+def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=None, draft=False, crop=True):
+    """Render one pose in several directions side by side (zoomed PNG). Returns (png path, directions, view):
+    `view` holds the zoom used and the crop box [x0, y0, x1, y1] in frame pixels.
+    `scale` is the largest zoom: it is lowered, by whole steps, until the image fits an AI's image budget
+    (preview.MAX_SIDE, MAX_AREA). `crop`: keep only what the sprite shows, plus a margin (the same box in every
+    direction; over a `bg` the whole frame shows). `draft`: one sample per pixel, about 6x faster, for
+    silhouettes and poses (rougher edges, thin parts may break); the default file name ends in `_draft`."""
     from . import preview
     from .export import BG, upscale
     from .pipeline import frame_image
@@ -151,10 +154,15 @@ def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=N
     look = preview.viewer(preview.load_background(bg) if bg else None, preview.parse_tint(tint))
     shots = [frame_image(sp, pose_env(sp, anim, frame, y), y, maps=look is not None) for _, y in dl]
     imgs = [look(img, em) if look else img for img, _, em in shots]
+    h, w = imgs[0].shape[:2]
+    box = preview.content_box(imgs) if crop else (0, h, 0, w)
+    strip = np.concatenate(preview.crop(imgs, box), 1)
+    k = preview.fit_scale(lambda k: (strip.shape[1] * k, strip.shape[0] * k), scale)
     out = out or os.path.join(sp['_dir'], 'out', f'pose_{anim or "rest"}_{frame}{"_draft" if draft else ""}.png')
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-    upscale(np.concatenate(imgs, 1), scale, None if look else BG).save(out)
-    return out, [d for d, _ in dl]
+    upscale(strip, k, None if look else BG).save(out)
+    y0, y1, x0, x1 = box
+    return out, [d for d, _ in dl], dict(scale=k, crop=[x0, y0, x1, y1])
 
 
 def _checked(sp):

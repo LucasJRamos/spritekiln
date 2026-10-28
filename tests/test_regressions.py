@@ -85,7 +85,7 @@ def test_in_process_spec_cache_sees_palette_edits(tmp_path):
 
 def test_side_view_pose_all_means_its_own_directions(tmp_path):
     path = api.new('runner', folder=str(tmp_path), view='side')
-    _, dirs = api.pose(path, dirs='all', out=str(tmp_path / 'p.png'))
+    _, dirs, _ = api.pose(path, dirs='all', out=str(tmp_path / 'p.png'))
     assert dirs == ['e', 'w']
 
 

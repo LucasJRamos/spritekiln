@@ -57,8 +57,11 @@ def cmd_pose(a):
 
     _spec(a.spec)
     t = time.time()
-    out, dirs = api.pose(a.spec, a.anim, a.frame, a.dirs, a.scale, a.bg, a.tint, a.out, a.draft)
-    print(f'{out}  ({", ".join(dirs)}; {time.time() - t:.1f}s{"; draft" if a.draft else ""})')
+    out, dirs, view = api.pose(
+        a.spec, a.anim, a.frame, a.dirs, a.scale, a.bg, a.tint, a.out, a.draft, crop=not a.no_crop
+    )
+    zoom = f'; zoom {view["scale"]}' if view['scale'] != a.scale else ''
+    print(f'{out}  ({", ".join(dirs)}; {time.time() - t:.1f}s{zoom}{"; draft" if a.draft else ""})')
 
 
 def cmd_render(a):
@@ -506,10 +509,16 @@ def build_parser(prog='spritekiln'):
     s.add_argument('--anim')
     s.add_argument('--frame', type=int, default=0)
     s.add_argument('--dirs', help='e.g. s,se,e or all')
-    s.add_argument('--scale', type=_positive, default=4, help='zoom of the preview PNG (default 4)')
+    s.add_argument(
+        '--scale',
+        type=_positive,
+        default=4,
+        help='largest zoom of the preview PNG (default 4; lowered by whole steps to fit an AI image budget)',
+    )
     s.add_argument(
         '--draft', action='store_true', help='one sample per pixel: about 6x faster, rougher edges (iterate with it)'
     )
+    s.add_argument('--no-crop', action='store_true', help='show whole frames instead of cropping around the sprite')
     _preview_args(s)
     s.add_argument('-o', '--out')
     s.set_defaults(f=cmd_pose)

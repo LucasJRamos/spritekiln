@@ -17,6 +17,14 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
 - `render --draft` writes only GIFs and contact sheets, in `preview-draft/`, to check motion; it writes no atlas,
   JSON or QA and cannot be exported.
 
+### Pixel-exact previews
+- Previews are cropped to what the sprite shows and zoomed by whole factors that fit an AI's image budget
+  (about 1500 px and 1.15 megapixels): `pose`, contact sheets, GIFs, the `review` and `ref compare` sheets. AI
+  clients used to receive them shrunk by fractions, which made pixels uneven. The Templar's idle contact sheet
+  goes from 2358 × 2354 px to 982 × 1138 px.
+- `pose --scale` is now the largest zoom; `pose --no-crop` keeps whole frames. MCP `pose` returns the `zoom` and
+  the `crop` box; MCP tools cut an image that is still too large into pieces instead of shrinking it.
+
 ## 0.2.0 (2026-10-25)
 
 ### Upgrading from 0.1.0

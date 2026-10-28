@@ -51,7 +51,8 @@ def test_unknown_view(tmp_path):
 
 def test_side_pose_golden(tmp_path, update_golden):
     out = str(tmp_path / 'side.png')
-    main(['pose', side_fixture(tmp_path), '--scale', '1', '-o', out])  # default: the spec's directions (e, w)
+    # default: the spec's directions (e, w)
+    main(['pose', side_fixture(tmp_path), '--scale', '1', '--no-crop', '-o', out])
     assert_image_matches(out, 'minimal_side_pose_rest.png', update_golden)
 
 

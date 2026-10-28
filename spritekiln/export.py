@@ -55,20 +55,30 @@ def label(im, text, xy, fill=(230, 225, 235, 255)):
     d.text(xy, _ascii(text), fill=fill, font=font())
 
 
-def contact_sheet(rows, row_labels, col_count, S, k=3):
-    """rows: list of lists of RGBA frames."""
+def contact_sheet(rows, row_labels, col_count, k=3, crop=True):
+    """rows: one list of same-sized RGBA frames per direction. `crop`: keep only what the frames show (one box
+    for all of them). Zoomed by the largest whole factor up to `k` that fits an AI's image budget."""
+    from . import preview
+
+    if crop:
+        box = preview.content_box([f for r in rows for f in r])
+        rows = [preview.crop(r, box) for r in rows]
+    h, w = rows[0][0].shape[:2]
     pad = 18
-    W = pad * 3 + col_count * S * k
-    H = pad + len(rows) * (S * k + 4)
-    im = Image.new('RGBA', (W, H), BG)
+
+    def size_at(k):
+        return pad * 3 + col_count * w * k, pad + len(rows) * (h * k + 4)
+
+    k = preview.fit_scale(size_at, k)
+    im = Image.new('RGBA', size_at(k), BG)
     for r, (frames, lab) in enumerate(zip(rows, row_labels)):
-        y = pad + r * (S * k + 4)
+        y = pad + r * (h * k + 4)
         label(im, lab, (2, y + 2))
         for c, f in enumerate(frames):
-            x = pad * 3 + c * S * k
+            x = pad * 3 + c * w * k
             im.alpha_composite(upscale(f, k, None), (x, y))
     for c in range(col_count):
-        label(im, str(c), (pad * 3 + c * S * k + 2, 3))
+        label(im, str(c), (pad * 3 + c * w * k + 2, 3))
     return im
 
 
@@ -178,10 +188,12 @@ def export(spec, anims, dlist, out, dst, gif_scale=5, block='spritekiln', look=N
 
 
 def previews(spec, anims, dlist, out, pv, gif_scale=5, look=None):
-    """`<anim>_<n>dir.gif` (every direction side by side) and `contact_<anim>.png` in folder `pv`. Returns the
-    contact sheet path of each animation."""
+    """`<anim>_<n>dir.gif` (every direction side by side) and `contact_<anim>.png` in folder `pv`, cropped to
+    what the animation shows (one box for all its frames, so motion stays comparable) and zoomed by whole
+    factors that fit an AI's image budget. Returns the contact sheet path of each animation."""
+    from . import preview
+
     os.makedirs(pv, exist_ok=True)
-    S = spec['size']
 
     def shown(fr):
         return look(fr.img, fr.emissive) if look else fr.img
@@ -190,11 +202,15 @@ def previews(spec, anims, dlist, out, pv, gif_scale=5, look=None):
     for a in anims:
         n = len([k for k in out if k[0] == a and k[1] == dlist[0][0]])
         durs = [out[(a, dlist[0][0], i)].ms for i in range(n)]
-        strip = [np.concatenate([shown(out[(a, d, i)]) for d, _ in dlist], 1) for i in range(n)]
-        save_gif(os.path.join(pv, f'{a}_{len(dlist)}dir.gif'), strip, durs, gif_scale if len(dlist) <= 4 else 3)
-        sheet = contact_sheet(
-            [[shown(out[(a, d, i)]) for i in range(n)] for d, _ in dlist], [d for d, _ in dlist], n, S, 3
-        )
+        cells = [[shown(out[(a, d, i)]) for i in range(n)] for d, _ in dlist]
+        box = preview.content_box([f for row in cells for f in row])
+        cells = [preview.crop(row, box) for row in cells]
+        strip = [np.concatenate([row[i] for row in cells], 1) for i in range(n)]
+        want = gif_scale if len(dlist) <= 4 else 3
+        sh, sw = strip[0].shape[:2]
+        gk = preview.fit_scale(lambda k, sw=sw, sh=sh: (sw * k, sh * k), want)
+        save_gif(os.path.join(pv, f'{a}_{len(dlist)}dir.gif'), strip, durs, gk)
+        sheet = contact_sheet(cells, [d for d, _ in dlist], n, 3, crop=False)
         sheets[a] = os.path.join(pv, f'contact_{a}.png')
         sheet.save(sheets[a])
     return sheets

@@ -30,7 +30,7 @@ MINIMAL = os.path.join(FIXTURES, 'minimal', 'minimal.yaml')
 )
 def test_pose_all_directions(tmp_path, update_golden, spec, args, golden):
     out = str(tmp_path / golden)
-    main(['pose', stage_spec(tmp_path, spec), '--dirs', 'all', '--scale', '1', '-o', out, *args])
+    main(['pose', stage_spec(tmp_path, spec), '--dirs', 'all', '--scale', '1', '--no-crop', '-o', out, *args])
     assert_image_matches(out, golden, update_golden)
 
 
