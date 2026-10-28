@@ -1,6 +1,6 @@
 # 12. Compiled scene and fast backend
 
-**Status:** proposed · **Track:** speed, memory · **Stage:** 2 (release 0.3) · **Depends on:** 05 (go), 02
+**Status:** proposed · **Track:** speed, memory · **Stage:** 2 (release 0.3) · **Depends on:** 05 (go: ADR-029), 02
 
 ## Problem
 - **Ray marching dominates, even after 02.** numpy pays for every operation: temporaries for every group at
@@ -40,8 +40,10 @@ A new primitive is added to the IR once, then implemented in both evaluators aga
 - 4-tap normals instead of 6;
 - optional float32.
 
-**numba evaluator:**
+**numba evaluator** (the spike, ADR-029: 5.7–6.6× per frame, identical parts):
 - one generic kernel with `cache=True`;
+- per-ray group culling is required, not optional: without it the spike gained only 2.1–3.7×;
+- the ray setup (scene bounds, the "never" test) runs inside the kernel: outside it cost 170 ms per Templar frame;
 - `prange` over tiles, a per-ray loop with early exit, per-tile candidate lists;
 - normals, AO and soft shadows with the exact-within rule of [02](02-tight-bounds-and-exact-soft-shading.md).
 

@@ -1,6 +1,6 @@
 # 03. Pixel-exact previews for AIs
 
-**Status:** proposed · **Track:** tokens, quality · **Stage:** 1 (release 0.3) · **Depends on:** nothing
+**Status:** done (2f40ff7) · **Track:** tokens, quality · **Stage:** 1 (release 0.3) · **Depends on:** nothing
 
 ## Problem
 - **The AI is shown distorted pixel art.** `_png` (`spritekiln/mcp_server.py`) shrinks any image larger than
@@ -45,3 +45,8 @@ the same information for fewer tokens.
 ## Risks and open questions
 - Cropping hides how much room is left in the frame, so a pose close to clipping could go unnoticed. QA already
   reports clipping in `qa.json`. Should the frame border also be drawn as a 1 px guide in the margin?
+
+## Outcome (2026-10-27): done
+Budget 1536 px and 1.15 MP. Templar: pose of 8 directions at scale 3 is 1536 × 186 (was 2304 × 288, then
+shrunk by MCP); idle contact sheet 982 × 1138, 1.12 MP (was 2358 × 2354, 5.55 MP). MCP tools cut a still too
+large image into pieces. `pose --no-crop` keeps whole frames (the golden pose tests use it).

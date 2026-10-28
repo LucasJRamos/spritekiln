@@ -1,6 +1,6 @@
 # 02. Tight bounds and exact soft shading
 
-**Status:** proposed · **Track:** speed, quality · **Stage:** 1 (release 0.3) · **Depends on:** nothing
+**Status:** done (4c366dd, 4b2e999) · **Track:** speed, quality · **Stage:** 1 (release 0.3) · **Depends on:** nothing
 
 ## Problem
 **1. Loose bounds.** `Group.__init__` (`spritekiln/sdf.py`) bounds a group with a sphere around the
@@ -71,3 +71,9 @@ The part ids do not change at all.
   bug; exact soft shading replaces them for every spec.
 - **Exact evaluation for shadow rays near surfaces costs more.** Shadows are about 10 % of a frame today;
   measure the cost.
+
+## Outcome (2026-10-27): done
+Templar frame 6.6 s → 2.2 s; 8-direction poses: Templar 37.9 s → 14.7 s, Huntress 12.8 s → 8.4 s, gargoyle
+12.7 s → 8.3 s. Part ids identical. Inflating every bound by 0.3 now changes 0–4 pixels (where marching
+stops) instead of 83–228. Goldens and showcase hashes rebuilt; every showcase frame is lighter where the
+false shadows fell.

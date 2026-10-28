@@ -1,6 +1,6 @@
 # 01. Draft preview
 
-**Status:** proposed · **Track:** speed · **Stage:** 1 (release 0.3) · **Depends on:** nothing
+**Status:** done (9b050a7) · **Track:** speed · **Stage:** 1 (release 0.3) · **Depends on:** nothing
 
 ## Problem
 The working loop is edit → `validate` → `pose` → look ([`docs/agent/workflow.md`](../agent/workflow.md)). `pose`
@@ -45,3 +45,10 @@ An opt-in preview at least 5× faster than `pose`, for iterating on forms and po
   general.
 - Should MCP `pose` default to draft? Proposed: no. The AI asks for it explicitly, and the docs recommend it
   for silhouette and pose work.
+
+## Outcome (2026-10-27): done
+`pose --draft`, `render --draft` (previews only, `preview-draft/`, cannot be exported), MCP `draft=true`.
+Measured, 8 directions, uncached: Templar 14.7 s → 5.1 s, Huntress 8.4 s → 3.9 s, gargoyle 8.3 s → 4.3 s.
+That is 2–3× over the full pose **after** design 02 (7× over the pose before stage 1), short of the 5× goal:
+once 02 made ray marching cheaper, the fixed costs (start-up, rig, compose) weigh more. The fast backend (12)
+is where the rest comes from. Parts agree with the full render on at least 95 % of the pixels both fill.

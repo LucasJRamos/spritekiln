@@ -1,6 +1,6 @@
 # 04. `spec outline` and `spec show`
 
-**Status:** proposed · **Track:** tokens · **Stage:** 1 (release 0.3) · **Depends on:** nothing
+**Status:** done (05d303d) · **Track:** tokens · **Stage:** 1 (release 0.3) · **Depends on:** nothing
 
 ## Problem
 To change one part, an AI reads the whole spec, and the recipe's agents (modeler, art director, animator)
@@ -53,3 +53,8 @@ tokens, and any block can be printed by its path.
 ## Risks and open questions
 - Mirrored `_R` items have no lines of their own: the outline names their `_L` source.
 - Flow-style blocks (`{...}` on one line) are shown whole, so that line's neighbours are not split.
+
+## Outcome (2026-10-27): done
+Outline sizes: Huntress 6.1 KB (spec 40.6 KB), Templar 4.0 KB (23.9 KB), gargoyle 2.3 KB (13.5 KB). Items of
+an itemized section are listed by name under it; `spec outline --json` gives full paths. MCP tools
+`spec_outline` and `spec_show`.

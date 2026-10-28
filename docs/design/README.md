@@ -106,6 +106,9 @@ and style systems; rendering them earlier would mean redoing them.
   the model chosen for the session; nothing is routed to a cheaper model to save tokens. Token savings come
   only from reading less (outlines, smaller specs, cropped images), never from a weaker model. ADR-019
   stands.
+- **2026-10-27, spike 05: go ([ADR-029](../decisions.md)).** A numba kernel with per-ray group culling renders
+  frames 5.7–6.6× faster with identical parts and at most 0.016 % of colour pixels different; design 12 is
+  built as the optional `spritekiln[fast]` extra.
 - **2026-10-27, order.** Stage 1: 01–05. Stage 2: 12, 13, 10 (forms before surface and style). Stage 3: 06, 07,
   08, 09, 11. Stage 4: 14. Proposal 15 is not scheduled yet.
 - **2026-10-27, one release.** Everything is developed on the branch `plan/quality-forms-performance`. The

@@ -1,6 +1,6 @@
 # 05. Compiled-scene spike (go / no-go)
 
-**Status:** proposed · **Track:** speed, memory · **Stage:** 1 (release 0.3) · **Depends on:** 02
+**Status:** done: **go** (ADR-029) · **Track:** speed, memory · **Stage:** 1 (release 0.3) · **Depends on:** 02
 
 ## Problem
 numpy is near its ceiling for this workload. Prototypes measured on 2026-10-27:
@@ -66,3 +66,18 @@ branch; [12](12-compiled-scene-and-fast-backend.md) starts clean if the answer i
 ## Risks and open questions
 - A spike that skips integration can hide costs: building the arrays every frame, Python overhead around the
   kernel. Measure end to end per frame, not only the kernel.
+
+## Outcome (2026-10-27): go
+Code and full results: branch `spike/compiled-scene`, `tools/spikes/compiled_scene/`. Decision: ADR-029.
+
+| spec | numpy | numba, 16 threads, with per-ray culling | part ids | colour pixels differing |
+|---|---|---|---|---|
+| templar | 1.82 s | 0.31 s (5.8×) | identical | 12 of 73,728 |
+| huntress | 1.05 s | 0.18 s (5.7×) | identical | 2 |
+| gargoyle | 0.93 s | 0.14 s (6.6×) | identical | 3 |
+
+- Compile: 8.7 s on the first run, 0.56 s cached. Memory: 114 MB peak for one process with 16 threads; numpy
+  needs about 7 workers (about 480 MB) for the same speed.
+- Without per-ray culling the compiled kernel gains only 2.1–3.7× (1.3–1.7× on one thread): culling is part of
+  [12](12-compiled-scene-and-fast-backend.md), and so is moving the ray setup into the kernel.
+- numba 0.68.1 and llvmlite 0.50.0 take about 150 MB on disk on Windows.

@@ -226,3 +226,17 @@ package does not reach a project's copies of the AI instructions, so `update` th
 configs alone. `init` now records the assistants in `spritekiln.toml` and stamps `.spritekiln/version`;
 projects from 0.1.0 have their assistants detected from the files `init` wrote, and commands note a
 project whose files come from another version.
+
+## ADR-029: A compiled numba backend is worth building (2026-10-27)
+Design 05's spike (branch `spike/compiled-scene`, `tools/spikes/compiled_scene/`) captured one frame's scene
+as flat arrays and rendered it with one numba kernel that mirrors `spritekiln.render`. Measured on the dev
+machine (16 threads), rest pose, 8 directions, whole frames: the Templar 1.82 s → 0.31 s (5.8×), the Huntress
+1.05 s → 0.18 s (5.7×), the gargoyle 0.93 s → 0.14 s (6.6×); part ids identical, at most 12 of 73,728 colour
+pixels different (where marching stops, within its epsilon); compile 8.7 s on the first run, 0.56 s cached;
+one process peaks at 114 MB, where numpy workers need about 480 MB for the same speed. That meets every
+go criterion, so design 12 is built: an optional `spritekiln[fast]` extra, numpy stays the reference and the
+fallback. Two findings shape it. A compiled per-ray loop alone gains only 1.3–1.7× per thread (the work is
+rays × steps × groups either way): per-ray group culling (camera ray, AO taps, shadow ray) is what pays, so
+it is part of the design, not an option. And the ray setup outside the kernel cost as much as the kernel
+(170 ms per Templar frame), so it moves inside. Costs accepted: numba and llvmlite take about 150 MB on disk,
+there are no macOS Intel wheels (numpy there), and the first run compiles for about 9 s.
