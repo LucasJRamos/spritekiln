@@ -132,7 +132,20 @@ def render_frame(spec, env, yaw, force=False, maps=True):
         per = [mats[g.mat]['rim'] if mats[g.mat].get('rim') is not None else light.rim_strength for g in groups]
         rim = np.array([*per, 0.0])[np.where(G >= 0, G, -1)]
     ndh = facing(gb, cam, light) if any(mats[g.mat].get('highlight') for g in groups) else None
-    img = compose(G, shade(gb, cam, light, rim), gb.depth, groups, mats, shadow_for(spec, env, yaw, cam), flat, ndh)
+    img = compose(
+        G,
+        shade(gb, cam, light, rim),
+        gb.depth,
+        groups,
+        mats,
+        shadow_for(spec, env, yaw, cam),
+        flat,
+        ndh,
+        gb.normal.astype(float),
+        cam,
+        light.L,
+        spec.get('render'),
+    )
     nm, em = aux_maps(img, G, gb.normal.astype(float), groups, spec['materials'], cam) if maps else (None, None)
     mats = {}
     if groups:

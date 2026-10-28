@@ -36,6 +36,10 @@
       ]
     },
     "ramps": {"$ref": "#/$defs/ramps", "description": "Extra ramps defined in the spec (override the palette)."},
+    "render": {"type": "object", "additionalProperties": false, "description": "Render settings of this spec (the project style sets the defaults).", "properties": {
+      "crease_angle": {"type": "number", "description": "Degrees between neighbouring normals that make a crease line (default 50)."},
+      "min_run": {"type": "integer", "minimum": 1, "description": "Crease line runs shorter than this many pixels are dropped (default 2)."}
+    }},
     "snap": {"type": "array", "items": {"type": "string"}, "description": "Frames (root, bones) whose movement is rounded to whole pixels on screen, so small bobs do not make the sprite boil."},
     "camera": {
       "type": "object",

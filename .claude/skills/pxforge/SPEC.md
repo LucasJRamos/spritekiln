@@ -99,6 +99,12 @@ How a material answers light:
 - `rim: 0.6`: the rim light's strength on this material (default `light.rim_strength`).
 - `thresholds: [0.35, 0.7]`: the light values where the tone steps up (hard toon shading) instead of `gamma`.
 - `flat_band`: the tone used with `light: {mode: flat}`.
+- `crease: true`: a line inside one part where its surface folds inwards (sharper than `render.crease_angle`,
+  default 50°) or folds over itself (a cape seen from the side): armour plates, carved stone, folded cloth.
+  Leave it off on soft organic shapes (it draws noise at blended joints).
+- `edge_highlight: true`: one tone up along convex edges that face the light (the bevels of plates and blocks).
+- A top-level `render: {crease_angle: 50, min_run: 2}` tunes both: line runs shorter than `min_run` pixels are
+  dropped.
 
 Ramps come from `palette:`: a file path relative to the spec, a name in the project's palettes folder
 (`<specs>/palettes/<name>.yaml` of `spritekiln.toml`), a built-in name (`gothic`), or a list of them (later

@@ -1,6 +1,6 @@
 # 08. Lines from normals, edge highlights
 
-**Status:** proposed · **Track:** quality · **Stage:** 3 (release 0.3) · **Depends on:** 06
+**Status:** done (stage 3) · **Track:** quality · **Stage:** 3 (release 0.3) · **Depends on:** 06
 
 ## Problem
 Inner lines (step 2 of `compose`, `spritekiln/pixelize.py`) appear only where two **different** groups meet
@@ -56,3 +56,16 @@ Clean-up:
 - Smooth blends between primitives (joints) can produce noisy short lines. `crease_angle`, `min_run`, and
   `crease: false` on organic materials handle it. Tune the defaults on the showcase.
 - Edge highlights and material highlights (07) can stack on the same pixel: material highlight wins.
+
+## Outcome (2026-10-28): done
+- `pixelize.folds`: on right and down neighbours of the same part, a concave fold sharper than `crease_angle`
+  marks the farther pixel; a convex edge facing the light lifts the brighter pixel one tone (below a
+  highlight's reserved tone); runs shorter than `min_run` are dropped. Material fields `crease`,
+  `edge_highlight`; spec `render: {crease_angle, min_run}`.
+- The self-overlap rule ("a jump in depth") first drew lines on a sphere's silhouette, where a grazing surface
+  changes depth fast: it now compares the jump with the slope the normals predict (-s (n.d3) / (n.D)) and only
+  between pixels that face the camera.
+- On the Templar's armour and the gargoyle's stone the lines and edge lights add definition at the joints;
+  the effect is moderate at 64-96 px. Tests: an L-shaped block gets a crease line, a sphere none, edge
+  highlights only lighten. Off by default: goldens unchanged.
+

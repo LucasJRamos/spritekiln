@@ -79,9 +79,65 @@ def clusters(mask, score, min_px=1, max_px=None):
     return out
 
 
-def compose(gid, val, depth, groups, materials, shadow=None, flat=False, ndh=None):
+def folds(gid, depth, normal, band, cam, light_dir, crease_on, edge_on, crease_angle=50.0, min_run=2):
+    """(crease, up) inside each part, from 4-neighbour pairs of the same part: `crease` marks the farther pixel of
+    a concave fold sharper than `crease_angle` degrees and of a jump in depth (a part folding over itself), runs
+    shorter than `min_run` px dropped; `up` marks the brighter pixel of a convex edge facing the light (one tone
+    up). `crease_on` / `edge_on`: per group (plus a trailing False), which parts take them."""
+    H, W = gid.shape
+    idx = np.where(gid >= 0, gid, -1)
+    crease = np.zeros((H, W), bool)
+    up = np.zeros((H, W), bool)
+    cosmax = np.cos(np.radians(crease_angle))
+    for (dy, dx), d3 in (((0, 1), cam.R), ((1, 0), -cam.U)):  # right and down neighbours, as world directions
+        gb = shift(gid, -dy, -dx, -1)
+        same = (gid >= 0) & (gb == gid)
+        nb = np.stack([shift(normal[..., i], -dy, -dx, 0.0) for i in range(3)], -1)
+        db = shift(depth, -dy, -dx, np.inf)
+        bent = same & ((normal * nb).sum(-1) < cosmax)
+        convex = ((nb - normal) @ d3) > 0  # normals open apart along the step: a ridge
+        b_far = db > depth
+        # the part folds over itself: the depth jumps more than its slope explains (a pixel step s along d3 on a
+        # surface of normal n changes depth by -s (n.d3) / (n.D)), between two surfaces facing the camera
+        navg = normal + nb
+        navg /= np.maximum(np.linalg.norm(navg, axis=-1, keepdims=True), 1e-9)
+        nd = navg @ cam.D
+        facing = (-(normal @ cam.D) > 0.3) & (-(nb @ cam.D) > 0.3)
+        jump = np.zeros((H, W), bool)
+        pair = same & facing
+        slope = -cam.scale * (navg[pair] @ d3) / np.minimum(nd[pair], -1e-3)
+        jump[pair] = np.abs(db[pair] - depth[pair] - slope) > 0.06
+        fold = (bent & ~convex) | jump
+        crease |= fold & ~b_far
+        crease |= shift(fold & b_far, dy, dx, False)
+        ridge = bent & convex & (((normal + nb) @ np.asarray(light_dir, float)) > 0)
+        a_up = band >= shift(band, -dy, -dx, -1)
+        up |= ridge & a_up
+        up |= shift(ridge & ~a_up, dy, dx, False)
+    crease &= crease_on[idx]
+    up &= edge_on[idx] & ~crease
+    if min_run > 1:
+        crease = clusters(crease, np.zeros((H, W)), min_run)
+    return crease, up
+
+
+def compose(
+    gid,
+    val,
+    depth,
+    groups,
+    materials,
+    shadow=None,
+    flat=False,
+    ndh=None,
+    normal=None,
+    cam=None,
+    light_dir=None,
+    opts=None,
+):
     """-> RGBA uint8 image. shadow: (cx, cy, rx, ry, rgba) or None; flat: see band_of; ndh: render.facing, for the
-    materials' highlights."""
+    materials' highlights; normal, cam, light_dir: for creases and edge highlights (folds); opts: the spec's
+    `render:` settings (crease_angle, min_run)."""
     H, W = gid.shape
     names = list(materials)
     mid = {n: i for i, n in enumerate(names)}
@@ -112,6 +168,32 @@ def compose(gid, val, depth, groups, materials, shadow=None, flat=False, ndh=Non
                     u, c = np.unique(vals, return_counts=True)
                     band[y, x] = u[c.argmax()]
 
+    # --- 1a. creases and edge highlights from the normals, inside one part ---
+    crease = np.zeros((H, W), bool)
+    crease_on = np.array([bool(materials[g.mat].get('crease')) for g in groups] + [False])
+    edge_on = np.array([bool(materials[g.mat].get('edge_highlight')) for g in groups] + [False])
+    if normal is not None and (crease_on.any() or edge_on.any()):
+        o = opts or {}
+        crease, up = folds(
+            gid,
+            depth,
+            normal,
+            band,
+            cam,
+            light_dir,
+            crease_on,
+            edge_on,
+            o.get('crease_angle', 50.0),
+            o.get('min_run', 2),
+        )
+        crease &= ~np.isin(mat, list(EMISSIVE))
+        for n in names:
+            M = materials[n]
+            sel = up & (mat == mid[n])
+            if sel.any():
+                top = len(M['colors']) - 1 - (1 if M.get('highlight') else 0)  # the highlight keeps its tone
+                band[sel] = np.minimum(band[sel] + 1, max(top, 0))
+
     # --- 1b. highlights: a small hard cluster where the surface faces between the light and the camera ---
     hl_colors = []
     if ndh is not None and not flat:
@@ -138,6 +220,7 @@ def compose(gid, val, depth, groups, materials, shadow=None, flat=False, ndh=Non
         if abs(dy) + abs(dx) == 2:
             cand &= nd < depth - 0.25  # diagonals only for big depth jumps
         line |= cand
+    line |= crease
     # never line emissive pixels
     line &= ~np.isin(mat, list(EMISSIVE))
 

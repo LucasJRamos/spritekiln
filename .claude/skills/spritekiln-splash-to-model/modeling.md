@@ -12,6 +12,9 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
 - **Materials read through their finish:** give armour and blades `finish: metal`, skin and leather `soft`,
   cloth and stone `matte`, gems and eyes `glossy` (SPEC.md). A ramp for a metal needs 5–6 tones: the top one
   becomes its highlight.
+- **Crisp forms inside a part:** `crease: true` on armour, plates and stone draws the inward folds inside one
+  part, and `edge_highlight: true` lights its convex edges (SPEC.md); inner lines otherwise appear only between
+  two parts.
 - **Colours:** one ramp per material, 4–6 tones; few materials (3–6). Emissives (eyes, magic) are the
   accent. Value contrast between neighbouring materials matters more than hue.
 - **Perspective:** things that stick out backwards or away rise on the screen. Check the diagonals: a thin
