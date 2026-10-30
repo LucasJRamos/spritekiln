@@ -42,3 +42,9 @@ path = [
 ]
 SPDX-FileCopyrightText = "2026 Lucas Ramos / PlayRPG"
 SPDX-License-Identifier = "LicenseRef-Showcase"
+
+# Demonstration characters from test projects (not Hunt Tower): all rights reserved, demonstration only
+[[annotations]]
+path = ["showcase/rin-7/**", "showcase/ranger/**", "showcase/thor/**"]
+SPDX-FileCopyrightText = "2026 Lucas Ramos"
+SPDX-License-Identifier = "LicenseRef-Showcase"

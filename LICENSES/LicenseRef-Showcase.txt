@@ -1,11 +1,14 @@
 Showcase assets: all rights reserved
 
-Copyright (c) 2026 Lucas Ramos / PlayRPG. All rights reserved.
+Copyright (c) 2026 Lucas Ramos / PlayRPG (Hunt Tower) and Lucas Ramos (the
+demonstration characters). All rights reserved.
 
 This applies to the files that REUSE.toml marks as "LicenseRef-Showcase": the
 Templar and Huntress characters from the game Hunt Tower and the Huntress's
 mine prop, including their specs, splash arts, palettes, rendered sprites,
-animations and game captures, and anything derived from them.
+animations and game captures; the demonstration characters RIN-7, the Ranger
+and Thor, including their splash arts, rendered sprites, animations and
+captures; and anything derived from them.
 
 These files are included in this repository for demonstration only. They are
 not licensed for reuse. You may view them, and you may run the toolkit on them

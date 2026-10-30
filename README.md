@@ -8,7 +8,7 @@
 
 **Animated pixel-art sprites from procedural 3D models, made to be driven by coding AIs.**
 
-A character is a small YAML file: a skeleton, smooth 3D shapes, materials and animations. SpriteKiln renders
+A character is a small YAML file: a skeleton, 3D shapes, materials and animations. SpriteKiln renders
 it into pixel art in 8 directions (top-down 3/4) or in profile (side view), with exact frame timing,
 gameplay events, attachment points, a normal map for dynamic light and an emissive layer, ready for Godot,
 Unity, MonoGame or any engine that reads Aseprite sheets.
@@ -18,9 +18,11 @@ from a description or a splash art: it edits the spec, renders, **looks at the i
 sees. You direct.
 
 <p align="center">
-  <img src="showcase/huntress/turnaround.gif" alt="The Huntress idling in 8 directions" height="220">
-  <img src="showcase/templar/turnaround.gif" alt="The Templar idling in 8 directions" height="220">
-  <img src="docs/images/tutorials/platformer-run.gif" alt="Wren, a side-view platformer character, running in both profiles" height="220">
+  <img src="showcase/thor/turnaround.gif" alt="Thor, a storm god with a hammer, idling in 8 directions" height="220">
+  <img src="showcase/ranger/turnaround.gif" alt="A ranger with mechanical arms and a war crossbow, idling in 8 directions" height="220">
+  <img src="showcase/rin-7/run.gif" alt="RIN-7, a cyberpunk duelist, running in both side-view profiles" height="220">
+  <br>
+  <sub>Thor (top-down, 100 px tall) · the Ranger (top-down, 64 px) · RIN-7 (side view, 48 px): made from splash arts by Claude Code with SpriteKiln. <a href="#showcase">More below</a>.</sub>
 </p>
 
 ## Why
@@ -70,10 +72,16 @@ Then open a new terminal and check with `spritekiln --version`. `[mcp]` adds the
 `"spritekiln[mcp,fast]"` instead (a compiled renderer; Intel Macs keep the plain one). uv, a virtual
 environment, upgrading and troubleshooting: [Install SpriteKiln](docs/tutorials/install.md).
 
-**Upgrading:** `spritekiln update` installs the new version the same way (pipx, uv or a virtual
-environment) and refreshes the AI instructions of the game folder you run it in. Version 0.1.0 does not have
-the command yet: run `pipx upgrade spritekiln` (or `uv tool upgrade spritekiln`) once, then
-`spritekiln update` in your game folder.
+### Upgrade
+
+| You have | Run |
+|---|---|
+| 0.2 or later | `spritekiln update` in a game folder (it upgrades the way you installed and refreshes that folder's AI instructions), then `spritekiln update --files` in your other game folders |
+| 0.1.0 | `pipx upgrade spritekiln` (or `uv tool upgrade spritekiln`), then `spritekiln update --files` in each game folder |
+| any, to add the fast renderer | `pipx install --force "spritekiln[mcp,fast]"` (or `uv tool install --force "spritekiln[mcp,fast]"`) |
+
+In a virtual environment on Windows, run `python -m spritekiln update`. Assets rendered again with a new
+version can look different (0.3 changed the shading): the [changelog](CHANGELOG.md) says what changed.
 
 ## Quick start
 
@@ -139,6 +147,47 @@ spritekiln render art/specs/characters/knight/knight.yaml --export   # all anima
 
 Edit the YAML between `pose` runs: [Your first character in 10 minutes](docs/tutorials/first-character.md)
 walks through it.
+
+## Showcase
+
+<p align="center">
+  <img src="showcase/rin-7/in_game.jpg" alt="RIN-7 slashing a security guard in a rainy neon market" width="100%">
+  <br>
+  <sub>RIN-7 and the guard in a Godot test scene: SpriteKiln sprites lit by the neon through their normal maps. The city, the rain and the slash glow are the scene's.</sub>
+</p>
+
+| RIN-7 · side view, 48 px | The Ranger · top-down, 64 px | Thor · top-down, 100 px |
+|---|---|---|
+| ![RIN-7's double slash in both profiles](showcase/rin-7/attack.gif) | ![The Ranger firing her crossbow](showcase/ranger/attack.gif) | ![Thor's hammer slam](showcase/thor/ult_slam.gif) |
+| 7 clips (idle, run, jump, rise, fall, land, attack), 84 frames | 4 clips in 8 directions (idle, run, dash, attack), 288 frames | 13 clips in 8 directions, 696 frames in a 128 px frame |
+| [splash → sprite](showcase/rin-7/from_this_to_this.png) | [splash → sprite](showcase/ranger/from_this_to_this.png) | [splash → sprite](showcase/thor/from_this_to_this.png) |
+
+Made by Claude Code following the [recipe](docs/agent/recipe.md) (modeler, art director, animator). RIN-7 and
+the Ranger come from test projects of 0.3, Thor from one of 0.1; the Templar and the Huntress were made for
+the game **Hunt Tower**. All of them, with more animations: [`showcase/`](showcase).
+
+## What's new
+
+**0.3** (2026-10-30)
+- **Sharper forms:** extruded and revolved profiles, tubes, shells and cuts give blades, plates, brims and
+  capes crisp edges instead of inflated blobs.
+- **Materials that read:** finishes (metal, soft, matte, glossy) with highlights, creases and edge lights,
+  and surface paint for bands, rivets and emblems.
+- **Your style, applied:** the renderer applies the project's outline, shading (soft, flat, toon), inner
+  lines, dither and light to every asset; `spritekiln style preview` shows the choices side by side.
+- **Bases and kits:** `extends: humanoid` and 20 built-in kits (weapons, shields, headwear, capes, belts,
+  heads and hair), so a character states only what is its own.
+- **Better first characters:** head and hair kits, a question about faces in the style interview, and
+  `pose --focus head` close-ups.
+- **Faster:** frames 1.5–3× faster with tighter bounds, about 6× more with `[fast]`, and `--draft`
+  previews.
+
+**0.2** (2026-10-25)
+- Before the first asset, the assistant interviews you about the art style and records it in
+  `spritekiln.toml`; every later asset follows it.
+- `spritekiln update` upgrades SpriteKiln and refreshes the AI instructions of your game folders.
+
+Everything else: [CHANGELOG](CHANGELOG.md).
 
 ## How it works
 
@@ -208,11 +257,6 @@ recipe for a new character from a splash art: a modeler builds the shape, an art
 against the art, the modeler fixes, an animator animates, the director reviews again
 ([recipe.md](docs/agent/recipe.md)).
 
-## Showcase
-The Templar and the Huntress were made with SpriteKiln for the game **Hunt Tower**, from their splash arts,
-by Claude Code following the recipe above. Their specs are in `specs/characters/`; more images, animations
-and in-game captures are in [`showcase/`](showcase).
-
 ## Learn more
 - [Install SpriteKiln](docs/tutorials/install.md) (Windows, macOS, Linux; pipx, uv or a virtual environment)
 - [Your first character in 10 minutes](docs/tutorials/first-character.md)
@@ -221,13 +265,14 @@ and in-game captures are in [`showcase/`](showcase).
 - [A platformer character (side view)](docs/tutorials/platformer.md)
 - [Use SpriteKiln with your AI](docs/tutorials/use-with-your-ai.md) (instructions files and MCP tools)
 - [Spec reference](docs/agent/spec.md) · [Output format](docs/format.md) · [Roadmap](docs/ROADMAP.md)
-- [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · Translations: [Português (BR)](README.pt-BR.md), [한국어](README.ko.md), [日本語](README.ja.md),
+- [Showcase](showcase) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · Translations: [Português (BR)](README.pt-BR.md), [한국어](README.ko.md), [日本語](README.ja.md),
   [简体中文](README.zh-CN.md)
 
 ## License
-Code, docs and integrations: [MIT](LICENSE). Example assets (the gargoyle, the hunter, Wren, the crates, gas lamp
-and training dummy props, the templates, the gothic and props palettes, the examples' sprites):
-[CC0 1.0](LICENSES/CC0-1.0.txt). Showcase assets (Templar and Huntress from Hunt Tower, with the Huntress's
-mine: specs, splash arts, palettes, renders and game captures): © 2026 Lucas Ramos / PlayRPG, all rights
+Code, docs and integrations: [MIT](LICENSE). Example assets (the gargoyle, the hunter, the knight, Wren, the
+crates, gas lamp and training dummy props, the templates and kits, the gothic and props palettes, the
+examples' sprites): [CC0 1.0](LICENSES/CC0-1.0.txt). Showcase assets (Templar and Huntress from Hunt Tower,
+with the Huntress's mine: specs, splash arts, palettes, renders and game captures; RIN-7, the Ranger and
+Thor: splash arts, renders and captures): © 2026 Lucas Ramos (Hunt Tower: Lucas Ramos / PlayRPG), all rights
 reserved, included for demonstration only ([terms](LICENSES/LicenseRef-Showcase.txt)).
 [`REUSE.toml`](REUSE.toml) maps every path to its license.

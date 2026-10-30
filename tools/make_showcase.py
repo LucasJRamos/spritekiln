@@ -1,10 +1,12 @@
 """Build the showcase images from a render and its splash art.
 
     python tools/make_showcase.py specs/characters/huntress/huntress.yaml showcase/huntress [--anim idle]
+        [--scale 4] [--clip attack:se,sw] [--clip-scale 3] [--splash splash_ref/cutout.png]
 
 Writes into the target folder:
-  from_this_to_this.png  the splash art next to the sprite in 8 directions
-  turnaround.gif         the animation playing once in each direction, turning around the character (4x)
+  from_this_to_this.png  the splash art next to the sprite in 8 directions (or both profiles of a side view)
+  turnaround.gif         the animation playing once in each direction, turning around the character
+  <clip>.gif             with --clip ANIM:DIRS, that animation in those directions side by side, looping
 Reads <spec dir>/out/<name>/ (run `spritekiln render` first) and <spec dir>/splash.png.
 """
 
@@ -59,7 +61,7 @@ def bbox(images, pad=2):
     return x0, y0, x1, y1
 
 
-def from_this_to_this(folder, data, block, atlas, anim, out, height=768):
+def from_this_to_this(folder, data, block, atlas, anim, out, height=768, splash=None):
     dirs = [d for d in ORDER if d in block['direction_yaw']]
     first = [frames(data, block, atlas, anim, d)[0][0] for d in dirs]
     box = bbox(first)
@@ -72,8 +74,10 @@ def from_this_to_this(folder, data, block, atlas, anim, out, height=768):
     sprites = Image.new('RGBA', (cols * cw, rows * ch), BG)
     for i, c in enumerate(cells):
         sprites.paste(c, ((i % cols) * cw, (i // cols) * ch))
-    name = 'splash_alpha.png' if os.path.exists(os.path.join(folder, 'splash_alpha.png')) else 'splash.png'
-    splash = Image.open(os.path.join(folder, name)).convert('RGBA')
+    if splash is None:
+        name = 'splash_alpha.png' if os.path.exists(os.path.join(folder, 'splash_alpha.png')) else 'splash.png'
+        splash = os.path.join(folder, name)
+    splash = Image.open(splash).convert('RGBA')
     box = splash.getchannel('A').getbbox() or (0, 0, splash.width, splash.height)
     splash = splash.crop(box)
     splash = splash.resize(
@@ -101,17 +105,42 @@ def turnaround(data, block, atlas, anim, out, scale=4):
     )
 
 
+def clip(data, block, atlas, anim, dirs, out, scale=3):
+    """One animation in several directions side by side, all cropped to one box, looping."""
+    clips = [frames(data, block, atlas, anim, d) for d in dirs]
+    box = bbox([img for c in clips for img, _ in c])
+    cells = [[on_bg(img.crop(box), scale) for img, _ in c] for c in clips]
+    cw, ch = cells[0][0].size
+    imgs = []
+    for i in range(len(clips[0])):
+        sheet = Image.new('RGBA', (cw * len(dirs), ch), BG)
+        for j, c in enumerate(cells):
+            sheet.paste(c[i], (j * cw, 0))
+        imgs.append(sheet.convert('RGB'))
+    durs = [ms for _, ms in clips[0]]
+    path = os.path.join(out, f'{anim}.gif')
+    imgs[0].save(path, save_all=True, append_images=imgs[1:], duration=durs, loop=0, optimize=True)
+    return path
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument('spec')
     p.add_argument('out')
     p.add_argument('--anim', default='idle')
+    p.add_argument('--scale', type=int, default=4, help='zoom of turnaround.gif')
+    p.add_argument('--clip', action='append', default=[], metavar='ANIM:DIRS', help='e.g. attack:se,sw (repeatable)')
+    p.add_argument('--clip-scale', type=int, default=3, help='zoom of the --clip GIFs')
+    p.add_argument('--splash', help='the art to show (default: splash_alpha.png or splash.png next to the spec)')
     a = p.parse_args(argv)
     folder, data, block, atlas = load(a.spec)
     os.makedirs(a.out, exist_ok=True)
-    from_this_to_this(folder, data, block, atlas, a.anim, a.out)
-    turnaround(data, block, atlas, a.anim, a.out)
+    from_this_to_this(folder, data, block, atlas, a.anim, a.out, splash=a.splash)
+    turnaround(data, block, atlas, a.anim, a.out, a.scale)
     print('wrote', os.path.join(a.out, 'from_this_to_this.png'), 'and turnaround.gif')
+    for spec in a.clip:
+        anim, _, dirs = spec.partition(':')
+        print('wrote', clip(data, block, atlas, anim, dirs.split(','), a.out, a.clip_scale))
 
 
 if __name__ == '__main__':

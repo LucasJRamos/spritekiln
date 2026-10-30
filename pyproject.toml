@@ -63,6 +63,10 @@ pattern = 'src="(?!https?://)([^"]+)"'
 replacement = 'src="https://raw.githubusercontent.com/LucasJRamos/spritekiln/main/\1"'
 
 [[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(!\[[^\]]*\])\((?!https?://)([^)]+)\)'
+replacement = '\1(https://raw.githubusercontent.com/LucasJRamos/spritekiln/main/\2)'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
 pattern = '\]\((?!https?://|#)([^)]+)\)'
 replacement = '](https://github.com/LucasJRamos/spritekiln/blob/main/\1)'
 
