@@ -66,8 +66,9 @@ pipx install "spritekiln[mcp]"
 ```
 
 Then open a new terminal and check with `spritekiln --version`. `[mcp]` adds the tools for AI assistants;
-`pipx install spritekiln` is enough for the command line alone. uv, a virtual environment, upgrading and
-troubleshooting: [Install SpriteKiln](docs/tutorials/install.md).
+`pipx install spritekiln` is enough for the command line alone. For renders about 6× faster, install
+`"spritekiln[mcp,fast]"` instead (a compiled renderer; Intel Macs keep the plain one). uv, a virtual
+environment, upgrading and troubleshooting: [Install SpriteKiln](docs/tutorials/install.md).
 
 **Upgrading:** `spritekiln update` installs the new version the same way (pipx, uv or a virtual
 environment) and refreshes the AI instructions of the game folder you run it in. Version 0.1.0 does not have
@@ -117,9 +118,9 @@ Open the folder in your assistant and describe the character:
 
 The first time, before it makes anything, the assistant interviews you about the art style: top-down or
 side view, how many pixels tall a character is on screen, directions, colours, outline and shading,
-proportions, the feel of the animation and your references. The answers go to `spritekiln.toml`
-(`spritekiln style` shows them); every later sprite follows them, and they change only when you ask ("from
-now on, no outlines").
+proportions, how much face a character shows, the feel of the animation and your references. The answers
+go to `spritekiln.toml` (`spritekiln style` shows them); every later sprite follows them, and they change
+only when you ask ("from now on, no outlines").
 
 Then it writes the spec, renders, looks at the images and fixes what it sees. You review the GIFs in
 `art/specs/characters/<name>/out/<name>/preview/` and ask for changes ("bigger hat", "faster swing"). Have a
@@ -143,10 +144,10 @@ walks through it.
 
 ```
 spec.yaml ──► skeleton + IK ──► SDF shapes ──► raymarched render ──► pixelize ──► atlas + JSON
- (bones,      (expressions per   (spheres,      (colour, normals,     (palette ramps,   + normal map
-  shapes,      frame: cycles,     capsules,      depth, materials;     outlines, clean   + emissive map
-  materials,   keys, events)      boxes, cones,  3x supersampled,      single pixels)    + GIFs, QA
-  animations)                     smooth unions) fixed world light)                      -> your engine
+ (bones,      (expressions per   (ellipsoids,   (colour, normals,     (palette ramps,   + normal map
+  shapes,      frame: cycles,     extrudes,      depth, paint;         outlines, lines,  + emissive map
+  kits,        keys, events)      revolves,      3x supersampled,      the project's     + GIFs, QA
+  animations)                     tubes, cuts)   fixed world light)    style)            -> your engine
 ```
 
 The light is fixed in the world and the model turns, so shading stays coherent across directions. Every
@@ -154,10 +155,16 @@ render writes a QA report (clipping, palette, silhouette stability) and contact 
 
 ## Features
 - **Art style:** before the first asset, the assistant asks about view, size on screen, directions,
-  colours, outline, shading, proportions and animation; the project keeps the answers and every asset
-  follows them.
-- **Modeling:** bones with expressions (`"0.045*sin(p)"`), 2-bone IK, smooth SDF primitives, mirrored
-  `_L`/`_R` parts, materials with palette ramps, emissive and glow, two-sided membranes, conditional parts.
+  colours, outline, shading, proportions, faces and animation; the project keeps the answers and the
+  renderer applies the look (outline, soft/flat/toon shading, inner lines, highlights, dither, light) to
+  every asset. `spritekiln style preview` shows the choices side by side.
+- **Modeling:** bones with expressions (`"0.045*sin(p)"`), 2-bone IK, mirrored `_L`/`_R` parts, and shapes
+  with crisp forms: extruded and revolved profiles, tubes, shells, plane cuts, chamfered and stepped blends.
+  Materials with palette ramps and finishes (metal, soft, matte, glossy), creases and edge highlights,
+  surface paint (bands, rivets, crosses without new geometry), emissive and glow, two-sided membranes.
+- **Bases and kits:** `extends: humanoid` and 20 built-in kits (weapons, shields, headwear, capes, belts,
+  heads and hair) with params, so a character states only what is its own: the knight example is about 20
+  lines.
 - **Animation:** cycles from expressions or keyframes with per-frame timing, tweens and easing, smears,
   per-direction cheats, events, timing targets checked by `validate` (e.g. "impact at 300 ms").
 - **Views:** top-down 3/4 in 8 (or 4, or 1) directions, or a side view for platformers (`view: side`, with
@@ -166,7 +173,10 @@ render writes a QA report (clipping, palette, silhouette stability) and contact 
 - **From a splash art:** `ref prep` cuts the character out and extracts its palette; `ref compare` scores
   the silhouette against the model (pitch-corrected IoU) and says what to change.
 - **Review:** `spritekiln review` measures value range, contrast, pixels per material and legibility, and
-  previews the sprite over your game's floor (`--bg`) under its light (`--tint`).
+  previews the sprite over your game's floor (`--bg`) under its light (`--tint`); `pose --focus head`
+  shows a face up close.
+- **Speed:** a compiled renderer (`[fast]`, about 6× faster), draft previews, and a render cache that
+  re-lights a frame without tracing it again.
 - **Output:** atlas, normal and emissive maps, Aseprite-compatible JSON ([format](docs/format.md)), sockets
   per frame, GIFs and contact sheets.
 

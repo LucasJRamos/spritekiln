@@ -72,5 +72,5 @@ direction in `qa.json`, with a warning threshold. `docs/agent/art-direction.md` 
   Templar idle 3.0 % -> 1.6 %, Huntress idle 4.1 % -> 1.9 %, gargoyle idle 5.2 % -> 6.7 % (its wings move on
   their own): snapping stays opt-in and the docs say to check the number. A simple "share of pixels that
   change" was tried first and dropped: it counts real motion (20-55 % everywhere).
-- Not done: the style question about snapping (design 11, stage 3).
+- The style question about snapping came with design 11 (stage 3).
 

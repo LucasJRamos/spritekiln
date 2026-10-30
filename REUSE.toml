@@ -13,6 +13,8 @@ path = [
   "specs/characters/gargula/**",
   "specs/characters/cacador/**",
   "specs/characters/wren/**",
+  "specs/characters/knight/**",
+  "specs/kits/**",
   "specs/palettes/wren.yaml",
   "specs/props/crates/**",
   "specs/props/gas_lamp/**",

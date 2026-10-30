@@ -88,6 +88,7 @@ include = [  # anchored at the root (a bare "spritekiln/" would also match .clau
     "/specs/palettes/gothic.yaml",
     "/specs/palettes/props.yaml",
     "/specs/templates/",
+    "/specs/kits/",
     "/specs/characters/gargula/gargula.yaml",
     "/integrations/",
     "/docs/agent/",

@@ -64,8 +64,9 @@ pipx install "spritekiln[mcp]"
 ```
 
 그다음 새 터미널을 열고 `spritekiln --version`으로 확인하세요. `[mcp]`는 AI 어시스턴트용 도구를 추가합니다.
-명령줄만 쓴다면 `pipx install spritekiln`으로 충분합니다. uv, 가상 환경, 업그레이드, 문제 해결은
-[Install SpriteKiln](docs/tutorials/install.md)(영어)을 참고하세요.
+명령줄만 쓴다면 `pipx install spritekiln`으로 충분합니다. `"spritekiln[mcp,fast]"`를 대신 설치하면 렌더링이
+약 6배 빨라집니다(컴파일된 렌더러이며, Intel Mac은 기존 렌더러를 그대로 사용합니다). uv, 가상 환경, 업그레이드,
+문제 해결은 [Install SpriteKiln](docs/tutorials/install.md)(영어)을 참고하세요.
 
 **업그레이드:** `spritekiln update`는 설치했던 방식 그대로(pipx, uv 또는 가상 환경) 새 버전을 설치하고, 명령을
 실행한 게임 폴더의 AI 지침을 갱신합니다. 0.1.0에는 아직 이 명령이 없으니 `pipx upgrade spritekiln`(또는
@@ -112,9 +113,9 @@ spritekiln init --engine godot --ai claude
 > attack을 렌더링해서 내보내.
 
 처음에는 무엇이든 만들기 전에 어시스턴트가 아트 스타일에 대해 인터뷰합니다: 탑다운 또는 측면 시점, 화면에서
-캐릭터의 키가 몇 픽셀인지, 방향, 색, 외곽선과 음영, 비율, 애니메이션의 느낌, 참고 자료. 답변은
-`spritekiln.toml`에 저장되고(`spritekiln style`로 확인), 이후의 모든 스프라이트가 이를 따르며, 여러분이
-요청할 때만 바뀝니다("이제부터 외곽선 없이").
+캐릭터의 키가 몇 픽셀인지, 방향, 색, 외곽선과 음영, 비율, 얼굴을 얼마나 자세히 표현할지, 애니메이션의 느낌,
+참고 자료. 답변은 `spritekiln.toml`에 저장되고(`spritekiln style`로 확인), 이후의 모든 스프라이트가 이를
+따르며, 여러분이 요청할 때만 바뀝니다("이제부터 외곽선 없이").
 
 그다음 어시스턴트가 스펙을 작성하고, 렌더링하고, 이미지를 보고 문제를 고칩니다. 여러분은
 `art/specs/characters/<이름>/out/<이름>/preview/`의 GIF를 검토하고 수정을 요청하면 됩니다("모자를 더 크게",

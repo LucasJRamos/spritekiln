@@ -1,15 +1,22 @@
 # Roadmap
 
-**v0.2 (now):** characters and props from YAML specs in 8 directions (top-down 3/4) or a side view;
+**v0.3 (now):** characters and props from YAML specs in 8 directions (top-down 3/4) or a side view;
 animation by expressions and by keys, with events, timing targets and smears; sockets; normal and emissive
 maps; Aseprite-compatible JSON; automatic QA and an art-direction review; splash art → model workflow;
 instructions for coding AIs and an MCP server; an art-style interview before a project's first asset,
-recorded in `spritekiln.toml`; `spritekiln update`; Godot, Unity and MonoGame runtimes.
+recorded in `spritekiln.toml`; `spritekiln update`; Godot, Unity and MonoGame runtimes. New in v0.3: tight
+bounds and exact soft shading; an optional numba backend (`spritekiln[fast]`); shape operators and new
+primitives (`extrude`, `revolve`, `tube`, `plane`); thin parts and frame stability (`priority`, `snap`, a
+`boil` QA metric); a geometry buffer, so light and material changes re-render from the cache; material
+finishes; creases and edge highlights; surface paint; the art style applied by the renderer, with
+`spritekiln style preview`; draft and pixel-exact previews; `spec outline` and `spec show`; bases
+(`extends`) and kits, 20 of them built in; a head and hair kit set, with `pose --focus head` and a face
+question in the style interview.
 
 Ideas for later versions, roughly in order. Open an issue to discuss one before working on it.
 
-## 1. Environments and tiles (v0.3)
-Same renderer, same camera and light, so floors and walls match the characters.
+## 1. Environments and tiles (v0.4)
+Same renderer, camera, light, materials and art style, so floors and walls match the characters.
 - `kind: tile` with `grid: {w: 1.0, d: 1.0}`: the camera is locked to the tile size (e.g. 32 px wide =
   1 unit), rendered in one direction.
 - **Dual-grid floor tilesets (15/16 pieces):** the spec describes materials A and B (stone / dirt) and a
@@ -37,12 +44,13 @@ flickering with `noise`, a door opening).
 - Done in v0.1: dynamic 2D light through the normal map in MonoGame (`integrations/monogame/KilnLit.fx`)
   and Godot (`CanvasTexture`); Unity gets the normal map as `_NormalMap` for URP 2D lights (not tested
   yet with URP).
-- A "flat albedo" render (no baked light) for games lit entirely at run time.
+- Done in v0.3: a "flat albedo" render (no baked light) for games lit entirely at run time:
+  `light: {mode: flat}`, or `light = "flat"` in the project style.
 - Local lights in the spec (a character's own torch) through `light.points`.
 
 ## 5. Tool and workflow
 - `spritekiln style ask`: the art-style questions in the terminal, for users who work without an AI.
 - `spritekiln watch`: re-render `pose` when the YAML is saved (a fast loop for hand editing).
 - A local HTML viewer (animation, direction, zoom, background, onion skin) reading the exported JSON.
-- Speed: per-part caching and optional numba (5–10×) for 128 px characters.
+- Speed: per-part caching for 128 px characters (the optional numba backend came in v0.3).
 - More engines with ready runtimes (Phaser, Defold, Bevy) on top of the generic guide.

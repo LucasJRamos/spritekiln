@@ -240,3 +240,212 @@ rays × steps × groups either way): per-ray group culling (camera ray, AO taps,
 it is part of the design, not an option. And the ray setup outside the kernel cost as much as the kernel
 (170 ms per Templar frame), so it moves inside. Costs accepted: numba and llvmlite take about 150 MB on disk,
 there are no macOS Intel wheels (numpy there), and the first run compiles for about 9 s.
+
+## ADR-030: Release 0.3 ships the whole plan; its stages are milestones on a branch (2026-10-27)
+The quality, forms and speed plan (`docs/design/`, proposals 01–14) is developed on the branch
+`plan/quality-forms-performance` in four stages: quick wins and the spike (01–05), forms and speed (12, 13,
+10), surface and style (06–09, 11), reuse (14). The stages are milestones, not releases: `main` gets no
+release per stage, and release 0.3 ships everything, complete, when the maintainer decides it is ready. The
+proposals build on each other: the compiled scene comes first so each new primitive is written once for both
+backends, forms come before surface and style so finishes, lines, paint and style are tuned on the final
+forms, and the kits are built with all of them. A release per stage was rejected: it would have shipped looks
+that the next stage changes again (02 and 06 change pixels on purpose). Each proposal is still decided on its
+own, with its own ADR (ADR-029 for 05, ADR-031 to ADR-043 for the others). Cost accepted: nothing reaches
+users until the whole plan is done, and the branch carries every stage until then.
+
+## ADR-031: Draft previews trace one ray per pixel and cannot be exported (2026-10-27)
+Most iterations of the loop only ask whether a silhouette or a pose is right, and one sample per pixel instead
+of 3×3 renders the Templar 6.7× faster. `pose --draft` and MCP `pose(draft=true)` render with
+`supersample: 1, coverage: 1` on a copy of the spec; files end in `_draft`, the MCP JSON says `"draft": true`,
+and the camera is in the render cache key, so draft and full entries never mix. `render --draft` writes only
+GIFs and contact sheets, to `preview-draft/`, and no atlas, JSON or QA, so a draft cannot reach an engine
+through `export`. Measured, 8 directions, uncached: Templar 14.7 s → 5.1 s, Huntress 8.4 s → 3.9 s, gargoyle
+8.3 s → 4.3 s; parts agree with the full render on at least 95 % of the pixels both fill. That is 2–3× over
+the full pose after ADR-032 (7× over the pose before stage 1), short of the 5× goal: once ray marching got
+cheaper, start-up, rig and `compose` weigh more, and the rest comes from the numba backend (ADR-035). Drafts
+are not MCP `pose`'s default; the AI asks for one. Cost accepted: thin parts can vanish or flicker in a draft,
+so the docs ask for one full `pose --dirs all` before `render`.
+
+## ADR-032: Group bounds are tight and soft shading reads only the geometry; no legacy flag (2026-10-27)
+A group was bounded by a sphere around the box of its primitives' bounding spheres (radius r·√3 for one
+primitive of radius r), and soft shadows and AO read the distance to that sphere as if it were the surface:
+big bounds made rays march for nothing and darkened what lay near them (tightening only the bounds changed 324
+colour pixels of the Templar, with identical part ids). A group's radius is now the farthest reach of its
+primitives from its centre, plus the blend and a margin, and it evaluates its real distance wherever the
+caller can still use a closer value (marching, AO taps, a shadow's penumbra); beyond that the bound only sets
+the step. Measured: a Templar frame 6.6 s → 2.2 s; 8-direction poses Templar 37.9 s → 14.7 s, Huntress
+12.8 s → 8.4 s, gargoyle 12.7 s → 8.3 s; part ids identical; inflating every bound by 0.3 changes 0–4 pixels
+(where marching stops) instead of 83–228. No flag keeps the old look: the shadows that came from bounding
+spheres were a bug. Cost accepted: every showcase frame is lighter where the false shadows fell, the goldens
+and showcase hashes were rebuilt (ADR-007), and assets rendered again do not match 0.2 pixel for pixel; Hunt
+Tower keeps its exported assets until it re-exports.
+
+## ADR-033: Previews are cropped and zoomed by whole factors within an image budget (2026-10-27)
+AI clients were shown pixel art shrunk by non-integer factors (MCP scaled any image over 1600 px down,
+ADR-020, and clients shrink large images themselves), so outlines looked broken, and most of each image was
+empty frame. One helper, `preview.fit`, crops every cell of a sheet to the union of the cells' content plus a
+margin (the same crop for all, so motion stays comparable), zooms by the largest whole factor within a budget
+of 1536 px and 1.15 MP, and splits a sheet rather than shrink it. It serves `pose`, contact sheets, GIFs and
+the `review` and `ref compare` sheets, on disk and through MCP, whose results also carry the crop box and the
+zoom. Supersedes ADR-020 in part: no preview is scaled down to 1600 px any more, and MCP tools cut a still too
+large image into pieces. Measured on the Templar: an 8-direction pose at scale 3 is 1536 × 186 (was
+2304 × 288, then shrunk by MCP); the idle contact sheet is 982 × 1138, 1.12 MP (was 2358 × 2354, 5.55 MP).
+`pose --no-crop` keeps whole frames (the golden pose tests use it). Cost accepted: a crop hides how much room
+is left in the frame; QA still reports clipping in `qa.json`.
+
+## ADR-034: An AI reads a spec through its outline and the blocks it edits (2026-10-27)
+Specs are 8–41 KB (the Huntress: 742 lines, about 10k tokens), and to change one part an AI read the whole
+file, then each agent of the recipe read it again. `spritekiln spec outline` maps a spec: each part,
+animation, IK chain and socket with its line range and a summary, the other sections as one line of names
+(`--json` gives full paths). `spec show <spec> <path>...` prints the numbered source lines of those blocks,
+comments kept: a slice of the file, never a re-dump. A mirrored `_R` item shows its `_L` source, and
+`--resolved` shows a block as the renderer reads it. MCP tools `spec_outline` and `spec_show`. Line ranges
+come from the YAML node marks the loader already keeps for `file:line:column` errors. Measured: outlines of
+6.1 KB for the Huntress (spec 40.6 KB), 4.0 KB for the Templar (23.9 KB) and 2.3 KB for the gargoyle
+(13.5 KB). The docs tell an AI to outline a long spec first; reading the file with an offset and a limit stays
+fine. Cost accepted: flow-style blocks (`{...}` on one line) are shown whole.
+
+## ADR-035: The numba backend ships as the optional `[fast]` extra; numpy stays the reference (2026-10-27)
+Extends ADR-029. `scene_ir.py` captures a pose as flat arrays, `fast.py` is the numba kernel with per-ray
+culling of camera rays, AO taps and shadow rays and the ray setup inside, and `backend.py` chooses `auto`,
+`numpy` or `numba` (`--backend`, `SPRITEKILN_BACKEND`); `auto` takes numba when it imports, and
+`spritekiln update` keeps the extra. The numpy closures stay the reference: every primitive is checked against
+the kernel on random points (differences under 1e-9), whole frames agree on every part, the goldens are
+rendered with numpy (ADR-007), and the backend is part of the render cache key. Supersedes ADR-012 in part:
+with numba, `render` runs one process with threads, and `--jobs N` gives each worker cores / N threads; numpy
+keeps ADR-012's pool. Measured, the Templar's full render (456 frames, uncached) on the development machine
+with 1–2 GB free: numba 194 s in one process (peak 250 MB); numpy 1372 s, held to one worker by the free
+memory (about 870 s without the tests it was also running). Not done: a numpy evaluator over the IR with
+screen tiles (the closures keep the goldens exact, and numba is the fast path), 4-tap normals and float32
+(they would change pixels). Costs accepted: ADR-029's, and two evaluators kept in step by a shared test.
+
+## ADR-036: Forms get extrusions, revolutions, tubes, planes and modifiers, in both backends (2026-10-27)
+Forms were limited to rounded primitives with smooth union, so plates, blades and brims came out inflated and
+the Templar's cape was a cone with 7 cuts. New primitives `extrude`, `revolve`, `tube` and `plane` (in `cut:`
+only); profiles `circle`, `rect` (`chamfer`, `round`), `polygon` and `bezier`; modifiers `shell`, `elongate`,
+`twist` and `bend`; joins `chamfer`, `round`, `stairs` and the `groove` cut. Each is written in numpy (the
+reference) and in the numba kernel, checked against each other and against known shapes (an extruded rectangle
+is a box) to 1e-15; bends, twists and tapered tubes give bounds, and their group's steps shrink by a Lipschitz
+factor. Formulas are re-implemented from Inigo Quilez and hg_sdf, credited. Rejected: a generic `round`
+modifier (shapes with edges have their own `round`), `moon` and `vesica` profiles (a `bezier` draws them) and
+noise displacement (speckle at 64 px; noise is a paint pattern). The showcase port (branch
+`showcase/forms-port`, not merged: Hunt Tower uses these specs) kept new shapes only where a part read better:
+Templar IoU s 0.701 → 0.707 and se 0.592 → 0.605, cuts 25 → 23; Huntress IoU s 0.492 → 0.500 and se
+0.479 → 0.497, cuts 12 → 9; gargoyle primitives 77 → 70. Cost accepted: more vocabulary for the AI, taught by
+a "which shape for what" table and eight recipes; `validate` warns about pieces under a pixel.
+
+## ADR-037: Thin parts win pixels by weight; frames can snap to whole pixels; QA measures boil (2026-10-27)
+A thin part in front of the body lost every vote and vanished or broke into dots, and parts moving by
+fractions of a pixel made shading boil, with no QA number for it. Parts take `priority` (the weight of their
+samples in the vote) and `min_cover` (how many samples fill a pixel below the camera's coverage); the defaults
+keep the old path. A thin staff fixture showed 0–4 px per direction, and 6–26 px in every direction with
+`priority: 3, min_cover: 2`. `snap: [frames]` rounds those rig frames' screen offset from the rest pose to
+whole pixels, so children, parts and sockets follow; it is in the cache key. QA's `boil` is the share of inner
+pixels that change colour for one frame and change back (emissive pixels left out), a warning at 4 % when
+consecutive silhouettes overlap at least 95 %; a plain share of changed pixels was dropped because it counts
+real motion (20–55 % everywhere). Idles measured 3.0–5.2 %; `snap: [root, torso_rot]` took the Templar's idle
+from 3.0 to 1.6 % and the Huntress's from 4.1 to 1.9 %, but the gargoyle's from 5.2 to 6.7 % (its wings move
+on their own), so snapping stays opt-in and the docs say to check the number. Cost accepted: a high `priority`
+makes a part look thicker than modeled, and snapped motion steps instead of drifting.
+
+## ADR-038: Each frame's geometry is cached per pixel and shaded in 2D (2026-10-28)
+Light was baked into one value per sample before the pixel stage: any light change re-marched every frame, and
+`compose` could not shade per material, while finishes, lines from normals, paint and style are per-pixel
+work. The backends now return per-ray samples; `to_gbuffer` votes per pixel and averages the winner's normal,
+shadow and AO into a `GBuffer` (part int16, depth float32, normal float16, shadow, AO and cover uint8),
+quantised before caching so cached and fresh frames are identical, and `shade` computes the light in 2D.
+Extends ADR-011: cache format 6 (7 with paint, ADR-041), and the key keeps only the light's `dir`, `shadows`
+and `ao`, so intensities, ramps and materials apply after the cache. Measured on the gargoyle (192 frames,
+numba): 277 ms per frame cold, 50 ms after an `ambient` change. Averaging before shading changed 2–4 % of the
+opaque pixels, at band borders (gargoyle 3.8 %, Templar 2.2 %, the minimal fixture 4.3 %): accepted as a
+one-time change, goldens and showcase hashes updated once (ADR-007). `light: {mode: flat}` gives one tone per
+material (`flat_band`) for games lit by the engine through the normal map. Not done: re-tracing only the
+shadows when `dir` changes.
+
+## ADR-039: Materials pick a finish that sets their highlight and rim (2026-10-28)
+Light was one scalar mapped onto a ramp, with no highlight term, so metal, cloth and stone read alike. A
+material takes `finish: matte | soft | metal | glossy`, a preset that expands into `highlight` and `rim`;
+fields given next to it win. `highlight: {size, max_px, min_px, band, color}` thresholds the Blinn-Phong term
+`n·h` and keeps its clusters small, `rim` is per material, and `thresholds` sets toon steps instead of
+`gamma`. Found on the Templar: a highlight in the ramp's top tone did not read, because the lit side already
+used that tone; a material with a highlight now keeps its top tone for it and the light uses the tones below,
+as pixel artists do. With `finish: metal` on iron and gold the armour reads darker and metallic, with small
+hard highlights on the pauldrons, arms and knees; a metal ball shows 1–4 top-tone pixels on its upper half in
+all 4 directions tested, a plain one more than 8. Without these fields every spec renders as before (goldens
+unchanged). Cost accepted: the light is fixed in the world and the model turns, so highlights move between
+directions; `max_px` and `min_px` keep them small.
+
+## ADR-040: Creases and edge highlights come from normals inside a part, off by default (2026-10-28)
+Inner lines appeared only where two different parts met with a depth jump, so a fold inside one part or a cape
+seen from the side got none, and convex edges got no light, though every pixel's normal was computed.
+`pixelize.folds` compares right and down neighbours of the same part: a concave fold sharper than
+`crease_angle` marks the farther pixel as a line, a convex edge facing the light lifts the brighter pixel one
+tone (below a highlight's reserved tone), and runs shorter than `min_run` are dropped. The material fields are
+`crease` and `edge_highlight`, a spec tunes `render: {crease_angle, min_run}`, and the style's
+`lines = "depth+normal"` turns creases on everywhere (ADR-042). The self-overlap rule first drew lines on a
+sphere's silhouette, where a grazing surface changes depth fast; it now compares the jump with the slope the
+normals predict, only between pixels that face the camera. On the Templar's armour and the gargoyle's stone
+the lines and edge lights add definition at the joints; the effect is moderate at 64–96 px. Off by default, so
+goldens are unchanged. Cost accepted: smooth joins can give short noisy lines, which `min_run` and
+`crease: false` on organic materials keep down.
+
+## ADR-041: Surface paint colours regions of a part without new geometry (2026-10-28)
+About a third of the Templar's groups existed only to put a colour on a surface; the cross on its back was a
+cone shell with 11 boxes cut out. A part's `paint:` layers are a volume (`prims`) or a pattern (`stripes`,
+`rings`, `grid`, `spots`, `checker`) in the part's own space (`Group.frame`, mirrored for `_R` twins),
+evaluated on hit samples after either backend, so they cost nothing while marching. The geometry buffer gains
+`paint`, the majority layer among the winner's samples (cache format 7), and `compose` takes the paint's
+material for ramp, highlight, lines, selout and the orphan cleanup. An `edge: true` line uses the paint
+material's `line_band`, not the darker of the two as proposed: it sits on the side the layer outlines. Templar
+demo, crosses only: 40 → 37 parts, 25 → 14 cuts, 496 → 482 lines, the same picture, geometry pass
+0.463 → 0.407 s per frame with numba (−12 %) and 2.35 → 1.74 s with numpy (−26 %). The estimate of 36 → 28
+groups assumed porting the trims and bands too; that waits for a showcase update. A per-pixel part-local
+position channel was tried and dropped (ADR-042). No paint, no change. Cost accepted: paint cannot change the
+silhouette; a raised trim still needs geometry.
+
+## ADR-042: The project's style is applied by the renderer (2026-10-28)
+The `[style]` of ADR-027 recorded outline and shading, but the renderer never read them: the AI copied them
+into every material, costing tokens and drifting between assets. `spec.load` now resolves `render` as built-in
+defaults < project style < `style preview`'s choice < the spec's `render:` block and turns it into material
+defaults, the light preset and `snap`; a material's own fields win. The style gains `colored` outlines, an
+`outline_color` for `dark`, `toon` shading, `lines`, `highlights`, `dither` (Bayer), `light` presets and
+`snap`. Supersedes ADR-027 in part: outline and shading are no longer spec choices the AI writes, and the
+interview also asks about lines, highlights, dither, light and snapping. Dither is indexed by screen pixels
+from each part's projected origin, not by part-local coordinates as proposed: a 3D pattern sampled on the
+pixel grid aliases on slanted surfaces, and the origin already moves it with the part. `style preview` (MCP
+`style_preview`) shows a pose under each choice; switching the Templar's style re-renders its 64 idle frames
+from a warm cache in 0.03–0.04 s per frame. Defaults equal the old look, so no golden changed. Named bundles
+of fields were left out: with the preview, the fields are few enough. Cost accepted: a project whose style
+says `outline = "dark"` or `shading = "flat"` now gets it on every material that does not set its own.
+
+## ADR-043: Specs extend bases and use kits, which change only compatibly within a minor version (2026-10-28)
+Every character spec was an edited copy of the template, with its weapons and hats modeled again, so a
+template fix never reached earlier characters. `extends` merges a base (a built-in or project template, or a
+path) deeply under the spec: the spec's keys win, lists are replaced, and `remove` deletes paths. `use` adds
+kits, spec fragments with params, named `<as>_<name>` and attached `at` a frame; their materials and ramps
+apply only where the spec has none of that name. Problems point at the kit's or base's line; `spec outline`
+and `show` name every item's origin. `sx` is -1 inside an `_R` twin, so a kit's per-direction cheats stay
+right on either side (redefining `yaw` there would change Hunt Tower's specs). 16 built-in kits (CC0, shipped
+like the templates, ADR-010) were built by modeler agents and fixed after art-director reviews passed 3 of 9
+weapons and 2 of 7 gear kits as built. The cacador extends the humanoid in 30 lines instead of 215, its 552
+frames identical; the knight is 21 lines, under the plan's 250, though simpler than the Templar. Decided:
+built-in templates and kits change only compatibly within a minor version, and a visual change comes under a
+new name (`humanoid2`), not a version pin (`humanoid@0.3`); in 0.3 the templates got the sword kit and metal
+steel. Cost accepted: `when:` switches whole parts only; weapons other than the sword need their own clips.
+
+## ADR-044: The head and the hair are kits, and a character decides them in its brief (2026-10-30)
+In the maintainer's two test projects of the 0.3 build, the first character of each came out with a head
+that read as a ball and an unrequested "big nose". The templates modeled the head as a near-sphere with a
+jaw inside it and a 1.5 px nose sphere, which the part's blend swelled and the outline doubled; every
+modeler copied that recipe, the docs put heads with the round masses and asked for a nose in profile, and
+no review looked at a face up close. Design 16 fixes the starting point, the instructions and the checks
+together: the templates `use` a `head` kit (cranium, face plane, cheeks, a jaw down to the chin; `jaw`,
+`chin`, `width`, `ears`, and `nose` 0 by default) and a `hair` kit in separate parts so strand lines show
+(`fringe`, `part`, `locks`, `length`, `volume`), with `ponytail` and `bun` kits beside them; the style
+interview records `face` (minimal, simple, detailed); `brief.head` states the head, and `validate` warns
+while a character over a template has none; `pose --focus head` shows it at up to 12×, and the art
+director judges every head there. `eye_L` stays a plain template part, since specs override it. Rejected:
+keeping plain template parts with better numbers (no params, and nothing would make the AI decide), and a
+`humanoid2` (0.3 is the release where templates may still change, ADR-043). Cost accepted: the cacador
+example changes look, and a spec that extends a template with hair of its own also gets the kit's fringe
+and locks until it removes `use.hair` (`validate` says so).

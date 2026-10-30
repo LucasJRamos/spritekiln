@@ -67,8 +67,10 @@ pipx install "spritekiln[mcp]"
 ```
 
 Depois abra um terminal novo e confira com `spritekiln --version`. O `[mcp]` adiciona as ferramentas para
-assistentes de IA; só para a linha de comando, `pipx install spritekiln` basta. uv, ambiente virtual,
-atualização e solução de problemas: [Install SpriteKiln](docs/tutorials/install.md) (em inglês).
+assistentes de IA; só para a linha de comando, `pipx install spritekiln` basta. Para renders cerca de 6×
+mais rápidos, instale `"spritekiln[mcp,fast]"` em vez disso (um renderizador compilado; Macs com Intel
+continuam com o comum). uv, ambiente virtual, atualização e solução de problemas:
+[Install SpriteKiln](docs/tutorials/install.md) (em inglês).
 
 **Para atualizar:** `spritekiln update` instala a versão nova do mesmo jeito (pipx, uv ou ambiente virtual)
 e atualiza as instruções de IA da pasta do jogo em que você rodar o comando. A versão 0.1.0 ainda não tem o
@@ -118,9 +120,9 @@ Abra a pasta no seu assistente e descreva o personagem:
 
 Na primeira vez, antes de fazer qualquer coisa, o assistente faz uma entrevista sobre o estilo de arte:
 visão top-down ou lateral, quantos pixels de altura um personagem tem na tela, direções, cores, contorno e
-sombreamento, proporções, o ritmo da animação e as suas referências. As respostas vão para o
-`spritekiln.toml` (`spritekiln style` mostra); todos os sprites seguintes seguem esse estilo, que só muda
-quando você pede ("de agora em diante, sem contorno").
+sombreamento, proporções, quanto detalhe o rosto mostra, o ritmo da animação e as suas referências. As
+respostas vão para o `spritekiln.toml` (`spritekiln style` mostra); todos os sprites seguintes seguem esse
+estilo, que só muda quando você pede ("de agora em diante, sem contorno").
 
 Depois ele escreve a spec, renderiza, olha as imagens e corrige o que vê. Você revisa os GIFs em
 `art/specs/characters/<nome>/out/<nome>/preview/` e pede mudanças ("chapéu maior", "golpe mais rápido").
