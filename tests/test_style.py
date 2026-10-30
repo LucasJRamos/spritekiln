@@ -171,3 +171,14 @@ def test_init_force_repairs_a_broken_file(tmp_path):
     (root / 'spritekiln.toml').write_text('[project\nbroken', encoding='utf-8')
     main(['init', str(root), '--force', '--no-mcp'])
     assert config.load(str(root))['engine'] == 'generic'
+
+
+def test_the_face_question(game):
+    """Design 16: how much face a character shows; minimal is the default."""
+    style.record(dict(height=48))
+    assert config.load()['style']['face'] == 'minimal'
+    style.record(dict(face='simple'))
+    assert config.load()['style']['face'] == 'simple'
+    assert any(line.split() == ['face', 'simple'] for line in style.describe(config.load()['style']))
+    with pytest.raises(SpriteKilnError, match='face'):
+        style.record(dict(face='photoreal'))

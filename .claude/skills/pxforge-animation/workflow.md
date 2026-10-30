@@ -13,6 +13,7 @@ python -m pxforge validate <spec.yaml>                       # after every edit;
 spritekiln spec outline <spec.yaml>                   # map of the file: each part/animation with its lines
 spritekiln spec show <spec.yaml> parts.helm animations.walk   # numbered lines of the blocks you edit
 python -m pxforge pose <spec.yaml> [--anim walk --frame 3] [--dirs all|s,se,e] [--draft]   # cheap preview PNG
+python -m pxforge pose <spec.yaml> --focus head --dirs all     # close-up (12x) of the head, hair and face
 python -m pxforge render <spec.yaml> [--anims idle,walk] [--dirs s,e] [--size 48] [--draft]   # atlas, JSON, GIFs, QA
 python -m pxforge review <spec.yaml> [--bg floor.png --tint 0.7,0.7,1.0] [--against other.yaml] [--ref splash.png]
 python -m pxforge export <spec.yaml>                          # hand the render to the engine in spritekiln.toml
@@ -57,7 +58,8 @@ If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or t
 3. **`validate`** and fix until OK. Warnings matter too: an unknown key ("did you mean pitch?") is ignored
    by the renderer, so a typo silently does nothing.
 4. **`pose --dirs all` and look at the image** (`--draft` while the shape is still changing). Check the
-   silhouette in s, e, n and a diagonal. If you cannot see images, run `review` and read the numbers
+   silhouette in s, e, n and a diagonal. A character's head and face: `pose --focus head --dirs all`, since a
+   face is a few pixels on a normal preview. If you cannot see images, run `review` and read the numbers
    instead (see [art-direction.md](art-direction.md)).
 5. Repeat 2–4. For an animation, `pose --anim X --frame i` on the key frames. Before rendering, one full
    (not draft) `pose --dirs all` to check edges and thin parts.
@@ -77,7 +79,8 @@ sockets; see the output format at https://github.com/LucasJRamos/spritekiln/blob
 Previews (`pose`, contact sheets, GIFs, `review` and `ref compare` sheets) are cropped to what the sprite
 shows and zoomed by whole factors that fit an AI's image budget (about 1500 px and 1.15 megapixels), so every
 sprite pixel is a clean square. `--scale` is the largest zoom. `pose --no-crop` shows the whole frame; over a
-`--bg` the whole frame always shows. Atlases are never cropped.
+`--bg` the whole frame always shows. `pose --focus <bone>` crops to a bone and everything attached below it
+(`head`: the head, hair, eyes and headwear), or to parts by name, at up to 12x. Atlases are never cropped.
 
 ## Top-down or side-scroller
 Specs are top-down 3/4 by default (`view: topdown`). For a platformer or side-scroller use `view: side`

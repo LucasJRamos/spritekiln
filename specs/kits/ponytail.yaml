@@ -1,0 +1,104 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: ponytail}]`, usually with the hair kit's back
+# short: `{kit: hair, as: hair, with: {length: 0}}`. `spritekiln pose specs/kits/ponytail.yaml --dirs all` shows it.
+# Under the hood kit tie it at height 0.5 or lower (it comes out under the cowl; higher, the pouf pokes through);
+# under the hat any height works (the tail comes out under the brim at the back).
+kit: ponytail
+license: CC0-1.0
+summary: a ponytail tied on the head - a band, a pouf when high, three locks that split at the tips - on a bone chain for the animator
+host: humanoid
+at: head
+params:
+  height: 0.8        # where it is tied: 0 low at the nape .. 0.5 the back of the head .. 1 high on the crown
+  length: 1.5        # where the tips hang: 0.5 short, 1 to the shoulders, 2 to the hips
+  volume: 1          # thickness of the locks (0.7 thin .. 1.3 full)
+  size: 1            # scale factor about the head's centre: give it the hair kit's `size`
+  band: true         # a band of the `tie` material around the knot
+  cheat: 1           # the per-direction cheat near s: the tail swings aside, beside the head, not up like a horn (0: off; -1: to the other side)
+
+channels:            # radians; the animator drives them as <as>_swing, <as>_lift, <as>_sway (ponytail_swing...)
+  swing: 0           # the whole tail about the knot: + streams back and up (0.8 a run, 1.2 a jump), - swings in over the back (to -0.3)
+  lift: 0            # its lower half: + flicks the tips back and up (drag, follow-through; to 0.6), - curls them in (to -0.3)
+  sway: 0            # side to side like a pendulum (about +-0.5): + toward the character's left (+x)
+host_channels:       # the humanoid's, read below; a host without them gets 0
+  head_pitch: 0      # the head's nod and turn, undone: the tail turns with `headbase`
+  head_yaw: 0
+  twist: 0           # the body's turn: the cheat near s follows where the head faces, not only the direction
+
+materials:
+  hair: {ramp: hair, finish: matte}   # the hair kit's: the host's `hair` wins, so the tail matches the hair
+  tie: {ramp: tie, finish: matte}     # the band; recolour it with `materials: {tie: ...}` or map it: `materials: {tie: cloth}`
+ramps:
+  hair: ["#160e0f", "#2c1c1a", "#452e23", "#61412e", "#7d573a", "#9a7049"]   # the hair kit's brown
+  tie: ["#12040a", "#3a0712", "#6b0d1c", "#a3182a", "#d63a3a"]                # a red ribbon
+
+bones:
+  # The knot sits on the hair kit's crown (tilted back 0.3), at an angle from the top (height 1) round the back to
+  # the nape (height 0), in head units about the head's centre like the hair kit's `hair` bone. It follows the
+  # head, but its rot undoes the nod and the chain's undoes the turn: the tail turns with the host's `headbase`
+  # (half the body's lean), so a forward lean already swings it back, as a real tail lags behind the head.
+  tie: {parent: at, scale: size, rot: "[-head_pitch, 0, 0]",
+        pos: "[0, 0.14 + size*(0.05 + 0.119*cos(2.3 - 1.8*height) - 0.044*sin(2.3 - 1.8*height)),
+               size*(-0.05 - 0.037*cos(2.3 - 1.8*height) - 0.143*sin(2.3 - 1.8*height) - 0.025*(1 - height))]"}
+  # Near s (where the head faces, with the body's twist) the tail would stand up behind the crown like a horn:
+  # `cheat` tucks it down, turns it and swings it out to the character's left (the screen's right), so it sweeps
+  # off the crown and shows beside the head; it turns further as `swing` streams it back, so a running tail flies
+  # out to the side instead of standing up...
+  ponytail: {parent: tie, rot: "[swing - 0.35*abs(cheat)*pulse((yaw + 57.3*twist)*sx, 0, 40) - 1.0*abs(cheat)*pulse((yaw + 57.3*twist)*sx*sign(cheat), 20, 30),
+                                -head_yaw - (0.6 + 0.7*pos(swing))*cheat*pulse((yaw + 57.3*twist)*sx, 0, 40),
+                                sway + 0.6*cheat*pulse((yaw + 57.3*twist)*sx, 0, 40)]"}
+  # the lower half, from where the tail starts to hang: behind the arc for a high tail, under the knot for a low one
+  # (...and its lower half swings back behind the body there, so a long tail does not hang over the shoulder)
+  end: {parent: ponytail, pos: "[0, -0.19 + 0.07*height, -0.08 - 0.16*height]",
+        rot: "[lift, 0, -0.45*cheat*pulse((yaw + 57.3*twist)*sx, 0, 40)]"}
+
+parts:
+  # Below, `cos(2.6 - 1.8*height)`, `-sin(...)` is the way out of the hair at the knot (up and back when high, down
+  # and back when low) and `max(0.1, 0.4*length - 0.4 + 0.27*height)` the drop from `end` to the tips. The three
+  # locks leave the band together, fan out round the arc (outer behind, inner underneath) and hang side by side,
+  # so the lines between them read as strands, and split at the tips; a low tail fans less, close to the back.
+  ponytail:          # the main lock: out of the knot (with a pouf when high), over the arc and down to the tips
+    material: hair
+    space: ponytail
+    blend: 0.025
+    prims:
+      - sphere: {c: "[0, 0.05*cos(2.6 - 1.8*height) + 0.035*height, -0.05*sin(2.6 - 1.8*height) - 0.03]",   # the pouf
+                 r: "0.05*volume*clamp(1.5*height - 0.3, 0.4, 1)"}
+      - tube: {pts: ["[0, -0.03*cos(2.6 - 1.8*height), 0.03*sin(2.6 - 1.8*height)]",
+                     "[0, 0.09*cos(2.6 - 1.8*height) + 0.06*height, -0.09*sin(2.6 - 1.8*height) - 0.03]",
+                     "[0, -0.13 + 0.15*height, -0.07 - 0.14*height]",
+                     {at: end, off: "[0, 0.02, -0.02*(0.4 + 0.6*height)]"},
+                     {at: end, off: "[0, -0.35*max(0.1, 0.4*length - 0.4 + 0.27*height), -0.03*(0.4 + 0.6*height)]"},
+                     {at: end, off: "[0, -0.7*max(0.1, 0.4*length - 0.4 + 0.27*height), -0.03*(0.4 + 0.6*height)]"},
+                     {at: end, off: "[0, -max(0.1, 0.4*length - 0.4 + 0.27*height), 0]"}],
+               r: "[0.058*volume, 0.014]"}
+  outer:             # round the back of the arc, hanging furthest out; its tip flicks out and to the left (+x)
+    material: hair
+    space: ponytail
+    prims:
+      - tube: {pts: ["[0.005, 0.04*cos(2.6 - 1.8*height), -0.04*sin(2.6 - 1.8*height) - 0.01]",
+                     "[0.01, 0.1*cos(2.6 - 1.8*height) + 0.02, -0.1*sin(2.6 - 1.8*height) - 0.07]",
+                     "[0.015, -0.1 + 0.15*height, -0.12 - 0.17*height]",
+                     {at: end, off: "[0.03, -0.05, -0.09*(0.4 + 0.6*height)]"},
+                     {at: end, off: "[0.045, -0.4*max(0.1, 0.4*length - 0.4 + 0.27*height), -0.11*(0.4 + 0.6*height)]"},
+                     {at: end, off: "[0.08, -0.82*max(0.1, 0.4*length - 0.4 + 0.27*height), -0.16*(0.4 + 0.6*height)]"}],
+               r: "[0.042*volume, 0.011]"}
+  inner:             # under the arc, hanging nearest the back; its tip curls in and to the right (-x)
+    material: hair
+    space: ponytail
+    prims:
+      - tube: {pts: ["[-0.005, 0.02*cos(2.6 - 1.8*height) - 0.01, -0.02*sin(2.6 - 1.8*height)]",
+                     "[-0.01, -0.14 + 0.12*height, -0.03 - 0.11*height]",
+                     {at: end, off: "[-0.025, 0, 0.06*(0.4 + 0.6*height)]"},
+                     {at: end, off: "[-0.035, -0.45*max(0.1, 0.4*length - 0.4 + 0.27*height), 0.07*(0.4 + 0.6*height)]"},
+                     {at: end, off: "[-0.05, -0.75*max(0.1, 0.4*length - 0.4 + 0.27*height), 0.09*(0.4 + 0.6*height)]"},
+                     {at: end, off: "[-0.08, -0.9*max(0.1, 0.4*length - 0.4 + 0.27*height), 0.06*(0.4 + 0.6*height)]"}],
+               r: "[0.042*volume, 0.011]"}
+  band:              # a band round the tail where it leaves the hair
+    material: tie
+    space: ponytail
+    when: band
+    line: false
+    prims:
+      - cylinder: {a: [0, 0, 0], b: "[0, 0.055*cos(2.6 - 1.8*height), -0.055*sin(2.6 - 1.8*height)]",
+                   r: "0.058*volume + 0.012", round: 0.008}

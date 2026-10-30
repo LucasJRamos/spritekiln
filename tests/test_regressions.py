@@ -66,9 +66,9 @@ def test_project_palettes_folder(tmp_path):
     text = open(spec, encoding='utf-8').read().replace('palette: gothic', 'palette: mygame')
     open(spec, 'w', encoding='utf-8').write(text)
     sp = S.load(spec)
-    # the template's sword kit, the style, then the palette
+    # the template's kits (sword, head, hair), the style, then the palette
     assert sp['_files'] == [
-        os.path.abspath(resources.kit('sword')),
+        *(os.path.abspath(resources.kit(k)) for k in ('sword', 'head', 'hair')),
         str(tmp_path / 'game' / 'spritekiln.toml'),
         str(pal),
     ]

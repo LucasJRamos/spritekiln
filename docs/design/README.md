@@ -1,7 +1,8 @@
 # Design proposals: quality, forms and speed
 
 **Status:** proposed on 2026-10-27. All four stages (01–14) are done on the branch, each proposal with an
-"Outcome" section (2026-10-28); 15 is not scheduled. Each proposal is decided on its own;
+"Outcome" section (2026-10-27 and 28); 15 is not scheduled. 16 (heads, faces and hair) was added on 2026-10-30
+after the maintainer tested the build. Each proposal is decided on its own;
 accepted ones get an ADR in [`../decisions.md`](../decisions.md) and a line in [`../ROADMAP.md`](../ROADMAP.md).
 
 **Where and when:** all of it is developed on the branch `plan/quality-forms-performance`, in four stages
@@ -73,6 +74,7 @@ What the measurements and the code show:
 | [11](11-render-style.md) | Render style presets | quality, tokens | 3 | 06–10 |
 | [14](14-kits-and-extends.md) | Kits and `extends` | forms, tokens | 4 | 13 |
 | [15](15-agent-context-budget.md) | Agent context budget | tokens | not scheduled yet | 03, 04 |
+| [16](16-heads-faces-and-hair.md) | Heads, faces and hair | quality | 4 | 14 |
 
 ## Order
 Four stages on the branch, in this order, all shipped together as release 0.3:
@@ -84,7 +86,8 @@ Four stages on the branch, in this order, all shipped together as release 0.3:
 3. **Surface and style:** 06, 07, 08, 09, 11. A geometry buffer separates ray marching from shading. On top of
    it come material highlights, lines from normals, surface paint, and style presets the renderer applies
    itself. Doing forms first means these are tuned on the final forms.
-4. **Reuse:** 14. Kits built with the new shapes, material finishes and paint.
+4. **Reuse:** 14. Kits built with the new shapes, material finishes and paint. Then 16: the head and the
+   hair as kits, with the instructions and checks that keep first generations from round heads.
 
 After release 0.3: tiles and environments ([ROADMAP 1](../ROADMAP.md)) and VFX. Tiles inherit the material
 and style systems; rendering them earlier would mean redoing them.
@@ -118,6 +121,10 @@ and style systems; rendering them earlier would mean redoing them.
 - **2026-10-28, 15 is not in 0.3.** Saving context must not cost visual detail on unique designs: "numbers
   before images", drafts in 4 directions and a standard reference task would let small, expected details be
   lost silently. The proposal's "Review" section says how to rewrite it before it is scheduled.
+- **2026-10-30, 16 joins 0.3.** In the maintainer's two test projects the first character came out with a
+  ball for a head and a nose nobody asked for, both traced to the templates and the docs; 16 fixes the
+  starting point (head and hair kits), the instructions (faces in the style, `brief.head`) and the checks
+  (`pose --focus head`, `validate`, the art director) before 0.3 freezes the templates.
 
 ## Success, measured at release 0.3
 | measure | now | target |

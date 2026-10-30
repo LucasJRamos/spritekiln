@@ -29,8 +29,10 @@ Open `knight.yaml`. The sections that matter now:
   palette; `palette: gothic` is built in.
 - `bones:` the skeleton. `head` is a bone; so are `wrist_R` (the sword hand) and `fxspace` (for effects).
 - `parts:` the shapes. Each part has a material, the bone it follows (`space:`) and primitives (`sphere`,
-  `ellipsoid`, `box`, `cone`, `cylinder`, `arc`...) in that bone's coordinates: x to the character's left,
+  `ellipsoid`, `box`, `cone`, `extrude`, `tube`...) in that bone's coordinates: x to the character's left,
   y up, z forward, in metres (the character is about 1.7 tall).
+- `use:` kits, ready-made parts with params: the sword, the head and the hair (`spritekiln kits` lists
+  them all).
 - `animations:` idle, walk and attack, written with expressions and keys.
 
 ## 3. Make it a knight
@@ -42,7 +44,16 @@ materials:
   cloth: {ramp: blood}
 ```
 
-**A helmet instead of the hair.** Delete the `hair:` part and add these three parts after `head:`:
+**A helmet instead of the hair.** Under `use:`, delete the line of the `hair` kit. In `brief:`, say what
+the head looks like (`validate` asks for it, so that a character never keeps the template's head by
+accident):
+
+```yaml
+brief:
+  head: a round steel helmet with a red plume and an eye slit
+```
+
+Then add these three parts at the end of `parts:`:
 
 ```yaml
   helmet:
@@ -71,7 +82,7 @@ spritekiln validate specs/characters/knight/knight.yaml
 spritekiln pose specs/characters/knight/knight.yaml --dirs all
 ```
 
-`validate` answers `OK: knight - 21 parts, ...` or points at the problem with `file:line:column`.
+`validate` answers `OK: knight - ... parts, ...` or points at the problem with `file:line:column`.
 
 ## 4. Fix what the picture shows
 

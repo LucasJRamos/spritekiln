@@ -196,13 +196,52 @@ def _read_yaml(path):
         raise SpecError(f'{path}:{m.line + 1}:{m.column + 1}: YAML syntax: {e.problem}') from None
 
 
+HEAD_KITS = ('head', 'hair', 'ponytail', 'bun')  # built-in kits of a character's head and hair (design 16)
+
+
+def head_notes(own, resolved):
+    """Warnings for a character over a built-in humanoid template: no `brief.head` (its head and hair are the
+    template's neutral placeholders until the spec decides them), and a part of an inherited kit whose prims the
+    spec replaces while the kit's other parts stay."""
+    if 'kit' in own or own.get('name') == 'TEMPLATE':  # a kit file shown on its host, a template itself
+        return []
+    notes = []
+    builtin = {os.path.normcase(os.path.abspath(resources.template(t))) for t in resources.templates()}
+    over_template = any(os.path.normcase(f) in builtin for f in resolved.files)
+    placeholder = over_template or any(u['kit'] in HEAD_KITS for u in resolved.uses.values())  # or a copy of one
+    brief = own.get('brief') if isinstance(own.get('brief'), dict) else {}
+    if placeholder and not str(brief.get('head') or '').strip():
+        # (the hints name no other `path:`, so the warning points at this spec's brief)
+        notes.append(
+            "brief.head: describe this character's head, face and hair (hair style and length, fringe, jaw and "
+            "chin, how much face the project's style shows), then model them: the template's head and hair are "
+            "neutral placeholders. Fit the head and hair kits' params, swap the hair kit (ponytail, bun) or model "
+            'them yourself as "Heads, faces and hair" in modeling.md shows; check them with `pose --focus head`'
+        )
+    mine = {str(u.get('as') or u.get('kit')) for u in own.get('use') or [] if isinstance(u, dict)}
+    parts = own.get('parts') if isinstance(own.get('parts'), dict) else {}
+    for name, use in resolved.uses.items():
+        if name in mine:
+            continue
+        kit_parts = [p[1] for p in use['paths'] if len(p) == 2 and p[0] == 'parts']
+        for p in kit_parts:
+            if isinstance(parts.get(p), dict) and 'prims' in parts[p] and len(kit_parts) > 1:
+                rest = ', '.join(q for q in kit_parts if q != p)
+                notes.append(
+                    f"parts.{p}.prims: replaces the shape of the {use['kit']} kit's {p}, but the kit's other parts "
+                    f'stay ({rest}). To model all of it yourself, remove use.{name} too; to change it, give the '
+                    f'kit other params in a `use` with as {name}'
+                )
+    return notes
+
+
 def load(path, size=None, style=None):
     """Read a spec. `size` re-renders it at another frame size, keeping the framing (`render --size`). `style`:
     render fields that replace the project style's (`style preview`); the spec's `render:` block still wins."""
     raw = _read_yaml(path)
     if not isinstance(raw, dict):
         raise SpecError(f'{path}: spec must be a YAML mapping')
-    resolved = None
+    resolved, own = None, raw
     if 'extends' in raw or 'use' in raw or 'kit' in raw:  # a base, kits, or a kit file shown on its host
         from .kits import resolve
 
@@ -226,6 +265,8 @@ def load(path, size=None, style=None):
     s['_uses'] = resolved.uses if resolved else {}  # what each kit `use` added
     s.setdefault('name', os.path.splitext(os.path.basename(path))[0])
     s.setdefault('kind', 'character')
+    if resolved and s['kind'] == 'character':
+        warnings += head_notes(own, resolved)
     s.setdefault('size', 64)
     s.setdefault('view', 'topdown')
     if s['view'] not in VIEWS:

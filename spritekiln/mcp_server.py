@@ -86,10 +86,10 @@ def build():
         summary, and call style(answers={...}) with view (topdown|side), height (px of a human-sized character
         on screen), directions (8|4|2), mirror (yes|no), palette, colors, outline (selective|dark|colored|none),
         outline_color, shading (soft|flat|toon), lines (depth|depth+normal|none), highlights (yes|no), dither
-        (none|bayer2|bayer4), light (classic|top|dramatic|soft|flat), proportions (stylized|chibi|realistic),
-        animation (fluid|snappy), snap (yes|no), references (list), notes. The renderer applies the look fields
-        to every asset (style_preview shows them). A recorded style changes only when the user explicitly asks:
-        then pass only the changed answers."""
+        (none|bayer2|bayer4), light (classic|top|dramatic|soft|flat), proportions (stylized|chibi|realistic), face
+        (minimal|simple|detailed), animation (fluid|snappy), snap (yes|no), references (list), notes. The renderer
+        applies the look fields to every asset (style_preview shows them). A recorded style changes only when the
+        user explicitly asks: then pass only the changed answers."""
         from . import style as S
         from .update import stale_note
 
@@ -137,8 +137,9 @@ def build():
 
     @tool
     def kits(name: str | None = None) -> dict | list:
-        """The kits a spec can add with `use: [{kit, as, at, with}]` (weapons, shields, headwear, capes, belts...):
-        name, attachment frame, summary and params. With `name`: that kit and its params block with comments."""
+        """The kits a spec can add with `use: [{kit, as, at, with}]` (weapons, shields, headwear, capes, belts,
+        heads and hair): name, attachment frame, summary and params. With `name`: that kit, its params block with
+        comments and its channels block (what an animator drives, named `<as>_<channel>` in a spec)."""
         return api.kits(name)
 
     @tool
@@ -170,18 +171,23 @@ def build():
         anim: str | None = None,
         frame: int = 0,
         dirs: str = 'all',
-        scale: int = 3,
+        scale: int | None = None,
         bg: str | None = None,
         tint: str | None = None,
         draft: bool = False,
+        focus: str | None = None,
     ) -> list:
         """Render one pose (rest, or `anim` at `frame`) in several directions side by side and return the image.
         Cheap (about 1 s per direction): use it after every edit. `draft`: one sample per pixel, about 6x
         faster, for silhouettes and poses (rougher edges); look at a full pose before `render`. `bg`/`tint`:
-        preview over the game's floor under the scene light. The image is cropped around the sprite and zoomed by
-        a whole factor up to `scale` that fits an image budget: `zoom` and `crop` ([x0, y0, x1, y1] in frame
-        pixels) map its pixels back to the frame."""
-        out, dl, view = api.pose(spec, anim, frame, dirs, scale, bg, tint, draft=draft)
+        preview over the game's floor under the scene light. `focus`: a close-up of a bone and what hangs below
+        it (`head`: the head, hair, eyes and headwear) or of parts by name; judge every face with it. The image is
+        cropped around the sprite (or the focus) and zoomed by a whole factor up to `scale` (3; 12 with `focus`)
+        that fits an image budget: `zoom` and `crop` ([x0, y0, x1, y1] in frame pixels) map its pixels back to the
+        frame."""
+        if scale is None:
+            scale = 12 if focus else 3
+        out, dl, view = api.pose(spec, anim, frame, dirs, scale, bg, tint, draft=draft, focus=focus)
         return [
             {'image': out, 'directions': dl, 'draft': draft, 'zoom': view['scale'], 'crop': view['crop']},
             *_pngs(out),

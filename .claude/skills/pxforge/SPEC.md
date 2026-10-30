@@ -18,7 +18,7 @@ palette: gothic          # built-in name, file path(s) relative to the spec, or 
 camera: {pitch: 38, scale: 0.050, center: [0, 1.0, 0]}   # scale = world units per pixel
 shadow: {rx: 13.5, ry: 4.5, alpha: 120}                  # ground ellipse in px; `shadow: null` turns it off
 light:  {dir: [-0.55, 1, 0.45], rim: [0.8, 0.35, -0.9], rim_strength: 0.45, ambient: 0.12}
-brief: {...}             # free text: summary, must_keep, simplify, reference (ignored by the renderer)
+brief: {...}             # free text: summary, head, must_keep, simplify, reference (ignored by the renderer)
 materials: {...}
 channels: {...}
 bones: {...}
@@ -63,7 +63,7 @@ use:
 materials:
   cloth: {ramp: blood}            # merged into the base's cloth: only its ramp changes
 parts:
-  head: {prims: [...]}            # replaces the base head's prims: a list is replaced, never merged
+  belt: {prims: [...]}            # replaces the base belt's prims: a list is replaced, never merged
 ```
 - **`extends`**: the base is merged deeply and the spec's keys win; lists (`prims`, `cut`, `keys`...) are
   replaced whole. The base's `name` and `brief` are not inherited; its relative palette paths still work. A

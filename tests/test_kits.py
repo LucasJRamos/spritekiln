@@ -275,14 +275,14 @@ def test_every_built_in_kit_renders(tmp_path, name):
 @pytest.mark.parametrize(
     'args, golden', [([], 'cacador_pose_rest.png'), (['--anim', 'attack', '--frame', '4'], 'cacador_pose_attack_4.png')]
 )
-def test_the_cacador_rewritten_with_extends_renders_as_before(tmp_path, update_golden, args, golden):
-    """215 lines that copied the humanoid template became 30 that extend it: the goldens were rendered from the
-    copy before it was rewritten."""
+def test_the_cacador_extends_the_template(tmp_path, update_golden, args, golden):
+    """215 lines that copied the humanoid template became 31 that extend it (rendering exactly as the copy did);
+    since design 16 it has the template's head and hair kits, and the goldens show them."""
     out = str(tmp_path / golden)
     main(['pose', stage_spec(tmp_path, CACADOR), '--dirs', 'all', '--scale', '1', '--no-crop', '-o', out, *args])
     assert_image_matches(out, golden, update_golden)
     with open(CACADOR, encoding='utf-8') as fh:
-        assert len(fh.read().splitlines()) <= 30
+        assert len(fh.read().splitlines()) <= 31
 
 
 def test_new_extends_and_the_kits_command(tmp_path, monkeypatch, capsys):
@@ -294,9 +294,11 @@ def test_new_extends_and_the_kits_command(tmp_path, monkeypatch, capsys):
     main(['new', 'hero', '--extends'])
     path = root / 'art' / 'specs' / 'characters' / 'hero' / 'hero.yaml'
     text = path.read_text(encoding='utf-8')
-    assert 'extends: humanoid' in text and len(text.splitlines()) <= 16
+    assert 'extends: humanoid' in text and len(text.splitlines()) <= 17
     sp = S.load(str(path))
-    assert sp['camera']['scale'] == 0.03667 and 'sword_blade' in sp['parts'] and S.check(sp) == ([], [])
+    errors, warnings = S.check(sp)
+    assert sp['camera']['scale'] == 0.03667 and 'sword_blade' in sp['parts'] and errors == []
+    assert [w.split(': ')[1] for w in warnings] == ['brief.head']  # the head is decided next (design 16)
     assert style.status()['off_style'] == []
     capsys.readouterr()
     main(['kits'])
@@ -320,3 +322,47 @@ def test_the_style_reads_specs_through_their_base(tmp_path, monkeypatch):
     s = style.status()['suggested']
     assert s['source'] == '1 existing spec(s)' and s['scale'] == 0.04  # the kit is not a spec
     assert [k['name'] for k in kits.catalogue() if k['origin'] == 'project'] == ['club']
+
+
+HERO = """spritekiln: 1
+name: hero
+extends: humanoid
+brief:
+  summary: a test hero
+{head}
+{rest}
+"""
+
+
+def _hero(tmp_path, head='', rest=''):
+    p = tmp_path / 'hero.yaml'
+    p.write_text(HERO.format(head=head, rest=rest), encoding='utf-8')
+    return str(p)
+
+
+def _head_warnings(path):
+    return [w for w in S.check(S.load(path))[1] if 'brief.head' in w or 'use.hair' in w]
+
+
+def test_a_character_over_the_template_says_how_its_head_looks(tmp_path):
+    """Design 16: the template's head and hair are placeholders until `brief.head` decides them."""
+    path = _hero(tmp_path)
+    (warning,) = _head_warnings(path)
+    assert warning.startswith(path) and ':4:1: brief.head: describe' in warning  # at the spec's brief
+    assert _head_warnings(_hero(tmp_path, head='  head: short hair, a fringe, soft jaw; eyes only')) == []
+    assert not [w for w in S.check(S.load(resources.kit('hood')))[1] if 'brief.head' in w]  # a kit on its host
+
+
+def test_replacing_a_kit_part_keeps_the_kits_other_parts(tmp_path):
+    hair = """parts:
+  hair:
+    prims:
+      - ellipsoid: {c: [0, 0.2, -0.03], r: [0.16, 0.12, 0.16]}"""
+    head = '  head: my own cap of hair'
+    (warning,) = _head_warnings(_hero(tmp_path, head, hair))
+    assert 'parts.hair.prims: replaces the shape of the hair kit' in warning and 'remove use.hair' in warning
+    own = hair.replace('    prims:', '    material: hair\n    space: head\n    prims:')
+    path = _hero(tmp_path, head, 'remove: [use.hair]\n' + own)
+    assert _head_warnings(path) == []
+    sp = S.load(path)
+    assert not [p for p in sp['parts'] if p.startswith('hair_')]

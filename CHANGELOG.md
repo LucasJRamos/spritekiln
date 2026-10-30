@@ -4,6 +4,36 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
 
 ## Unreleased (0.3)
 
+### Upgrading from 0.2
+- `spritekiln update` in a game folder installs 0.3 and refreshes the AI instructions there; run
+  `spritekiln update --files` in your other game folders. It keeps the extras you installed: for the compiled
+  renderer (about 6× faster), install it once with `pipx install --force "spritekiln[mcp,fast]"` (or
+  `uv tool install --force "spritekiln[mcp,fast]"`).
+- Renders change: soft shadows no longer come from bounding spheres, and a recorded style's look is applied
+  by the renderer. Re-render an asset before you compare it with a 0.2 export.
+- Specs keep working. Copies of the 0.2 templates keep their head and sword; new specs and specs that
+  `extends` a template get the 0.3 ones (below).
+
+### Heads, faces and hair
+- The templates' head and hair are kits now: `head` (a cranium, a face plane and a jaw down to a chin; params
+  `jaw`, `chin`, `width`, `nose` (none by default) and `ears`) and `hair` (crown, fringe, temple locks and back
+  as separate parts, so lines between them read as hair; params `fringe`, `part`, `locks`, `length`,
+  `volume`). `ponytail` and `bun` attach to the head for those styles. The old head was a ball with a small
+  sphere for a nose, which first generations copied (a round head with a big nose).
+- The style interview asks how much face a character shows: `face` minimal (eyes only, recommended), simple
+  or detailed (`spritekiln style set --face`).
+- `brief.head` says how a character's head, face and hair look; `validate` warns when a character over a
+  built-in template has none, and when a spec replaces a kit part's shape while the kit's other parts stay
+  (its own `parts.hair` under the hair kit's fringe and locks: add `remove: [use.hair]`).
+- `spritekiln pose --focus head` (MCP `pose` with `focus`): a close-up, up to 12×, of a bone and everything
+  attached below it, or of parts by name. The art director's checklist judges every head with it, and the
+  recipe shows the user the model before anything is animated.
+- The templates' `skin` has `gamma: 0.75`: under soft shading the side of a face turned from the light no
+  longer drops to a tone as dark as the hair (it read as a beard in profile).
+- Specs that extend a template change where they inherit its head, hair or skin: the cacador example looks
+  different (its goldens were refreshed), and a spec that wrote its own hair over the template now also gets
+  the kit's fringe and locks until it removes `use.hair`.
+
 ### Bases and kits: specs that state only what is their own
 - `extends: humanoid` merges a base spec under a spec (a built-in template, a project template in
   `<specs>/templates/` or a path): the spec's keys win, lists are replaced, `remove: [parts.cape, use.sword]`
@@ -11,9 +41,10 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
 - `use: [{kit: sword, as: sword, at: wrist_R, with: {length: 0.5}}]` adds a kit: parts, bones, sockets and
   channels with params, named `<as>_<name>`, mirrored when `as` ends in `_L`. Its materials and ramps apply
   only where the spec has none of that name, or map to the spec's (`materials: {steel: iron}`).
-- 16 built-in kits (CC0), made with the shapes of 0.3: sword, axe, mace, hammer, spear, staff, bow, pistol,
-  rifle, shield, helmet, hood, hat, cape, belt and pouch. `spritekiln kits` (MCP `kits`) lists them and a
-  kit's params; `spritekiln pose <kit.yaml>` shows a kit on its host. A project's own kits go in
+- 20 built-in kits (CC0), made with the shapes of 0.3: sword, axe, mace, hammer, spear, staff, bow, pistol,
+  rifle, shield, helmet, hood, hat, cape, belt, pouch, and head, hair, ponytail and bun (below). `spritekiln
+  kits` (MCP `kits`) lists them, and a kit's params and channels; `spritekiln pose <kit.yaml>` shows a kit on
+  its host. A project's own kits go in
   `<specs>/kits/`.
 - `spritekiln new <name> --extends` writes a short spec over the template instead of a copy.
   `spec outline` lists what comes from the base and the kits, `spec show` prints it from their files, and
@@ -25,8 +56,8 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   mirrored direction for the twin (kits use it for their `cheat` param).
 
 ### Faster renders, correct soft shading
-- Each part is bounded by a tight sphere: frames render 1.5–2.7× faster (the Templar, 6.6 s → 2.2 s per frame
-  on the development machine), with the same part in every pixel.
+- Each part is bounded by a tight sphere: frames render faster with the same part in every pixel (on the
+  development machine, a Templar frame 6.6 s → 2.2 s; poses in 8 directions 1.5–2.6× faster).
 - Soft shadows and ambient occlusion no longer darken surfaces near a part's bounding sphere: shading
   depends on the geometry only. Assets rendered again are lighter where those false shadows used to fall,
   so they do not match renders of 0.2 pixel for pixel.
@@ -52,8 +83,8 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   space; `edge: true` draws a line around a region. A painted pixel keeps the part's light and takes the
   paint's ramp, outline colour and emissive flag. The Templar's three crosses as paint: 3 parts and 11 cuts
   fewer, the same picture, frames traced 12 % (numba) to 26 % (numpy) faster.
-- The render cache format goes to 7 (the geometry buffer keeps each pixel's paint layer and its position in its
-  part's space): caches of earlier versions are rendered again.
+- The render cache format goes to 7 (the geometry buffer keeps each pixel's paint layer): caches of earlier
+  versions are rendered again.
 
 ### Lines and edge lights inside a part
 - `crease: true` on a material draws a line where a part folds inwards or over itself, and `edge_highlight:
@@ -80,7 +111,8 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
   tapered tube through control points: horns, tails, straps, hair) and `plane` (a flat cut, under `cut:`).
 - Profiles for `extrude` and `revolve`: `circle`, `rect` with `chamfer` or `round`, `polygon` and `bezier`
   (closed quadratic curves).
-- Modifiers on any single primitive: `shell` (hollow: capes, hoods, sleeves), `elongate`, `twist` and `bend`.
+- Modifiers on a primitive (not on a `chain` or a `membrane`): `shell` (hollow: capes, hoods, sleeves),
+  `elongate`, `twist` and `bend`.
 - Joins: `blend: {mode: chamfer|round|stairs, k, n}` and `cut_blend: {mode: groove, depth, width}` (a line
   engraved where a cutter crosses the part). The smooth union stays the default and renders as before.
 - `_L` parts with these shapes mirror correctly to `_R`, asymmetric profiles and bends included.
@@ -94,8 +126,9 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
 - Parts take `priority` (the weight of their samples in the pixel vote) and `min_cover` (how many samples fill
   a pixel even below the camera's coverage): a staff thinner than a third of a pixel, which used to vanish, now
   shows in all 8 directions. Defaults keep every existing spec as it was.
-- `snap: [root, torso_rot]` rounds the on-screen movement of those frames to whole pixels: on the showcase idles
-  it halves the shading that blinks from frame to frame.
+- `snap: [root, torso_rot]` rounds the on-screen movement of those frames to whole pixels: it halves the shading
+  that blinks from frame to frame on the Templar's and the Huntress's idles (not on the gargoyle's, whose wings
+  move on their own: check `boil`).
 - QA measures that blinking (`boil` in `qa.json`, per animation and direction) and warns when it passes 4 % of
   the inside while the silhouette barely moves.
 
@@ -123,8 +156,8 @@ All notable changes to SpriteKiln. The output format has its own version (`docs/
 
 ### Read only what you edit
 - `spritekiln spec outline <spec>` maps a spec file: each part, animation, IK chain and socket with its line
-  range and a summary, the other sections as one line of names. The Huntress's outline is 6 KB; its spec is
-  41 KB. `--json` gives the same as data.
+  range and a summary, the other sections as one line of names. The Huntress's outline is 6.1 KB; its spec
+  is 41 KB. `--json` gives the same as data.
 - `spritekiln spec show <spec> parts.helm animations.walk.keys[2]` prints the numbered source lines of those
   blocks, comments kept; a mirrored `_R` item shows its `_L` source; `--resolved` shows a block as the
   renderer reads it. MCP tools `spec_outline` and `spec_show`.

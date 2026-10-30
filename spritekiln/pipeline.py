@@ -178,6 +178,18 @@ def frame_image(spec, env, yaw, force=False, maps=True):
     return f.img, f.normal, f.emissive
 
 
+def parts_mask(spec, env, yaw, parts):
+    """The pixels of one pose (seen from `yaw`) that show any of the `parts` (part names): a bool array the size
+    of the frame. Reads the render cache that render_frame filled."""
+    env = dict(env, yaw=float(yaw), dir=specmod.direction_name(yaw))
+    gb, groups, _, _ = render_buffers(spec, env, yaw)
+    if not groups:
+        return np.zeros(gb.gid.shape, bool)
+    G = gb.gid.astype(int)
+    hit = np.array([g.name.split(':')[0] in parts for g in groups] + [False])
+    return hit[np.where(G >= 0, G, -1)]
+
+
 def _job(args):
     path, size, anim, d_name, yaw, i, force, draft = args
     if anim:

@@ -134,3 +134,22 @@ def test_pose_is_cropped_and_zoomed_by_whole_steps(tmp_path):
     assert (x1 - x0, y1 - y0) != (32, 32)  # cropped around the sprite
     full = api.pose(spec, dirs='s', scale=1, out=str(tmp_path / 'f.png'), crop=False)[2]
     assert full['crop'] == [0, 0, 32, 32]
+
+
+def test_pose_focus_is_a_close_up_of_a_bone_and_what_hangs_below_it(tmp_path):
+    """Design 16: `pose --focus head` crops to the head, hair, eyes and headwear, zoomed up to 12x."""
+    from spritekiln import api
+
+    spec = tmp_path / 'hero.yaml'
+    spec.write_text('spritekiln: 1\nname: hero\nextends: humanoid\nbrief: {head: the template head}\n', 'utf-8')
+    body = api.pose(str(spec), dirs='s,e', out=str(tmp_path / 'b.png'))[2]
+    out, dirs, head = api.pose(str(spec), dirs='s,e', focus='head', out=str(tmp_path / 'h.png'))
+    (by0, by1), (hx0, hy0, hx1, hy1) = body['crop'][1::2], head['crop']
+    assert dirs == ['s', 'e'] and head['scale'] > body['scale']
+    assert (hy1 - hy0) < (by1 - by0) / 2 and hy0 <= by0 + 3  # the top of the sprite, not the body
+    img = np.asarray(Image.open(out).convert('RGBA'))
+    assert img.shape[:2] == ((hy1 - hy0) * head['scale'], 2 * (hx1 - hx0) * head['scale'])
+    eyes = api.pose(str(spec), dirs='s', focus='eye_L', out=str(tmp_path / 'e.png'))[2]['crop']  # parts, with twins
+    assert eyes[2] - eyes[0] < hx1 - hx0
+    with pytest.raises(SpriteKilnError, match='did you mean head'):
+        api.pose(str(spec), dirs='s', focus='haed')

@@ -1,6 +1,7 @@
 """High-level operations shared by the CLI and the MCP server. Every function takes paths, returns plain data
 (dicts, numpy images) and raises SpriteKilnError for problems the user can fix."""
 
+import difflib
 import json
 import os
 import re
@@ -77,11 +78,12 @@ _EXTENDS = """spritekiln: 1
 name: {name}
 extends: {template}   # its skeleton, body, kits and animations: write here only what differs
 # `spritekiln spec outline` lists what comes from the base; `spritekiln spec show <path>` prints its lines,
-# `--resolved` the result. Keys given here merge into the base's (parts.head.prims replaces its prims);
+# `--resolved` the result. Keys given here merge into the base's (parts.belt.prims replaces its prims);
 # `remove: [parts.cape, use.sword]` drops a part or a kit of the base.
 
 brief:
   summary: ""
+  head: ""        # hair (style, length, fringe), jaw and chin, how much face: then fit the head and hair kits
   must_keep: []
   simplify: []
 """
@@ -139,7 +141,8 @@ def validate(path):
 
 def kits(name=None, start=None):
     """The kits a spec can use: [{name, origin, file, summary, at, host, license, params, materials}]; with a
-    `name`, that kit, plus `params_text` (its params block with comments)."""
+    `name`, that kit, plus `params_text` and `channels_text` (its params and channels blocks with comments; the
+    channels an animator drives, named `<as>_<name>` in a spec)."""
     from . import kits as K
     from .outline import ranges
 
@@ -148,13 +151,14 @@ def kits(name=None, start=None):
         return found
     for k in found:
         if k['name'] == name:
-            r = ranges(k['file']).get(('params',))
-            text = ''
-            if r:
-                with open(k['file'], encoding='utf-8') as fh:
-                    lines = fh.read().split('\n')
-                text = '\n'.join(lines[r[0] - 1 : r[1]])
-            return dict(k, params_text=text)
+            spans = ranges(k['file'])
+            with open(k['file'], encoding='utf-8') as fh:
+                lines = fh.read().split('\n')
+            text = {}
+            for key in ('params', 'channels'):
+                r = spans.get((key,))
+                text[key] = '\n'.join(lines[r[0] - 1 : r[1]]) if r else ''
+            return dict(k, params_text=text['params'], channels_text=text['channels'])
     import difflib
 
     near = difflib.get_close_matches(name, [k['name'] for k in found], n=1)
@@ -174,21 +178,28 @@ def pose_env(sp, anim, frame, yaw=0.0):
     return frames[frame][0]
 
 
-def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=None, draft=False, crop=True):
+def pose(
+    path, anim=None, frame=0, dirs=None, scale=None, bg=None, tint=None, out=None, draft=False, crop=True, focus=None
+):
     """Render one pose in several directions side by side (zoomed PNG). Returns (png path, directions, view):
     `view` holds the zoom used and the crop box [x0, y0, x1, y1] in frame pixels.
-    `scale` is the largest zoom: it is lowered, by whole steps, until the image fits an AI's image budget
-    (preview.MAX_SIDE, MAX_AREA). `crop`: keep only what the sprite shows, plus a margin (the same box in every
-    direction; over a `bg` the whole frame shows). `draft`: one sample per pixel, about 6x faster, for
-    silhouettes and poses (rougher edges, thin parts may break); the default file name ends in `_draft`."""
+    `scale` is the largest zoom (4; 12 with `focus`): it is lowered, by whole steps, until the image fits an AI's
+    image budget (preview.MAX_SIDE, MAX_AREA). `crop`: keep only what the sprite shows, plus a margin (the same box
+    in every direction; over a `bg` the whole frame shows). `focus`: a close-up of a bone and everything attached
+    below it (`head`: the head, hair, eyes and headwear), or of parts by name; comma-separated. `draft`: one sample
+    per pixel, about 6x faster, for silhouettes and poses (rougher edges, thin parts may break); the default file
+    name ends in `_draft` (`_<focus>` with a focus)."""
     from . import preview
     from .export import BG, upscale
-    from .pipeline import frame_image
+    from .pipeline import frame_image, parts_mask
 
     sp = _checked(specmod.load(path))
     if draft:
         specmod.as_draft(sp)
     pose_env(sp, anim, frame)  # fails early on a bad anim/frame
+    focus_parts = _focus_parts(sp, focus) if focus else None
+    if scale is None:
+        scale = 12 if focus else 4
     wanted = [w.strip() for w in dirs.split(',')] if isinstance(dirs, str) else dirs
     pool = _viewable(sp)
     if wanted == ['all']:
@@ -206,10 +217,20 @@ def pose(path, anim=None, frame=0, dirs=None, scale=4, bg=None, tint=None, out=N
     shots = [frame_image(sp, pose_env(sp, anim, frame, y), y, maps=look is not None) for _, y in dl]
     imgs = [look(img, em) if look else img for img, _, em in shots]
     h, w = imgs[0].shape[:2]
-    box = preview.content_box(imgs) if crop else (0, h, 0, w)
+    if focus_parts:
+        masks = [parts_mask(sp, pose_env(sp, anim, frame, y), y, focus_parts) for _, y in dl]
+        if not any(m.any() for m in masks):
+            shown = ', '.join(sorted(focus_parts))
+            raise SpriteKilnError(f'focus {focus}: none of its parts shows in this pose ({shown})')
+        y0, y1, x0, x1 = preview.content_box([np.dstack([m] * 4) for m in masks], margin=0)
+        grow = max(preview.MARGIN, round(0.2 * max(y1 - y0, x1 - x0)))  # some of what is around it
+        box = (max(0, y0 - grow), min(h, y1 + grow), max(0, x0 - grow), min(w, x1 + grow))
+    else:
+        box = preview.content_box(imgs) if crop else (0, h, 0, w)
     strip = np.concatenate(preview.crop(imgs, box), 1)
     k = preview.fit_scale(lambda k: (strip.shape[1] * k, strip.shape[0] * k), scale)
-    out = out or os.path.join(sp['_dir'], 'out', f'pose_{anim or "rest"}_{frame}{"_draft" if draft else ""}.png')
+    tag = f'_{focus.replace(",", "+")}' if focus else ''
+    out = out or os.path.join(sp['_dir'], 'out', f'pose_{anim or "rest"}_{frame}{tag}{"_draft" if draft else ""}.png')
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     upscale(strip, k, None if look else BG).save(out)
     y0, y1, x0, x1 = box
@@ -300,6 +321,31 @@ def _checked(sp):
         listed = ''.join(f'\n  - {e}' for e in errors)
         raise SpriteKilnError(f'the spec has errors (run `spritekiln validate` for all of them):{listed}')
     return sp
+
+
+def _focus_parts(sp, focus):
+    """The part names a `focus` shows: parts named in it, and the parts whose space is a bone named in it or a bone
+    below one (through `parent`)."""
+    names = [f.strip() for f in focus.split(',')] if isinstance(focus, str) else [str(f) for f in focus]
+    names = [n for n in names if n]
+    bones = sp['bones']
+    unknown = [n for n in names if n not in bones and n not in sp['parts'] and n != 'root']
+    if unknown or not names:
+        near = difflib.get_close_matches(unknown[0], [*bones, *sp['parts']], n=1) if unknown else []
+        hint = f' (did you mean {near[0]}?)' if near else ' (a bone such as head, or part names)'
+        raise SpriteKilnError(f'focus: no bone or part {", ".join(unknown) or repr(focus)}{hint}')
+
+    def under(frame):
+        seen = set()
+        while frame and frame not in seen:
+            if frame in names:
+                return True
+            seen.add(frame)
+            frame = (bones.get(frame) or {}).get('parent', 'root') if frame != 'root' else None
+        return False
+
+    names += [n[:-2] + '_R' for n in names if n.endswith('_L')]  # a part's mirrored twin too
+    return {p for p, part in sp['parts'].items() if p in names or under(part.get('space', 'root'))}
 
 
 def _viewable(sp):

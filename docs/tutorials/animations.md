@@ -69,7 +69,7 @@ timing: {attack: {hit: 350ms}}   # the game deals damage 350 ms after the attack
 
 ```
 INVALID:
-  - specs\characters\knight\knight.yaml:170:19: timing.attack.hit: at 24.0 f (400 ms) but the target is 21 f (+-1 f at 60 fps)
+  - specs\characters\knight\knight.yaml:163:19: timing.attack.hit: at 24.0 f (400 ms) but the target is 21 f (+-1 f at 60 fps)
 ```
 
 Shorten the held anticipation from 160 to 110 ms and `validate` is OK again. Targets accept `ms` or frames

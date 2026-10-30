@@ -7,6 +7,7 @@ remove: [parts.belt]    # the belt kit below replaces the template's plain band
 
 brief:
   summary: a foot knight in a crested helm, with a red cape, a heater shield and a sword
+  head: the open helm shows the template's face; its hair stays under the helm
   must_keep: [crested helm, red cape, heater shield, sword]
   simplify: [no heraldry on the shield or the tunic at 64 px]
 

@@ -10,10 +10,11 @@ saved and the next step reads it.
 | 1 | modeler | brief, palette, blockout, striking shapes | [splash-to-model.md](splash-to-model.md), [modeling.md](modeling.md) | 8 directions look right; corrected IoU ≥ 0.65 |
 | 2 | art director (model round) | numbers + critique, ≤ 8 fixes | [art-direction.md](art-direction.md) | verdict written |
 | 3 | modeler | applies the high-priority fixes | the director's list | fixes visible in `pose` |
-| 4 | animator | animations, events, timing targets, sockets | [animation.md](animation.md) | QA clean on the clips |
-| 5 | art director (animation round) | critique of the clips | contact sheets, GIFs, `review --anims` | verdict written |
-| 6 | animator | applies the fixes | the director's list | QA clean |
-| 7 | anyone | `render`, then `export` | | atlas, JSON and engine files in place |
+| 4 | main session | shows the user the model: `pose --dirs all` and `pose --focus head --dirs all` | | the user approves it (or asks for changes: back to 3) |
+| 5 | animator | animations, events, timing targets, sockets | [animation.md](animation.md) | QA clean on the clips |
+| 6 | art director (animation round) | critique of the clips | contact sheets, GIFs, `review --anims` | verdict written |
+| 7 | animator | applies the fixes | the director's list | QA clean |
+| 8 | anyone | `render`, then `export` | | atlas, JSON and engine files in place |
 
 In the Hunt Tower session the model round caught the overall value (the Huntress was too dark for the
 floor), the wine-red lining as the accent colour, the face under the hat brim and an asymmetric hat; the
@@ -24,6 +25,10 @@ shoulder, and the mine placement.
 - Subagents cannot ask the user anything: the main session runs the style interview (step 0) before it
   delegates, and every role follows the recorded style.
 - The director never edits: they return a list of fixes with concrete spec changes.
+- The user sees the model before anything is animated (step 4): a face or a hairstyle they dislike costs one
+  model round there, and every clip after the animations.
+- Hand-offs carry the splash, the user's description and the spec's `brief` (with `head`), not only paths:
+  the face and the hair are where a generic answer slips in.
 - Every step reports the paths of the images it produced, so the next one can open them.
 - Keep the spec's `brief:` up to date with decisions (what the reference does not show, cheats per
   direction), so a later session understands the choices.

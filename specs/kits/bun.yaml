@@ -1,0 +1,63 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: bun}]`, usually with the hair kit's back short:
+# `{kit: hair, as: hair, with: {length: 0}}`. `spritekiln pose specs/kits/bun.yaml --dirs all` shows it on its host.
+# The bun stands off the hair so that a line runs round it in every direction. Under the hat or the hood, drop
+# it (`remove: [use.bun]`, or leave it out): at height 0.2 or lower it is hidden entirely; higher it pokes
+# through as specks.
+kit: bun
+license: CC0-1.0
+summary: a hair bun on the head (or two at the sides, odango), a ball with a wrapped strand, standing off the hair so a line runs round it
+host: humanoid
+at: head
+params:
+  height: 0.8        # where it sits: 0 low at the nape .. 0.5 the back of the head .. 1 on top
+  size: 1            # scale factor of the bun itself, on the template's hair (0.7 small .. 1.3 big)
+  double: false      # two buns at the sides of the crown instead of one (odango, space buns); `height` moves them down the sides
+                     # (at 40-48 px they read as bear ears from the front above height 0.5; 0.3 sets them on the sides)
+  wrap: true         # a strand wrapped round the bun: a line that curls over it
+
+materials:
+  hair: {ramp: hair, finish: matte}   # the hair kit's: the host's `hair` wins, so the bun matches the hair
+ramps:
+  hair: ["#160e0f", "#2c1c1a", "#452e23", "#61412e", "#7d573a", "#9a7049"]   # the hair kit's brown
+
+bones:
+  # On the hair kit's crown (tilted back 0.3), at an angle from the top (height 1) round the back to the nape
+  # (height 0), in head units about the head's centre; local y points out of the hair, the bun's axis (low on the
+  # nape it points back rather than down, like a chignon, so it stands off the head seen from behind too).
+  bun: {parent: at, scale: size, rot: "[-min(2, 0.45 + 1.95*(1 - height)), 0, 0]",
+        pos: "[0, 0.19 + 0.119*cos(0.15 + 1.95*(1 - height)) - 0.044*sin(0.15 + 1.95*(1 - height)),
+               -0.05 - 0.037*cos(0.15 + 1.95*(1 - height)) - 0.143*sin(0.15 + 1.95*(1 - height))]"}
+  # double: on the sides of the crown, high (height 1) down behind the ears (0), turned back as they go down so
+  # they never cover the face in profile
+  side_L: {parent: at, scale: "0.8*size", rot: "[-0.2 - 0.45*(1 - height), 0, -(0.75 + 1.1*(1 - height))]",
+           pos: "[(0.128 - 0.02*(1 - height))*sin(0.75 + 1.1*(1 - height)), 0.19 + 0.12*cos(0.75 + 1.1*(1 - height)),
+                  -0.06 - 0.07*(1 - height)]"}
+
+parts:
+  bun:               # a slightly flattened ball on a narrow base: the hair behind it all round gives it its line
+    material: hair
+    space: bun
+    when: "not double"
+    prims:
+      - ellipsoid: {c: [0, 0.075, 0], r: [0.08, 0.068, 0.08]}
+  wrap:              # a strand coiled one turn and a half round the ball, tucked in near its top
+    material: hair
+    space: bun
+    when: "wrap and not double"
+    prims:
+      - tube: {pts: [[0.07, 0.035, 0.02], [0.03, 0.05, 0.095], [-0.075, 0.065, 0.06], [-0.07, 0.085, -0.07],
+                     [0.065, 0.105, -0.05], [0.045, 0.12, 0.045], [-0.005, 0.12, 0.025]], r: [0.024, 0.014]}
+  side_L:            # the double's buns, like `bun` and `wrap` (the right ones mirrored)
+    material: hair
+    space: side_L
+    when: double
+    prims:
+      - ellipsoid: {c: [0, 0.075, 0], r: [0.08, 0.068, 0.08]}
+  side_wrap_L:
+    material: hair
+    space: side_L
+    when: "wrap and double"
+    prims:
+      - tube: {pts: [[0.07, 0.035, 0.02], [0.03, 0.05, 0.095], [-0.075, 0.065, 0.06], [-0.07, 0.085, -0.07],
+                     [0.065, 0.105, -0.05], [0.045, 0.12, 0.045], [-0.005, 0.12, 0.025]], r: [0.024, 0.014]}

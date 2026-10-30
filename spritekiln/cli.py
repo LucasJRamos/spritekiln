@@ -81,9 +81,10 @@ def cmd_pose(a):
     _compile_note()
     t = time.time()
     out, dirs, view = api.pose(
-        a.spec, a.anim, a.frame, a.dirs, a.scale, a.bg, a.tint, a.out, a.draft, crop=not a.no_crop
+        a.spec, a.anim, a.frame, a.dirs, a.scale, a.bg, a.tint, a.out, a.draft, crop=not a.no_crop, focus=a.focus
     )
-    zoom = f'; zoom {view["scale"]}' if view['scale'] != a.scale else ''
+    want = a.scale or (12 if a.focus else 4)
+    zoom = f'; zoom {view["scale"]}' if view['scale'] != want else ''
     print(f'{out}  ({", ".join(dirs)}; {time.time() - t:.1f}s{zoom}{"; draft" if a.draft else ""})')
 
 
@@ -525,6 +526,8 @@ def cmd_kits(a):
             f'  attaches at {k["at"]} (`at:` in the use), shown on {k["host"]}; materials: {", ".join(k["materials"])}'
         )
         print(k['params_text'] or '  no params')
+        if k['channels_text']:
+            print(f'{k["channels_text"]}\n  (in a spec they are named {k["name"]}_<channel>, or <as>_<channel>)')
         print(f'use: [{{kit: {k["name"]}, as: {k["name"]}, at: {k["at"]}, with: {{...}}}}]')
         return
     w = max((len(k['name']) for k in res), default=0)
@@ -593,13 +596,18 @@ def build_parser(prog='spritekiln'):
     s.add_argument(
         '--scale',
         type=_positive,
-        default=4,
-        help='largest zoom of the preview PNG (default 4; lowered by whole steps to fit an AI image budget)',
+        default=None,
+        help='largest zoom of the preview PNG (default 4, 12 with --focus; lowered by whole steps to fit an AI '
+        'image budget)',
     )
     s.add_argument(
         '--draft', action='store_true', help='one sample per pixel: about 6x faster, rougher edges (iterate with it)'
     )
     s.add_argument('--no-crop', action='store_true', help='show whole frames instead of cropping around the sprite')
+    s.add_argument(
+        '--focus',
+        help='close-up of a bone and what hangs below it (head: the head, hair, eyes, headwear), or of parts by name',
+    )
     _preview_args(s)
     s.add_argument('-o', '--out')
     s.set_defaults(f=cmd_pose)
@@ -693,6 +701,11 @@ def build_parser(prog='spritekiln'):
     g.add_argument('--dither', choices=STYLE_CHOICES['dither'], help='ordered dither between tones')
     g.add_argument('--light', choices=STYLE_CHOICES['light'], help='light preset')
     g.add_argument('--proportions', choices=STYLE_CHOICES['proportions'])
+    g.add_argument(
+        '--face',
+        choices=STYLE_CHOICES['face'],
+        help='minimal (eyes only, no nose), simple (+ a brow or nose hint on big heads), detailed',
+    )
     g.add_argument('--animation', choices=STYLE_CHOICES['animation'])
     g.add_argument('--snap', choices=['yes', 'no'], help='root and torso move in whole pixels (less boiling)')
     g.add_argument('--references', nargs='+', metavar='REF', help='games, artists or image paths to match')

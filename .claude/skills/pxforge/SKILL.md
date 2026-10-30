@@ -18,6 +18,7 @@ python -m pxforge validate <spec.yaml>                       # after every edit;
 spritekiln spec outline <spec.yaml>                   # map of the file: each part/animation with its lines
 spritekiln spec show <spec.yaml> parts.helm animations.walk   # numbered lines of the blocks you edit
 python -m pxforge pose <spec.yaml> [--anim walk --frame 3] [--dirs all|s,se,e] [--draft]   # cheap preview PNG
+python -m pxforge pose <spec.yaml> --focus head --dirs all     # close-up (12x) of the head, hair and face
 python -m pxforge render <spec.yaml> [--anims idle,walk] [--dirs s,e] [--size 48] [--draft]   # atlas, JSON, GIFs, QA
 python -m pxforge review <spec.yaml> [--bg floor.png --tint 0.7,0.7,1.0] [--against other.yaml] [--ref splash.png]
 python -m pxforge export <spec.yaml>                          # hand the render to the engine in spritekiln.toml
@@ -62,7 +63,8 @@ If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or t
 3. **`validate`** and fix until OK. Warnings matter too: an unknown key ("did you mean pitch?") is ignored
    by the renderer, so a typo silently does nothing.
 4. **`pose --dirs all` and look at the image** (`--draft` while the shape is still changing). Check the
-   silhouette in s, e, n and a diagonal. If you cannot see images, run `review` and read the numbers
+   silhouette in s, e, n and a diagonal. A character's head and face: `pose --focus head --dirs all`, since a
+   face is a few pixels on a normal preview. If you cannot see images, run `review` and read the numbers
    instead (see [art-direction.md](art-direction.md)).
 5. Repeat 2–4. For an animation, `pose --anim X --frame i` on the key frames. Before rendering, one full
    (not draft) `pose --dirs all` to check edges and thin parts.
@@ -82,7 +84,8 @@ sockets; see the output format at https://github.com/LucasJRamos/spritekiln/blob
 Previews (`pose`, contact sheets, GIFs, `review` and `ref compare` sheets) are cropped to what the sprite
 shows and zoomed by whole factors that fit an AI's image budget (about 1500 px and 1.15 megapixels), so every
 sprite pixel is a clean square. `--scale` is the largest zoom. `pose --no-crop` shows the whole frame; over a
-`--bg` the whole frame always shows. Atlases are never cropped.
+`--bg` the whole frame always shows. `pose --focus <bone>` crops to a bone and everything attached below it
+(`head`: the head, hair, eyes and headwear), or to parts by name, at up to 12x. Atlases are never cropped.
 
 ## Top-down or side-scroller
 Specs are top-down 3/4 by default (`view: topdown`). For a platformer or side-scroller use `view: side`
@@ -138,7 +141,8 @@ Pixel artists draw plates, blades and brims with crisp edges. Rounded primitives
 
 | what | use |
 |---|---|
-| limbs, torso, head, round masses | `ellipsoid`, `cone`, `sphere` with `blend` |
+| limbs, torso, round masses | `ellipsoid`, `cone`, `sphere` with `blend` |
+| a head, a face, hair | the `head` and hair kits, or the recipe in "Heads, faces and hair" below (never one blended ball) |
 | a blade, an axe head, a shield, a plate, a buckle, a leaf | `extrude` of a `polygon`, `rect` (`chamfer`) or `bezier` profile |
 | a helmet, a round hat crown, a bottle, a bell, a mantle | `revolve` of the cross-section |
 | a hood | `revolve` of a dome that pinches into a soft tip, the face cut open by a tilted `plane` (an ellipsoid shell reads as a ball) |
@@ -223,8 +227,9 @@ Keep every piece at least a pixel thick (`validate` warns), look at a full `pose
 shaped primitive to a stack of blended ellipsoids plus cuts.
 
 ## Kits
-Weapons, shields, headwear, capes and belts come from kits before you model your own: each is built with the
-shapes above and checked in 8 directions on the humanoid template ([spec.md](SPEC.md), "Bases and kits").
+Weapons, shields, headwear, capes, belts, heads and hair come from kits before you model your own: each is
+built with the shapes above and checked in 8 directions on the humanoid template ([spec.md](SPEC.md), "Bases
+and kits").
 `spritekiln kits <name>` prints a kit's params with their comments.
 
 | kit | at | params worth knowing | sockets |
@@ -242,6 +247,10 @@ shapes above and checked in 8 directions on the humanoid template ([spec.md](SPE
 | `helmet` | `head` | `size`, `visor`, `nasal`, `crest` (0: none), `trim` | `top` |
 | `hood` | `head` | `size`, `depth` (how deep the cowl), `tip`, `tilt`, `mantle`; its own `hood` material | `top` |
 | `hat` | `head` | `size`, `brim`, `crown`, `droop`, `tilt` (- shows the eyes) | `top` |
+| `head` | `head` | `jaw` (0 soft .. 1 square), `chin` (0 round .. 1 pointed), `width`, `nose` (0: none), `ears` (1 round, 2 pointed); the templates use it | |
+| `hair` | `head` | `fringe` (0 bare forehead .. 1 bangs), `part` (-1..1), `locks` (0 .. 2 to the collarbone), `length` (0 nape .. 2 down the back), `volume`, `size`; the templates use it | |
+| `ponytail` | `head` | `height` (0 nape .. 1 crown), `length`, `volume`, `band`, `cheat`; channels `swing`, `lift`, `sway` for the animator (`ponytail_swing`...); with the hair kit's `length: 0` | |
+| `bun` | `head` | `height` (0 nape .. 1 top), `size`, `double` (two buns at the sides), `wrap` | |
 | `cape` | `pelvis` | `length`, `width`, `flare`, `drape`, `collar`, `clasp`; channel `cape_sway` | |
 | `belt` | `pelvis` | `radius`, `height`, `y`, `tilt`, `buckle` (remove the template's `parts.belt`) | |
 | `pouch` | `pelvis` | `width`, `angle` (around the waist), `flap`, `stud`; a pair: `as: pouch_L, with: {angle: 1.15}` | |
@@ -260,6 +269,42 @@ leans it (negative: front up), and `cheat` is the strength of a kit's per-direct
   still needs it, change that part in the spec like any inherited item.
 - A project's own kits go in `<specs>/kits/`; write one when the same piece appears on two assets.
 
+## Heads, faces and hair
+With stylized proportions a character's head is 8–14 px tall, about a fifth of the sprite: it is one of the
+big masses, not a detail. Rounded primitives blended together read as a ball at that size, and a small
+feature on a face swells into a lump. What reads:
+- **Decide it first, in `brief.head`:** the hair (style, length, fringe, locks, ponytail or bun), the jaw and
+  chin, and how much face the project's style shows (`python -m pxforge style`, `face`). `validate` warns about a
+  character over a template until it is written.
+- **Start from the kits.** The templates `use` the `head` kit (`jaw`, `chin`, `width`, `nose`, `ears`) and the
+  `hair` kit (`fringe`, `part`, `locks`, `length`, `volume`); `ponytail` and `bun` attach to the head for
+  those styles. Fit the params first: `use: [{kit: hair, as: hair, with: {fringe: 0.4, locks: 2, length:
+  1}}]` replaces the template's hair in place (a `use` with the same `as`), and `{kit: head, as: head, with:
+  {jaw: 0.2, chin: 0.8}}` its head. To write a hair of your own, add `remove: [use.hair]` and your parts: a
+  spec that only replaces `parts.hair.prims` keeps the kit's fringe and locks (`validate` says so). A
+  ponytail goes with the hair kit's `length: 0`; under a hood or a hat, tie it or the bun low (their kits'
+  headers say how low). The ponytail's channels (`ponytail_swing`, `_lift`, `_sway`) are the animator's.
+- **Break the circle.** In every direction at least two things change the outline of the head: a fringe over
+  the brow, locks at the temples, a chin, a ponytail or a bun, a hat or a hood.
+- **Faces follow the style's `face`.** `minimal`: eyes only, no nose, no mouth (anime and most pixel art).
+  `simple`: also a 1 px hint of a brow or a nose (`nose` param), only on heads of 14 px or more. `detailed`:
+  nose, brows, mouth, on heads of 20 px or more. The side view is no exception: a profile reads through the
+  slope from brow to chin, not through a nose.
+- **No feature smaller than its part's `blend`.** A sphere of r 0.025 in a part with `blend: 0.05` swells
+  into a soft lump, and the outline adds a pixel around it: a 1.5 px nose on a 9 px face becomes 2–3 px, a
+  big nose. Give a small feature its own part with a small or no blend, paint it, or leave it out.
+- **Hair in several parts.** Inner lines appear only between parts (or with `crease`), so one blended mass
+  of hair reads as a helmet or a sausage. Separate parts for the crown, the fringe, the locks and the strands
+  of a ponytail draw the lines that read as hair. Tubes (`r: [root, tip]`) make locks and strands; extrudes
+  make flat, sharp fringes.
+- **Eyes show.** An eye sunk in the skin disappears: let it sit on the face's surface, at least 1 px in
+  every direction where the face shows, with the template's dark `ink` or the project's eye colour.
+- **Colour.** The hair kits' material `hair` takes the palette's `hair` ramp (a fallback brown otherwise) and
+  no `bands`, so the style's shading applies.
+- **Judge it up close.** `pose --focus head --dirs all` shows the head, hair and headwear at 12×; on a 2–4×
+  sheet a face is a few pixels and no number (IoU, pixels per material) sees it. Never raise a hair
+  `min_px` target to get "more hair": it rewards mass, not locks.
+
 ## Paint before geometry
 A colour on a surface is `paint:` on that part ([spec.md](SPEC.md)), not a new part: a cross on a tabard, a gold
 band, a belt drawn on a coat, rivets, moss. A painted region costs nothing to ray-march, cannot poke through the
@@ -272,9 +317,10 @@ out, a belt that rides over folds, a raised rim. Paint follows the part's surfac
 the part, and a volume must enclose the surface it paints (a box through a cape shell paints its inside too).
 
 ## Side view (`view: side`)
-- The silhouette is the **profile**: what reads is the outline seen from the side (nose, hat brim,
-  weapon length, cape, tail). Thickness along the line of sight (z) does not show; extend shapes along x
-  and y instead.
+- The silhouette is the **profile**: what reads is the outline seen from the side (the slope from brow to
+  chin, the fringe and a ponytail, a hat brim, weapon length, cape, tail). Thickness along the line of sight
+  (z) does not show; extend shapes along x and y instead. A face in profile is a line and a chin, not a nose
+  (see "Heads, faces and hair").
 - Only `e` and `w` are rendered, but the model is still 3D: both profiles must work, and the far arm and
   leg sit behind the body (darker, partly hidden). Check `pose` in both directions.
 - No ground shadow by default (the ground is edge-on); the game usually draws its own.
@@ -282,16 +328,18 @@ the part, and a volume must enclose the surface it paints (a box through a cape 
 ## Procedure
 1. Start from a base: `python -m pxforge new <name> --extends` for a humanoid (it inherits the template's skeleton,
    body and animations), or the closest existing spec. Fill `brief:` first (see
-   [splash-to-model.md](splash-to-model.md)). Weapons, shields, headwear, capes and belts come from kits
-   ("Kits" above) before you model your own.
+   [splash-to-model.md](splash-to-model.md)), `head` included. Weapons, shields, headwear, capes, belts,
+   heads and hair come from kits ("Kits" above) before you model your own.
 2. **Big masses first**: world scale (total height 1.6–2.0 for a human), pelvis height, IK lengths, then
-   torso, head, hips and legs as ellipsoids and cones only.
-3. Add the striking shapes one at a time with the primitive that has their form (see "Which shape for
+   torso, hips and legs as ellipsoids and cones; the head's size through the `head` bone's `scale`.
+3. **The head and the hair**, as `brief.head` says ("Heads, faces and hair"): fit the kits' params or model
+   them, then `pose --focus head --dirs all` and look.
+4. Add the striking shapes one at a time with the primitive that has their form (see "Which shape for
    what": `extrude` blades and plates, `revolve` helmets and hats, `tube` horns and tails, `shell` capes and
    hoods, `membrane` wings). After each: `validate`, `pose --dirs all` (`--draft` while shaping), look.
-4. Check **all 8 directions**, not only the reference's: the back and the profiles must make sense. Invent
+5. Check **all 8 directions**, not only the reference's: the back and the profiles must make sense. Invent
    what the reference does not show, coherently, and write the decision in `brief`.
-5. Materials and palette last-but-not-least: 3–6 materials plus one emissive; tune ramps with
+6. Materials and palette last-but-not-least: 3–6 materials plus one emissive; tune ramps with
    `python -m pxforge palette ramp "#hex" --steps 5`.
 
 ## Rules for a modeler (human or AI)

@@ -1,0 +1,54 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: head, at: head}]`.
+# `spritekiln pose specs/kits/head.yaml --dirs all` shows it on its host.
+# No nose by default: at 10 px a nose is 1-2 px that the blend swells and the outline doubles into a lump.
+# The humanoid's `eye_L` sits on the face plane's side slope (x 0.078, y 0.115, turned 0.7 rad outwards; the
+# side-view template's further round, x 0.1 turned 1.0 rad, so it stays 1-2 px inside the profile).
+# A spec that replaces `parts.head.prims` keeps this part's material, space and blend (no cuts or paint here).
+kit: head
+license: CC0-1.0
+summary: a stylized head with no nose - a cranium, a flat face plane, cheeks and a jaw tapering to a chin
+host: humanoid
+at: head
+params:
+  width: 1           # width of the cheeks and jaw (0.85 narrow .. 1.15 broad); the cranium and face plane keep theirs
+  jaw: 0.4           # 0 soft and narrow (a feminine or young face) .. 1 strong and square (reads on heads of about
+                     # 14 px or more; at 10 px it is a pixel)
+  chin: 0.5          # 0 short and round .. 1 long and pointed (like jaw: reads from about 14 px, barely at 10 px)
+  nose: 0            # 0 none; up to 1 a small nose for big heads or detailed styles (at most a 1 px step in profile, 40-64 px)
+  ears: 0            # 0 none (under the hair), 1 small and round, 2 pointed (an elf); in between blends the two
+
+materials:
+  skin: {ramp: skin}   # the host's `skin` wins
+ramps:
+  skin: ["#1d0f0e", "#4a2a24", "#7a4a3a", "#a87058", "#d29d7c", "#efcfae"]   # gothic's, for a palette without one
+
+parts:
+  head:              # in the head bone's coordinates: centre about y 0.14, crown 0.30, chin -0.02, face toward +z
+    material: skin
+    space: at
+    blend: 0.035
+    prims:
+      - ellipsoid: {c: [0, 0.175, -0.02], r: [0.135, 0.125, 0.14]}                          # cranium (not scaled by width: the hair fits it)
+      - ellipsoid: {c: [0, 0.115, 0.04], r: [0.095, 0.1, 0.092]}                             # face plane (fixed: a wider one swallows the eyes)
+      - ellipsoid: {c: "[0.06*width, 0.09, 0.04]", r: [0.06, 0.055, 0.07]}                  # cheeks
+      - ellipsoid: {c: "[-0.06*width, 0.09, 0.04]", r: [0.06, 0.055, 0.07]}
+      # the jaw: a cone from under the cheeks to the chin; `jaw` widens it (elongate: a flat, square front), the
+      # y elongation gives the chin some height (pushed further forward it juts out in 64 px top-down e/w)
+      - cone: {a: [0, 0.095, 0.0], b: "[0, 0.035 - 0.065*chin + 0.012*jaw, 0.08 + 0.015*chin]",
+               r: "[0.085*width, 0.032 - 0.016*chin + 0.008*jaw]", elongate: "[0.03*jaw*width, 0.012, 0]"}
+  nose:              # a small wedge on the face plane: its own part with no inner line, so no blend swells it
+    material: skin
+    space: at
+    when: "nose > 0"
+    line: false
+    prims:
+      - cone: {a: [0, 0.125, 0.11], b: "[0, 0.09, 0.12 + 0.015*nose]", r: [0.018, 0.016]}
+  ear_L:             # below the hair's edge: a round ear at 1, drawn out into a point that sweeps out, up and back at 2
+    material: skin
+    space: at
+    when: "ears > 0"
+    prims:
+      - cone: {a: [0.12, 0.095, -0.025],
+               b: "[0.145 + 0.06*clamp(ears - 1, 0, 1), 0.1 + 0.07*clamp(ears - 1, 0, 1), -0.035 - 0.055*clamp(ears - 1, 0, 1)]",
+               r: "[0.034, 0.03 - 0.023*clamp(ears - 1, 0, 1)]"}

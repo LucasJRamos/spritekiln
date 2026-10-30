@@ -4,7 +4,7 @@ Every asset of a game shares one look. SpriteKiln records it once per project, i
 `spritekiln.toml`, from a short interview with the user. `spritekiln new` applies its numeric part (view,
 density, frame size, directions, palette) to every new spec; the renderer applies its look (outline, shading,
 lines, highlights, dither, light, snap) to every asset at render time; the rest (colours, proportions,
-animation, references) is how you model and animate every asset of the project.
+faces, animation, references) is how you model and animate every asset of the project.
 
 ## Before the first asset: interview the user
 Run `spritekiln style` (MCP: `style`) before you create or change an asset in a project, once per session.
@@ -19,7 +19,7 @@ Subagents cannot talk to the user: the main session runs the interview, and an a
 recorded stops and reports that.
 
 ### How to interview: grill the user, briefly
-- Ask the nine questions below in your own words and in the user's language, **at most four at a time**
+- Ask the ten questions below in your own words and in the user's language, **at most four at a time**
   (three rounds). Give each one its options with the recommended one first; "I don't know" takes the
   recommendation. In Claude Code use the question tool (AskUserQuestion), one question per item, options
   with short descriptions; elsewhere, a numbered list in the chat that the user can answer in one line
@@ -40,7 +40,7 @@ recorded stops and reports that.
 spritekiln style set --view topdown --height 48 --directions 8 --mirror no --palette gothic \
     --colors "dark, desaturated, one warm accent" --outline selective --shading soft \
     --lines depth --highlights yes --dither none --light classic \
-    --proportions stylized --animation fluid --snap no --references "Hyper Light Drifter" "art/refs/mood.png" \
+    --proportions stylized --face minimal --animation fluid --snap no --references "Hyper Light Drifter" "art/refs/mood.png" \
     --notes "enemies glow red; no blood"
 ```
 
@@ -77,11 +77,16 @@ given; `--scale` sets the density directly for an expert who knows it.
 6. **Proportions.** Stylized (head 1.2–1.4× real size, 2–3 striking shapes; recommended), chibi (head
    1.6–2×, short limbs, few details) or realistic (head about 1×, slender; needs 64 px or more)? →
    `--proportions stylized|chibi|realistic`.
-7. **Animation.** Fluid (8-frame walks, in-between frames, overlapping motion; recommended) or snappy
+7. **Faces.** How much face does a character show? Minimal: eyes only, no nose or mouth; the shape of the head
+   and the hair carry the character (anime and most pixel art; recommended). Simple: also a 1 px hint of a
+   brow or a nose, only on heads 14 px tall or more. Detailed: nose, brows and a mouth, for big sprites (heads
+   of 20 px or more). At 48 px a stylized head is about 10 px tall: a nose there reads as a big nose. →
+   `--face minimal|simple|detailed`.
+8. **Animation.** Fluid (8-frame walks, in-between frames, overlapping motion; recommended) or snappy
    (4–6-frame cycles, held poses, a retro feel)? And should the body move in whole pixels (less shimmering
    on slow idles, steps instead of drift; recommended no, yes suits snappy)? → `--animation fluid|snappy
    --snap yes|no`.
-8. **Finish and light.** Render `spritekiln style preview` (MCP: `style_preview`; without a spec it uses the
+9. **Finish and light.** Render `spritekiln style preview` (MCP: `style_preview`; without a spec it uses the
    humanoid template), give the user the image (its path) and let them choose by looking. Inner lines: depth (between parts; recommended),
    depth+normal (also at folds of armour and stone: crisper) or none. Highlights on metal and gems: yes
    (recommended) or no. Dither: none (recommended), bayer2 (a checker between tones, retro) or bayer4
@@ -89,7 +94,7 @@ given; `--scale` sets the density directly for an expert who knows it.
    (bright, low contrast) or flat (the game lights the sprites through normal maps). → `--lines
    depth|depth+normal|none --highlights yes|no --dither none|bayer2|bayer4 --light
    classic|top|dramatic|soft|flat`.
-9. **References (optional).** Games, artists or images whose look to match, and anything else every asset
+10. **References (optional).** Games, artists or images whose look to match, and anything else every asset
    must respect ("enemies glow red", "no blood", "readable on a small phone"). → `--references ...` and
    `--notes "..."`. Open the images the user names and let them inform the answers above.
 
@@ -101,6 +106,7 @@ given; `--scale` sets the density directly for an expert who knows it.
 | shading `soft` | ramps of 5–6 tones | | gradual light, no banding noise |
 | shading `flat` or `toon` | ramps of 4–6 tones still work (the renderer takes the lightest two or three); value contrast between materials matters more | | flat, clean areas; strong value contrast between materials |
 | proportions | head scale (`bones.head` `scale`): stylized 1.2–1.4, chibi 1.6–2.0, realistic 1.0–1.1; limb lengths to match | | the proportions match the other assets |
+| face | `minimal`: eyes only, the head kit's `nose: 0`; `simple`: a brow or a `nose` hint only on heads of 14 px or more; `detailed`: nose, brows, mouth on heads of 20 px or more. Any face: the head is not a ball and the hair has locks ([modeling.md](SKILL.md), "Heads, faces and hair") | | `pose --focus head`: no bump under 2 px on the face; the head and hair read as this character |
 | animation `fluid` | | walk and run 8 frames, idle 6–8, tweens on actions, overlap and follow-through | |
 | animation `snappy` | | walk and run 4–6 frames, idle 2–4, held keys, few or no tweens | |
 | colors, references, notes | the palette, ramps and accents follow them | timing and feel follow them | the asset reads as the same game as the references and the approved assets |

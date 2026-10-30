@@ -3,7 +3,7 @@
 The AI asks the user a few questions before the first asset of a project (docs/agent/style.md) and records
 the answers with `spritekiln style set`. The numeric ones become `[defaults]` for `spritekiln new`: the view
 and its camera pitch, `camera.scale` and `size` from the height of a character on screen, the directions,
-mirroring and the palette. The rest (colours, outline, shading, proportions, animation, references, notes)
+mirroring and the palette. The rest (colours, outline, shading, proportions, face, animation, references, notes)
 guides whoever models and animates. `spritekiln style` shows the record, or suggests answers from the
 specs a project already has, and lists the specs that no longer match it.
 
@@ -37,6 +37,7 @@ FIELDS = (
     'dither',
     'light',
     'proportions',
+    'face',
     'animation',
     'snap',
     'references',
@@ -46,6 +47,7 @@ CHOICES = {
     'view': ('topdown', 'side'),
     **RENDER_CHOICES,
     'proportions': ('stylized', 'chibi', 'realistic'),
+    'face': ('minimal', 'simple', 'detailed'),
     'animation': ('fluid', 'snappy'),
 }
 YES_NO = ('mirror', 'highlights', 'snap')
@@ -58,6 +60,7 @@ RECOMMENDED = dict(
     dither='none',
     light='classic',
     proportions='stylized',
+    face='minimal',
     animation='fluid',
     snap=False,
 )
@@ -67,6 +70,7 @@ NOTES = {
     'size': 'frame px for that character',
     'outline_color': 'with outline "dark"; empty: the darkest tone of the ramps',
     'snap': 'root and torso move in whole pixels',
+    'face': 'minimal: eyes only, no nose; simple: + a hint of brow or nose on big heads; detailed',
 }
 PREVIEW_FIELDS = ('outline', 'shading', 'lines', 'highlights', 'dither', 'light')
 PITCH = {'topdown': 38, 'side': 0}
@@ -210,6 +214,7 @@ def describe(st):
         f'dither {r["dither"]}',
         f'  light        {r["light"]}',
         f'  proportions  {st.get("proportions")}',
+        f'  face         {st.get("face") or RECOMMENDED["face"] + " (not recorded: the default)"}',
         f'  animation    {st.get("animation")}{snap}',
         f'  references   {refs}',
         f'  notes        {st.get("notes") or "-"}',

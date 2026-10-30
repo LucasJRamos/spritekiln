@@ -14,6 +14,8 @@ Rules that matter:
   anything. Follow the recorded style in every asset; change it only when the user explicitly asks.
 - Run `spritekiln validate <spec>` after every edit; problems come with file:line:column.
 - Iterate with `spritekiln pose <spec> --dirs all` (about 1 s per direction); `spritekiln render` only at the end.
+- A character's head and hair are decided in its `brief.head` and judged up close with
+  `spritekiln pose <spec> --focus head --dirs all`: on a normal preview a face is a few pixels.
 - Never call something visual good without looking at the PNG. If you cannot see images, use the numbers of
   `spritekiln review` (value, contrast, pixels per material, IoU) and `qa.json`.
 - Keep the camera pitch, light and `camera.scale` shared by every asset of the game.

@@ -24,12 +24,15 @@ brief:
   summary: one sentence on who this is and how they carry themselves
   reference: splash.png (seen from se)
   proportions: "head = 1/4 of the height; shoulders 1.6x the hips; short legs"
+  head: "high ponytail past the shoulders, side-swept fringe, soft jaw, pointed chin; eyes only (face: minimal)"
   must_keep: [3-6 traits that identify the character from afar]
   simplify: [what will vanish or merge at 64 px]
   palette_notes: [dominant materials and colours]
 ```
 At most 5–6 `must_keep`. Small ornaments become a colour spot or vanish. Exaggerate what is iconic (hat,
-weapon, hair, cape): at 64 px, exaggeration is fidelity.
+weapon, hair, cape): at 64 px, exaggeration is fidelity. The head is never a detail to drop: with stylized
+proportions it is about a fifth of the sprite. `head` says what the splash's hair and face are, in the terms
+of the head and hair kits, and how much face the project's style (`face`) shows.
 
 ## 3. Palette
 `splash_ref/palette.yaml` has colour families with hue-shifted ramps ready (`fam1`, `fam2`...). Copy it to
@@ -42,7 +45,8 @@ background or noise families and merge near-identical ones. Adjust with
 Start from a template (`humanoid`, or `side_humanoid` for a side view) or a similar spec. Over a base, give
 only the keys that change (`bones: {torso_rot: {pos: ...}}`, `ik: {leg_L: {lengths: [...]}}`):
 1. **World scale:** total height 1.6–2.0; adjust the pelvis height (`torso_rot.pos`) and the IK lengths.
-2. **Big masses:** torso, head (`head` bone scale), hips, legs: ellipsoids and cones only.
+2. **Big masses:** torso, hips and legs as ellipsoids and cones; the head's size with the `head` bone
+   scale (its shape and the hair come in step 5).
 3. `pose --dirs all` and `ref compare <spec> <splash> --dir <dir>`.
 4. Iterate until the **camera-corrected IoU ≥ 0.65** in the art's direction and no band hint is large.
    Each silhouette is scaled to its own bounding box, so a hat tip, a raised weapon or a flared hem moves
@@ -53,11 +57,14 @@ only the keys that change (`bones: {torso_rot: {pos: ...}}`, `ik: {leg_L: {lengt
    own perspective and pose, and legibility matters more.
 
 ## 5. Striking shapes and materials
-Add one `must_keep` at a time (horns = `tube`, hair = blended ellipsoids). A weapon, shield, helmet, hood,
-hat, cape, belt or pouch starts from a kit (`spritekiln kits`; `use:` with its params, recoloured through
-materials); model your own only when no kit comes close. After each one: `pose --dirs all`. Check the
-**8 directions**, not only the art's; invent what the splash does not show, coherently, and record the
-decision in `brief`.
+First the **head and the hair**, as `brief.head` says: fit the `head` kit (`jaw`, `chin`, `width`) and a
+hair kit (`hair`, `ponytail`, `bun`) with their params, or model them yourself ([modeling.md](modeling.md),
+"Heads, faces and hair"). Look at them with `pose --focus head --dirs all` next to the splash's face.
+
+Then one `must_keep` at a time (horns = `tube`). A weapon, shield, helmet, hood, hat, cape, belt or pouch
+starts from a kit (`spritekiln kits`; `use:` with its params, recoloured through materials); model your own
+only when no kit comes close. After each one: `pose --dirs all`. Check the **8 directions**, not only the
+art's; invent what the splash does not show, coherently, and record the decision in `brief`.
 
 ## 6. Final comparison and review
 ```

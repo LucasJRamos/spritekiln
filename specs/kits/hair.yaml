@@ -1,0 +1,73 @@
+spritekiln: 1
+# A kit: parts with params that any spec adds with `use: [{kit: hair, at: head}]`.
+# `spritekiln pose specs/kits/hair.yaml --dirs all` shows it on its host.
+# Fits inside the hood, hat and helmet kits up to volume 1.5 (only long locks and back hang below them).
+# A spec with hair of its own drops this kit (`remove: [use.hair]`) instead of replacing `parts.hair.prims`:
+# the kit's fringe, locks and back would stay.
+kit: hair
+license: CC0-1.0
+summary: hair in separate pieces (crown, fringe, temple locks, back) so the renderer draws strand lines between them
+host: humanoid
+at: head
+params:
+  fringe: 0.6        # 0 the strands swept back over the crown's front (a bare forehead) .. 1 full bangs down to the brow
+  part: 0.3          # -1..1: where the fringe parts (+ toward the head's left, +x); the strands fall to the other side
+                     # (useful within -0.7..0.7: towards +-1 the long strand curls into a C in se/sw)
+  locks: 0.8         # temple locks: 0 none, 1 down to the jaw, 2 down to the collarbone
+  length: 0.3        # the back: 0 short at the nape, 1 to the shoulders, 2 long down the back
+  volume: 1          # how far the hair stands off the skull (0.5 slick .. 1.5 full; headwear still covers 1.5)
+  size: 1            # scale about the head's centre, only to match a spec's bigger `parts.head` (0.9-1.1); for fuller
+                     # hair use volume (at 1.2 the fringe falls over the eyes; under 1 the head kit's skull shows)
+
+materials:
+  hair: {ramp: hair, finish: matte}   # no bands: the project style's shading (soft, flat, toon) picks the tones
+ramps:
+  hair: ["#160e0f", "#2c1c1a", "#452e23", "#61412e", "#7d573a", "#9a7049"]   # a mid brown, for a palette without `hair`
+
+bones:
+  hair: {parent: at, pos: [0, 0.14, 0], scale: size}   # the head's centre; below, y is from there (head units)
+
+parts:
+  hair:              # crown and back of the head, one mass down to the nape
+    material: hair
+    space: hair
+    blend: 0.03
+    prims:
+      - ellipsoid: {c: [0, 0.05, -0.05], r: "[0.12 + 0.025*volume, 0.11 + 0.025*volume, 0.14 + 0.02*volume]", rot: [-0.3, 0, 0]}
+  fringe:            # three strands from the part over the brow; the tips fall between and beside the eyes; below
+    material: hair   # fringe 0.5 they lie back over the crown's front, still standing off it (no smooth cap); the
+                     # roots and the strands follow `volume`; its inner line under the tips shades the forehead
+    space: hair
+    blend: 0.012
+    prims:
+      - tube: {pts: ["[part*0.06, 0.13 + 0.025*volume, 0.0]",
+                     "lerp([part*0.05 - 0.01, 0.15, 0.07], [part*0.05 - 0.015, 0.12, 0.14], clamp(2*fringe, 0, 1)) + [0, 0, 0.025*(volume - 1)]",
+                     "[part*0.03 - 0.01, 0.11 - 0.08*fringe, 0.135 - 0.03*(1 - fringe)] + [0, 0, 0.025*(volume - 1)]"], r: [0.035, 0.012]}
+      - tube: {pts: ["[part*0.06 - 0.04, 0.125 + 0.025*volume, 0.0]",
+                     "lerp([part*0.05 - 0.07, 0.14, 0.05], [part*0.05 - 0.08, 0.11, 0.125], clamp(2*fringe, 0, 1)) + [0, 0, 0.025*(volume - 1)]",
+                     "[part*0.03 - 0.115, 0.125 - 0.08*fringe, 0.11 - 0.03*(1 - fringe) - 0.035*clamp(1 - 2*fringe, 0, 1)] + [0, 0, 0.025*(volume - 1)]"],
+               r: [0.03, 0.01]}
+      - tube: {pts: ["[part*0.06 + 0.04, 0.125 + 0.025*volume, 0.0]",
+                     "lerp([part*0.05 + 0.065, 0.14, 0.05], [part*0.05 + 0.075, 0.11, 0.125], clamp(2*fringe, 0, 1)) + [0, 0, 0.025*(volume - 1)]",
+                     "[part*0.03 + 0.1, 0.13 - 0.08*fringe, 0.11 - 0.03*(1 - fringe) - 0.035*clamp(1 - 2*fringe, 0, 1)] + [0, 0, 0.025*(volume - 1)]"],
+               r: [0.03, 0.01]}
+  lock_L:            # a lock at the temple, in front of the ear, down the cheek
+    material: hair
+    space: hair
+    when: "locks > 0"
+    line: false      # 1-2 px wide in front views: an inner line along it would turn it into a dark stripe
+    prims:
+      - tube: {pts: [[0.13, 0.08, -0.03], [0.16, -0.03, 0.0],
+                     "[0.15 + 0.03*clamp(locks - 1, 0, 1), 0.07 - 0.21*min(locks, 1) - 0.25*clamp(locks - 1, 0, 1), 0.02]"],
+               r: [0.024, 0.009]}
+  back:              # strands down the nape: a short point at length 0, over the shoulder blades when long
+    material: hair
+    space: hair
+    blend: 0.03
+    prims:
+      - tube: {pts: [[0, 0.0, -0.14], "[0, -0.05 - 0.07*min(length, 1) - 0.125*clamp(length - 1, 0, 1), -0.19 - 0.03*min(length, 1)]",
+                     "[0, -0.1 - 0.14*min(length, 1) - 0.25*clamp(length - 1, 0, 1), -0.17 - 0.02*min(length, 1)]"], r: [0.07, 0.016]}
+      - tube: {pts: [[0.06, 0.0, -0.13], "[0.08, -0.04 - 0.07*min(length, 1) - 0.115*clamp(length - 1, 0, 1), -0.17 - 0.03*min(length, 1)]",
+                     "[0.09, -0.07 - 0.14*min(length, 1) - 0.23*clamp(length - 1, 0, 1), -0.14 - 0.02*min(length, 1)]"], r: [0.06, 0.014]}
+      - tube: {pts: [[-0.06, 0.0, -0.13], "[-0.08, -0.04 - 0.07*min(length, 1) - 0.115*clamp(length - 1, 0, 1), -0.17 - 0.03*min(length, 1)]",
+                     "[-0.09, -0.07 - 0.14*min(length, 1) - 0.23*clamp(length - 1, 0, 1), -0.14 - 0.02*min(length, 1)]"], r: [0.06, 0.014]}
