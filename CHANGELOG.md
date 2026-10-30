@@ -2,7 +2,7 @@
 
 All notable changes to SpriteKiln. The output format has its own version (`docs/format.md`).
 
-## Unreleased (0.3)
+## 0.3.0 (2026-10-30)
 
 ### Upgrading from 0.2
 - `spritekiln update` in a game folder installs 0.3 and refreshes the AI instructions there; run

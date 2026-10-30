@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.0
+- No changes to the package; its version follows SpriteKiln's.
+
 ## 0.2.0
 - No changes to the package; its version follows SpriteKiln's.
 

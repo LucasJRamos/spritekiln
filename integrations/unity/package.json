@@ -1,6 +1,6 @@
 {
   "name": "com.lucasjramos.spritekiln",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "displayName": "SpriteKiln",
   "description": "Imports SpriteKiln renders (.kiln): animated 8-direction or side-view pixel-art sprites with exact frame timing, gameplay events, sockets, a normal map for 2D lights and an emissive layer. KilnAnimator plays them; AnimationClips are generated for the Animator.",
   "unity": "2022.3",
