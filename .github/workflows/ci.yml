@@ -71,6 +71,8 @@ jobs:
           cd "$RUNNER_TEMP"
           spritekiln --version
           spritekiln new hero --dir specs
+          # a new character says how its head looks before it validates strictly (`validate` warns until then)
+          sed -i 's/^brief:$/brief:\n  head: the template head and hair/' specs/hero/hero.yaml
           spritekiln validate specs/hero/hero.yaml --strict
           spritekiln render specs/hero/hero.yaml --anims idle --dirs s,e --jobs 2
           test -f specs/hero/out/hero/hero.json
