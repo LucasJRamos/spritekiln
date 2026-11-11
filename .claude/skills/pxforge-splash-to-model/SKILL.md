@@ -66,7 +66,8 @@ First the **head and the hair**, as `brief.head` says: fit the `head` kit (`jaw`
 hair kit (`hair`, `ponytail`, `bun`) with their params, or model them yourself ([modeling.md](modeling.md),
 "Heads, faces and hair"). Look at them with `pose --focus head --dirs all` next to the splash's face.
 
-Then one `must_keep` at a time (horns = `tube`). A weapon, shield, helmet, hood, hat, cape, belt or pouch
+Then one `must_keep` at a time (horns = `tube`), adding its entry to `review.keep` as you go
+([spec.md](SPEC.md): the parts or materials that show the trait, and the directions where it must). A weapon, shield, helmet, hood, hat, cape, belt or pouch
 starts from a kit (`spritekiln kits`; `use:` with its params, recoloured through materials); model your own
 only when no kit comes close. After each one: `pose --dirs all`. Check the **8 directions**, not only the
 art's; invent what the splash does not show, coherently, and record the decision in `brief`.
@@ -77,7 +78,11 @@ python -m pxforge ref compare <spec> <splash> --dir <dir>          # -> out/comp
 python -m pxforge review <spec> --ref <splash> --ref-dir <dir> [--bg <game floor>] [--tint <scene light>]
 ```
 Open the comparison sheet (reference | sprite | silhouette overlay | 8 directions | palettes) and the review
-sheet. Then an art-direction pass ([art-direction.md](art-direction.md)); apply the high-priority fixes.
+sheet. `ref compare` also says where the sprite's colour departs from the splash's at the same height ("bands
+20-30% to 40-50%: render #2a2f3a is much darker than the reference #8a2030"): a coat in the wrong colour, a
+sprite far darker than the art. A splash is painted under its own light, so treat these as places to look, not
+numbers to match. Then an art-direction pass ([art-direction.md](art-direction.md)); apply the high-priority
+fixes.
 
 ## 7. Animate
 With the model approved, follow [animation.md](animation.md). The personality of the splash (heavy, agile,

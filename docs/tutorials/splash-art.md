@@ -75,7 +75,9 @@ ornaments become a spot of colour or disappear.
 
 For the Hunt Tower characters the art-direction round caught a sprite too dark for the game's floor, an
 asymmetric hat, the face hidden under the brim, and weapons vanishing in direction `s`. Those are the
-kinds of problems to look for.
+kinds of problems to look for. Some of them are now reported for you: `ref compare` says where the sprite is
+much darker than the art, QA names the parts that vanish in some frames, and a trait listed in the spec's
+`review.keep` raises a warning wherever it stops reading.
 
 The full method the assistant follows is in [splash-to-model.md](../agent/splash-to-model.md) and
 [recipe.md](../agent/recipe.md).

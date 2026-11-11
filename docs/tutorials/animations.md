@@ -107,7 +107,21 @@ cache) before you export.
 Check `n` and the diagonals: an attack that reads in `s` can vanish behind the body in `n`.
 
 QA flags what usually goes wrong: a gesture clipped at the frame's edge, a loop that jumps between its last
-and first frame, identical frames, a missed timing target.
+and first frame, identical frames, a missed timing target. It also names the parts that vanish in some frames
+(a sword passing behind the body).
+
+To see the motion itself, ask for the arcs sheet:
+
+```
+spritekiln arcs specs/characters/knight/knight.yaml --anim attack --dirs s,e
+```
+
+Every frame is drawn as a ghost under the last one, with the path of each hand, foot and socket: one dot per
+frame. A good strike follows an arc, with the dots close together in the windup and far apart in the swing.
+
+For a walk or a run, `arcs` and the QA summary also give the **ground speed**, for example "30 px/s". Move the
+character at that speed in your game and its feet do not slide; if your game's speed is fixed, ask the
+assistant to fit the walk to it.
 
 ## Next
 - More channels, smears, per-direction cheats and the reference timings: [animation.md](../agent/animation.md).

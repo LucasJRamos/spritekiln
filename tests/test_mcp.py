@@ -22,6 +22,7 @@ EXPECTED_TOOLS = {
     'render',
     'review',
     'ref_compare',
+    'arcs',
     'export',
     'schema',
 }

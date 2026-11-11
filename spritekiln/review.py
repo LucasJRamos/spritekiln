@@ -6,6 +6,7 @@ camera-corrected reference, legibility next to another asset, and zoomed sheets 
 targets in the spec (`review: {min_lstar: 20, materials: {lining: {min_px: 30}}}`) become QA warnings.
 """
 
+import difflib
 import json
 import os
 
@@ -45,7 +46,9 @@ def frame_stats(fr, spec, tint=None):
     img = fr.img
     op = img[..., 3] == 255
     if not op.any():
-        return dict(area=0, width=0, height=0, lstar_median=0.0, lstar_p90=0.0, colors=0, materials={}, bands={})
+        return dict(
+            area=0, width=0, height=0, lstar_median=0.0, lstar_p90=0.0, colors=0, materials={}, parts={}, bands={}
+        )
     shown = preview.tint(img, tint, fr.emissive) if tint else img
     L = lstar(shown[op][:, :3])
     ys, xs = np.nonzero(op)
@@ -58,6 +61,7 @@ def frame_stats(fr, spec, tint=None):
         lstar_p90=round(float(np.percentile(L, 90)), 1),
         colors=int(len(np.unique(px, axis=0))),
         materials=dict(sorted(fr.materials.items(), key=lambda kv: -kv[1])),
+        parts=dict(sorted(fr.parts.items(), key=lambda kv: -kv[1])),
         bands=_bands(px, spec),
     )
 
@@ -101,7 +105,38 @@ def target_warnings(spec, stats):
                 found.setdefault((f'review.materials.{mat}: {pose} below {t["min_px"]} px', pose), []).append((d, v))
             if 'max_px' in t and v > t['max_px']:
                 found.setdefault((f'review.materials.{mat}: {pose} above {t["max_px"]} px', pose), []).append((d, v))
+        for trait, t in (rv.get('keep') or {}).items():
+            if t.get('dirs') and d not in t['dirs']:
+                continue
+            v = float(np.median([trait_px(s, t) for s in frames]))
+            need = t.get('min_px', KEEP_MIN_PX)
+            if v < need:
+                found.setdefault((f'review.keep.{trait}: {pose} below {need} px', pose), []).append((d, v))
     return [f'{msg} in {", ".join(f"{d} ({v:.0f})" for d, v in hits)}' for (msg, _), hits in sorted(found.items())]
+
+
+KEEP_MIN_PX = 4  # a trait under this many pixels does not read (review.keep.<trait>.min_px overrides it)
+
+
+def trait_px(stats, trait):
+    """Pixels of a `review.keep` trait in one frame's stats: its parts plus its materials."""
+    parts, mats = stats.get('parts') or {}, stats.get('materials') or {}
+    return sum(parts.get(p, 0) for p in trait.get('parts') or []) + sum(
+        mats.get(m, 0) for m in trait.get('materials') or []
+    )
+
+
+def keep_table(spec, stats):
+    """{trait: {pose: {direction: pixels}}}: the median over each pose's frames, for every `review.keep` trait
+    in the directions it must show."""
+    out = {}
+    for trait, t in ((spec.get('review') or {}).get('keep') or {}).items():
+        for (pose, d), frames in stats.items():
+            if t.get('dirs') and d not in t['dirs']:
+                continue
+            v = int(np.median([trait_px(s, t) for s in frames]))
+            out.setdefault(trait, {}).setdefault(pose, {})[d] = v
+    return out
 
 
 def _rest(spec, dirs):
@@ -224,7 +259,7 @@ def run(
     if ref:
         if ref_dir not in dict(specmod.DIRECTIONS8):
             raise SpriteKilnError(f'--ref-dir {ref_dir!r}: use one of {", ".join(dict(specmod.DIRECTIONS8))}')
-        _, mask, used = R.cutout(R.load(ref))
+        cut, mask, used = R.cutout(R.load(ref))
         yaw = dict(specmod.DIRECTIONS8)[ref_dir]
         if ref_anim:
             fr = render_frame(spec, pose_env(spec, ref_anim, ref_frame, yaw), yaw)
@@ -242,8 +277,11 @@ def run(
             iou_raw=R.compare_masks(mask, sprite)[0]['iou'],
             pitch=pitch,
             hints=res['hints'],
+            color_hints=R.color_hints(R.band_colors(cut, mask), R.band_colors(fr.img, sprite)),
         )
     report['warnings'] = target_warnings(spec, stats)
+    if (spec.get('review') or {}).get('keep'):
+        report['keep'] = keep_table(spec, stats)
 
     # sheets
     rest_frames = [rest[d] for d, _ in dl]
@@ -284,7 +322,24 @@ def run(
 def check_review_block(spec):
     """Problems in the `review:` block that the schema cannot see (unknown materials)."""
     out = []
-    for mat in (spec.get('review') or {}).get('materials') or {}:
+    rv = spec.get('review') or {}
+    for mat in rv.get('materials') or {}:
         if mat not in spec['materials']:
             out.append(f'review.materials.{mat}: unknown material "{mat}"')
+    names = [d for d, _ in specmod.DIRECTIONS8]
+    for trait, t in (rv.get('keep') or {}).items():
+        w = f'review.keep.{trait}'
+        if not isinstance(t, dict) or not (t.get('parts') or t.get('materials')):
+            out.append(f'{w}: name the parts and/or materials that show this trait')
+            continue
+        for p in t.get('parts') or []:
+            if p not in spec['parts']:
+                near = difflib.get_close_matches(str(p), list(spec['parts']), n=1)
+                out.append(f'{w}.parts: unknown part "{p}"' + (f' (did you mean {near[0]}?)' if near else ''))
+        for m in t.get('materials') or []:
+            if m not in spec['materials']:
+                out.append(f'{w}.materials: unknown material "{m}"')
+        for d in t.get('dirs') or []:
+            if d not in names:
+                out.append(f'{w}.dirs: unknown direction "{d}" (use {", ".join(names)})')
     return out

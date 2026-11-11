@@ -30,6 +30,9 @@ Rules that matter:
   anything. Follow the recorded style in every asset; change it only when the user explicitly asks.
 - Run `spritekiln validate <spec>` after every edit; problems come with file:line:column.
 - Iterate with `spritekiln pose <spec> --dirs all` (about 1 s per direction); `spritekiln render` only at the end.
+  After an edit to a model you have already seen whole, `--changes` shows only the directions that changed.
+- Tie each `must_keep` trait of the `brief` to its parts in `review.keep`: QA then says where it stops reading.
+- Judge a clip's motion on `spritekiln arcs <spec> --anim <clip>` before its contact sheet.
 - A character's head and hair are decided in its `brief.head` and judged up close with
   `spritekiln pose <spec> --focus head --dirs all`: on a normal preview a face is a few pixels.
 - Never call something visual good without looking at the PNG. If you cannot see images, use the numbers of
@@ -39,5 +42,5 @@ Rules that matter:
 - `spritekiln export <spec>` hands a render to the engine configured in `spritekiln.toml`.
 - With an MCP client, `spritekiln mcp` serves these operations as tools that return images and JSON.
 
-Claude Code: skills `spritekiln`, `spritekiln-splash-to-model`, `spritekiln-animation`; agents `character-modeler`, `animator`, `pixel-art-director` (see `recipe.md` for the order).
+Claude Code: skills `spritekiln`, `spritekiln-splash-to-model`, `spritekiln-animation`; agents `character-modeler`, `animator`, `pixel-art-director` (see `recipe.md` for the order; send an art director's fixes to the agent that made the model or the clips, with SendMessage, instead of starting a new one).
 <!-- spritekiln:end -->

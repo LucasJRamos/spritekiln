@@ -24,6 +24,9 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
   raise `size`, or reduce that gesture; change `camera.scale` only for the whole game.
 - **Consistency:** never change one asset's camera `pitch`, `light` or density (`camera.scale`); the
   whole game shares them. A bigger creature gets a bigger `size`.
+- **Nothing floats by accident:** every part touches what it belongs to. `validate` warns about a part that
+  is more than a pixel and a half away from every other part in the rest pose; move it, or mark an orb, a
+  halo or a puff of steam `floating: true` ([spec.md](SPEC.md)).
 
 ## Which shape for what
 Pixel artists draw plates, blades and brims with crisp edges. Rounded primitives blended together make
@@ -229,7 +232,10 @@ the part, and a volume must enclose the surface it paints (a box through a cape 
    hoods, `membrane` wings). After each: `validate`, `pose --dirs all` (`--draft` while shaping), look.
 5. Check **all 8 directions**, not only the reference's: the back and the profiles must make sense. Invent
    what the reference does not show, coherently, and write the decision in `brief`.
-6. Materials and palette last-but-not-least: 3–6 materials plus one emissive; tune ramps with
+6. Tie each `must_keep` trait to its parts or materials in `review.keep` ([spec.md](SPEC.md)), with the
+   directions where it must show: from then on QA and `review` say where a trait stops reading, in every
+   later edit and every clip.
+7. Materials and palette last-but-not-least: 3–6 materials plus one emissive; tune ramps with
    `python -m pxforge palette ramp "#hex" --steps 5`.
 
 ## Rules for a modeler (human or AI)
@@ -237,7 +243,8 @@ the part, and a volume must enclose the surface it paints (a box through a cape 
   and colours ([style.md](style.md)). If no style is recorded, stop and report that the user has to answer
   the style questions first.
 - Work only in the asked asset's spec. Iterate in small steps: edit → `validate` → `pose --dirs all` →
-  **look at the PNG** → fix. Never call a model done without having seen the 8 directions.
+  **look at the PNG** → fix; once you have seen the model whole, `pose --dirs all --changes` shows what each
+  edit did. Never call a model done without having seen the 8 directions in a full pose.
 - With a splash art: `ref prep` once, `ref compare` after every proportion change (targets in
   [splash-to-model.md](SKILL.md)).
 - Keep the skeleton, channels and names the animations use. If you rename something, update the
@@ -245,5 +252,6 @@ the part, and a volume must enclose the surface it paints (a box through a cape 
 - Do not change `camera.pitch`, `camera.scale`, `light`, shared palettes or the project's style unless
   asked; an exception for this asset goes in its `brief:`.
 - Do not render every animation while modeling; at most `render --anims idle --dirs s,e,n,se`.
-- Report: what changed (parts, materials), IoU and hints left, image paths for review, and the design
-  decisions taken where the reference shows nothing.
+- Report: what changed (parts, materials), IoU and hints left, each `must_keep` trait with the parts that
+  carry it (`review.keep`), image paths for review, and the design decisions taken where the reference shows
+  nothing.

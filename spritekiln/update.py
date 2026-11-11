@@ -201,7 +201,7 @@ def refresh(start=None):
     ais = agents.install(root, ais, DOCS_DIR, specs_glob=f'{specs}/**/*.yaml')
     if 'claude' in ais:
         for name in agents.SKILLS:
-            keep = {'SKILL.md', *(t for t, _ in agents.skill_files(name))}
+            keep = {'SKILL.md', *(t for t, _ in agents.skill_files(name)), *agents.slice_files(name)}
             _prune(os.path.join(root, '.claude', 'skills', name), keep)
     written = [docs] + [os.path.join(root, f) for f in adapter_files(ais) if os.path.exists(os.path.join(root, f))]
     written.append(stamp(root))

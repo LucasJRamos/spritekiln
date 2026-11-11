@@ -73,8 +73,11 @@ What the measurements and the code show:
 | [09](09-surface-paint.md) | Surface paint | quality, speed, tokens | 3 | 06 |
 | [11](11-render-style.md) | Render style presets | quality, tokens | 3 | 06–10 |
 | [14](14-kits-and-extends.md) | Kits and `extends` | forms, tokens | 4 | 13 |
-| [15](15-agent-context-budget.md) | Agent context budget | tokens | not scheduled yet | 03, 04 |
+| [15](15-agent-context-budget.md) | Agent context budget | tokens | replaced by 19 | 03, 04 |
 | [16](16-heads-faces-and-hair.md) | Heads, faces and hair | quality | 4 | 14 |
+| [17](17-traits-and-geometry-checks.md) | Checks for what an AI's eyes miss: traits, hidden and floating parts, colour | quality | 0.4 | 09, 10 |
+| [18](18-motion-on-one-sheet.md) | Motion on one sheet: arcs and ground speed | quality, tokens | 0.4 | 03 |
+| [19](19-agent-context-by-role.md) | Agent context by role (15, rewritten) | tokens | 0.4 | 03, 04, 17, 18 |
 
 ## Order
 Four stages on the branch, in this order, all shipped together as release 0.3:
@@ -89,7 +92,7 @@ Four stages on the branch, in this order, all shipped together as release 0.3:
 4. **Reuse:** 14. Kits built with the new shapes, material finishes and paint. Then 16: the head and the
    hair as kits, with the instructions and checks that keep first generations from round heads.
 
-After release 0.3: tiles and environments ([ROADMAP 1](../ROADMAP.md)) and VFX. Tiles inherit the material
+After release 0.3: designs 17 to 19 (release 0.4), then tiles and environments ([ROADMAP 1](../ROADMAP.md)) and VFX. Tiles inherit the material
 and style systems; rendering them earlier would mean redoing them.
 
 ## Not planned now
@@ -125,6 +128,12 @@ and style systems; rendering them earlier would mean redoing them.
   ball for a head and a nose nobody asked for, both traced to the templates and the docs; 16 fixes the
   starting point (head and hair kits), the instructions (faces in the style, `brief.head`) and the checks
   (`pose --focus head`, `validate`, the art director) before 0.3 freezes the templates.
+
+- **2026-11-11, 17, 18 and 19 are release 0.4.** Tiles and environments move to 0.5. 17 and 18 give `validate`, QA and the previews exact checks for what an AI looking at small images
+  misses (a `must_keep` trait that stops reading, a part that vanishes for a few frames or floats, a clip's
+  arcs). 19 is 15 rewritten on what its review found safe: each agent reads what its role needs, a fix goes to
+  the agent that did the work, `pose --changes` returns only what changed, and `spritekiln usage` measures a
+  session. Images stay the judge and no model is swapped for a weaker one.
 
 ## Success, measured at release 0.3
 | measure | now | target |

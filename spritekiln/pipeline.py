@@ -106,6 +106,7 @@ class Frame(NamedTuple):
     events: list = []
     sockets: dict = {}  # name -> [x, y, depth] px from the pivot, or None while hidden
     materials: dict = {}  # material -> opaque pixels
+    parts: dict = {}  # part -> opaque pixels (a part hidden in this frame is absent)
 
 
 def sockets_2d(spec, env, yaw, frames, cam):
@@ -161,7 +162,7 @@ def render_frame(spec, env, yaw, force=False, maps=True):
     layers = layers_of(groups)
     P = gb.paint.astype(int)
     nm, em = aux_maps(img, G, gb.normal.astype(float), groups, mats, cam, P, layers) if maps else (None, None)
-    mats = {}
+    mats, shown = {}, {}
     if groups:
         names = np.array([g.mat for g in groups] + [''])[np.where(G >= 0, G, -1)]
         if layers:  # painted pixels count for the paint's material
@@ -169,7 +170,10 @@ def render_frame(spec, env, yaw, force=False, maps=True):
         visible = names[(G >= 0) & (img[..., 3] == 255)]
         u, c = np.unique(visible, return_counts=True)
         mats = {str(k): int(v) for k, v in zip(u, c)}
-    return Frame(img, nm, em, sockets=sockets_2d(spec, env, yaw, frames, cam), materials=mats)
+        owner = np.array([g.name.split(':')[0] for g in groups] + [''])[np.where(G >= 0, G, -1)]
+        u, c = np.unique(owner[(G >= 0) & (img[..., 3] == 255)], return_counts=True)
+        shown = {str(k): int(v) for k, v in zip(u, c)}
+    return Frame(img, nm, em, sockets=sockets_2d(spec, env, yaw, frames, cam), materials=mats, parts=shown)
 
 
 def frame_image(spec, env, yaw, force=False, maps=True):

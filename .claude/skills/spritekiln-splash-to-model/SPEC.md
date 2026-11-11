@@ -18,7 +18,8 @@ palette: gothic          # built-in name, file path(s) relative to the spec, or 
 camera: {pitch: 38, scale: 0.050, center: [0, 1.0, 0]}   # scale = world units per pixel
 shadow: {rx: 13.5, ry: 4.5, alpha: 120}                  # ground ellipse in px; `shadow: null` turns it off
 light:  {dir: [-0.55, 1, 0.45], rim: [0.8, 0.35, -0.9], rim_strength: 0.45, ambient: 0.12}
-brief: {...}             # free text: summary, head, must_keep, simplify, reference (ignored by the renderer)
+brief: {...}             # free text: summary, head, must_keep, simplify, reference (ignored by the renderer;
+                         #   review.keep turns must_keep traits into checks)
 materials: {...}
 channels: {...}
 bones: {...}
@@ -279,6 +280,7 @@ parts:
     when: "smear_w > 0"    # conditional part
     priority: 3            # its samples weigh 3x in the pixel vote (default 1): thin weapons stay visible
     min_cover: 2           # 2 of its samples fill a pixel even below the camera's coverage (thin details)
+    floating: true         # it is meant to touch no other part (an orb, a halo): `validate` does not warn
     prims: [...]
     cut: [...]             # subtracted primitives (cut_blend)
 ```
@@ -439,8 +441,18 @@ timing: {shoot_r: {release: 2f, total: 7f}, attack: {hit: 150ms}}   # 60 fps, 1 
 
 ## review (art-direction targets)
 ```yaml
-review: {min_lstar: 20, tint: [0.68, 0.71, 1.02], background: floor.png, materials: {lining: {min_px: 30}}}
+review: {min_lstar: 20, tint: [0.68, 0.71, 1.02], background: floor.png, materials: {lining: {min_px: 30}},
+         keep: {amber_lens: {parts: [lens], min_px: 4, dirs: [s, se, e, ne]},     # a must_keep trait, checked
+                red_core: {materials: [core], min_px: 6}}}
 ```
-They become QA warnings. `spritekiln review` measures everything and writes sheets: L* (median/p90) under
+`keep` turns the `brief`'s `must_keep` traits into checks: each trait names the `parts` and/or `materials`
+that show it, the fewest pixels at which it still reads (`min_px`, default 4) and, when the body hides it from
+some sides, the `dirs` where it must show (default: all). QA and `review` warn where a trait falls below its
+pixels (the median of a clip's frames, per direction) and where it vanishes in single frames of a clip.
+`review` lists each trait's pixels per direction (`keep` in `review.json`). Write one entry per `must_keep`
+trait that parts or materials can stand for; a trait of proportion or posture has no entry and is judged on the
+image.
+
+All of them become QA warnings. `spritekiln review` measures everything and writes sheets: L* (median/p90) under
 the `tint` light, contrast with the floor, pixels per material and direction, bands used, IoU against the
 camera-corrected splash, comparison with another asset (`--against`). See [art-direction.md](art-direction.md).

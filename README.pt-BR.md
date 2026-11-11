@@ -171,6 +171,18 @@ foram feitos para o jogo **Hunt Tower**. Todos eles, com mais animações: [`sho
 
 ## Novidades
 
+**0.4** (2026-11-11)
+- **Traços que não se perdem:** ligue o que não pode sumir ("a lente âmbar") às suas partes com
+  `review.keep`, e o QA de cada render diz onde o traço deixa de aparecer. O `validate` avisa sobre partes que
+  flutuam fora do corpo, e o QA lista as partes que somem em alguns frames de um clipe.
+- **Movimento em uma folha:** `spritekiln arcs` desenha os frames de um clipe como fantasmas, com a trajetória
+  das mãos, dos pés e dos sockets, e uma caminhada informa a velocidade do chão em que mover o personagem
+  para os pés não deslizarem.
+- **Mais perto do splash:** `ref compare` diz onde a cor do sprite se afasta da arte.
+- **Mais leve para a sua IA:** `pose --changes` mostra só as direções que uma edição mudou; os agentes do
+  Claude Code leem o que a função deles precisa, e as correções voltam para o agente que fez o trabalho;
+  `spritekiln usage` mede uma sessão.
+
 **0.3** (2026-10-30)
 - **Formas mais nítidas:** perfis extrudados e de revolução, tubos, cascas e cortes dão bordas bem definidas
   a lâminas, placas, abas de chapéu e capas, em vez de bolhas infladas.

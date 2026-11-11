@@ -81,11 +81,63 @@ def cmd_pose(a):
     _compile_note()
     t = time.time()
     out, dirs, view = api.pose(
-        a.spec, a.anim, a.frame, a.dirs, a.scale, a.bg, a.tint, a.out, a.draft, crop=not a.no_crop, focus=a.focus
+        a.spec,
+        a.anim,
+        a.frame,
+        a.dirs,
+        a.scale,
+        a.bg,
+        a.tint,
+        a.out,
+        a.draft,
+        crop=not a.no_crop,
+        focus=a.focus,
+        changes=a.changes,
     )
     want = a.scale or (12 if a.focus else 4)
     zoom = f'; zoom {view["scale"]}' if view['scale'] != want else ''
     print(f'{out}  ({", ".join(dirs)}; {time.time() - t:.1f}s{zoom}{"; draft" if a.draft else ""})')
+    if a.changes:
+        print(changes_text(view['changes']))
+
+
+def changes_text(ch):
+    """What `pose --changes` found, in one or two lines."""
+    if ch is None:
+        return 'changes: no earlier pose of this kind to compare with (the next `pose --changes` compares with this)'
+    if not ch['changed']:
+        tail = f'; first shown now: {", ".join(ch["new"])}' if ch.get('new') else ''
+        return f'changes: none, every pixel is the same as in the last pose ({", ".join(ch["same"])}){tail}'
+    parts = ', '.join(f'{d} ({n} px)' for d, n in ch['changed'].items())
+    same = f'; identical: {", ".join(ch["same"])}' if ch['same'] else ''
+    return f'changes: {parts}{same}\nbefore/after: {ch["sheet"]}'
+
+
+def cmd_arcs(a):
+    """One sheet for a clip's motion: ghosts of every frame and the paths of hands, feet and sockets."""
+    from . import motion
+
+    _spec(a.spec)
+    _compile_note()
+    res = motion.sheet(
+        a.spec,
+        a.anim,
+        a.dirs.split(',') if a.dirs else None,
+        [t.strip() for t in a.track.split(',') if t.strip()] if a.track else None,
+        a.scale,
+        a.out,
+        a.draft,
+        a.jobs,
+        log=_note,
+    )
+    print(f'{res["sheet"]}  ({a.anim}: {res["frames"]} frames; {", ".join(res["directions"])}; zoom {res["zoom"]})')
+    print('tracks: ' + ', '.join(res['tracks']) + ' (one dot per frame, bigger on an event; the number is the first)')
+    g = res['ground_speed']
+    if g:
+        print(
+            f'ground speed: {g["px_per_s"]:g} px/s ({g["units_per_s"]:g} units/s) under {", ".join(g["feet"])}: '
+            f'move the character at that speed and the feet do not skate (uneven {g["uneven"]:g})'
+        )
 
 
 def cmd_render(a):
@@ -166,6 +218,34 @@ def _stale_note():
         _note('note: ' + note)
 
 
+def cmd_usage(a):
+    """Sum the log that SPRITEKILN_USAGE names: what the commands and MCP tools handed to the AI."""
+    from . import usage
+
+    dst = a.file or usage.path()
+    if not dst:
+        raise SpriteKilnError(
+            f'measuring is off: set {usage.ENV} to a file (e.g. {usage.ENV}=usage.jsonl), run the session, then '
+            '`spritekiln usage`'
+        )
+    if a.clear:
+        if os.path.exists(dst):
+            os.remove(dst)
+        print(f'cleared {dst}')
+        return
+    if not os.path.exists(dst):
+        raise SpriteKilnError(f'{dst}: nothing logged yet')
+    res = usage.summary(dst)
+    if a.json:
+        print(json.dumps(res, indent=1))
+        return
+    print(f'{dst}: {res["calls"]} calls, {res["text_bytes"]} bytes of text, {res["images"]} images')
+    print(f'about {res["tokens"]} tokens handed to the AI (an estimate: see `spritekiln usage -h`)')
+    print(f'{"calls":>5} {"text":>8} {"images":>6} {"tokens":>8} {"seconds":>8}  what')
+    for name, r in sorted(res['by_name'].items(), key=lambda kv: -kv[1]['tokens']):
+        print(f'{r["calls"]:5d} {r["text_bytes"]:8d} {r["images"]:6d} {r["tokens"]:8d} {r["seconds"]:8.1f}  {name}')
+
+
 def cmd_cache(a):
     from . import cache
 
@@ -244,6 +324,8 @@ def cmd_review(a):
             f'reference IoU ({r["direction"]}, {r["pose"]}): {r["iou"]:.3f} corrected for {r["pitch"]:g} deg '
             f'(raw {r["iou_raw"]:.3f})'
         )
+        for h in r['color_hints']:
+            print('  - colour,', h)
     for w in rep['warnings']:
         print('warning:', w)
     print('report:', rep['files']['json'])
@@ -470,6 +552,8 @@ def cmd_ref(a):
     print(f'silhouette IoU ({a.dir}): {res["iou"]:.3f} ({corr})   (>0.80 great, 0.65-0.80 ok, <0.65 redo proportions)')
     for h in res['hints'][:8]:
         print('  -', h)
+    for h in res['color_hints']:
+        print('  - colour,', h)
     print('comparison sheet:', res['sheet'])
 
 
@@ -608,9 +692,26 @@ def build_parser(prog='spritekiln'):
         '--focus',
         help='close-up of a bone and what hangs below it (head: the head, hair, eyes, headwear), or of parts by name',
     )
+    s.add_argument(
+        '--changes',
+        action='store_true',
+        help='compare with the last pose of this kind: only the directions whose pixels changed, before over after',
+    )
     _preview_args(s)
     s.add_argument('-o', '--out')
     s.set_defaults(f=cmd_pose)
+
+    s = sub.add_parser('arcs', help="a clip's motion on one sheet: frames as ghosts, hands/feet/sockets as paths")
+    s.add_argument('spec')
+    s.add_argument('--anim', required=True)
+    s.add_argument('--dirs', help='comma-separated (default: all of the spec)')
+    s.add_argument('--track', help='bones, IK joints or sockets to trace (default: sockets, IK ends and the head)')
+    s.add_argument('--scale', type=_positive, default=6, help='largest zoom (default 6)')
+    s.add_argument('--draft', action='store_true', help='one sample per pixel for the ghosts (faster)')
+    s.add_argument('--jobs', type=_positive)
+    _backend_arg(s)
+    s.add_argument('-o', '--out')
+    s.set_defaults(f=cmd_arcs)
 
     s = sub.add_parser('render', help='render animations and export atlas, JSON, GIFs and QA')
     s.add_argument('spec')
@@ -778,6 +879,19 @@ def build_parser(prog='spritekiln'):
     s.add_argument('name', nargs='?', help='show this kit: its params with their comments')
     s.set_defaults(f=cmd_kits)
 
+    s = sub.add_parser(
+        'usage',
+        help='sum what the commands handed to an AI (text, images, estimated tokens) while SPRITEKILN_USAGE was set',
+        description='With the environment variable SPRITEKILN_USAGE set to a file, every command and MCP tool call '
+        'appends a line to it: the text it printed or returned and the images it wrote or returned. This command '
+        'sums that file. Tokens are estimates (4 bytes of text or 750 pixels of image per token), for comparing '
+        'two runs of the same task; what the AI reads on its own (docs, specs) is not in the log.',
+    )
+    s.add_argument('file', nargs='?', help='the log (default: the file SPRITEKILN_USAGE names)')
+    s.add_argument('--json', action='store_true')
+    s.add_argument('--clear', action='store_true', help='delete the log to start a new measurement')
+    s.set_defaults(f=cmd_usage)
+
     s = sub.add_parser('export', help='export a rendered spec to the engine of spritekiln.toml (or --engine)')
     s.add_argument('spec')
     s.add_argument('--engine', choices=['godot', 'unity', 'monogame', 'generic'])
@@ -806,6 +920,12 @@ def main(argv=None, prog='spritekiln'):
             if not a.a2:
                 p.error('ref compare SPEC IMAGE')
             a.spec, a.image = a.a1, a.a2
+    from . import usage
+
+    measured = bool(usage.path()) and a.cmd not in ('mcp', 'usage')  # the MCP server logs its own tool calls
+    if measured:
+        t0 = time.time()
+        sys.stdout = tee = usage.Tee(sys.stdout)
     try:
         if a.cmd not in ('init', 'update', 'mcp'):
             _stale_note()
@@ -822,6 +942,10 @@ def main(argv=None, prog='spritekiln'):
     except KeyboardInterrupt:
         print('interrupted', file=sys.stderr)
         rc = 130
+    if measured:
+        sys.stdout = tee.stream
+        text = tee.text()
+        usage.log('cli', a.cmd, len(text.encode('utf-8')), usage.images_in(text), time.time() - t0)
     if rc:
         sys.exit(rc)
 

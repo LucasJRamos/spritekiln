@@ -63,8 +63,38 @@ def build():
 
         return run
 
+    def measured(fn):
+        """Log what the tool returned (text bytes, image sizes) while SPRITEKILN_USAGE names a file."""
+
+        @functools.wraps(fn)
+        def run(*args, **kwargs):
+            import json
+            import time
+
+            from . import usage
+
+            if not usage.path():
+                return fn(*args, **kwargs)
+            t0 = time.time()
+            res = fn(*args, **kwargs)
+            items = res if isinstance(res, list) else [res]
+            text = sum(
+                len((i if isinstance(i, str) else json.dumps(i, default=str)).encode('utf-8'))
+                for i in items
+                if not hasattr(i, 'data')
+            )
+            images = []
+            for i in items:
+                if hasattr(i, 'data'):
+                    with PILImage.open(io.BytesIO(i.data)) as im:
+                        images.append([fn.__name__, *im.size])
+            usage.log('mcp', fn.__name__, text, images, time.time() - t0)
+            return res
+
+        return run
+
     def tool(fn):
-        return server.tool(description=fn.__doc__)(guarded(fn))
+        return server.tool(description=fn.__doc__)(guarded(measured(fn)))
 
     @tool
     def guide(topic: str = 'workflow') -> str:
@@ -176,6 +206,7 @@ def build():
         tint: str | None = None,
         draft: bool = False,
         focus: str | None = None,
+        changes: bool = False,
     ) -> list:
         """Render one pose (rest, or `anim` at `frame`) in several directions side by side and return the image.
         Cheap (about 1 s per direction): use it after every edit. `draft`: one sample per pixel, about 6x
@@ -184,14 +215,40 @@ def build():
         it (`head`: the head, hair, eyes and headwear) or of parts by name; judge every face with it. The image is
         cropped around the sprite (or the focus) and zoomed by a whole factor up to `scale` (3; 12 with `focus`)
         that fits an image budget: `zoom` and `crop` ([x0, y0, x1, y1] in frame pixels) map its pixels back to the
-        frame."""
+        frame. `changes`: after an edit, compare with the last pose of this kind and return only the directions
+        whose pixels changed, the earlier pose above the new one (`changes.changed`: pixels that differ per
+        direction; `changes.same`: directions that are pixel for pixel the same, so there is nothing new to look
+        at there). No image comes back when nothing changed: the edit did not reach the pixels. Use it to check
+        what an edit did; look at a plain pose of all directions before calling a model done."""
         if scale is None:
             scale = 12 if focus else 3
-        out, dl, view = api.pose(spec, anim, frame, dirs, scale, bg, tint, draft=draft, focus=focus)
-        return [
-            {'image': out, 'directions': dl, 'draft': draft, 'zoom': view['scale'], 'crop': view['crop']},
-            *_pngs(out),
-        ]
+        out, dl, view = api.pose(spec, anim, frame, dirs, scale, bg, tint, draft=draft, focus=focus, changes=changes)
+        info = {'image': out, 'directions': dl, 'draft': draft, 'zoom': view['scale'], 'crop': view['crop']}
+        if not changes or view['changes'] is None:  # nothing to compare with yet: the usual image
+            if changes:
+                info['changes'] = 'no earlier pose of this kind to compare with'
+            return [info, *_pngs(out)]
+        info['changes'] = view['changes']
+        return [info, *(_pngs(view['changes']['sheet']) if view['changes']['sheet'] else [])]
+
+    @tool
+    def arcs(
+        spec: str,
+        anim: str,
+        dirs: str | None = None,
+        track: str | None = None,
+        draft: bool = False,
+    ) -> list:
+        """A clip's motion on one sheet: per direction, every frame as a ghost under the last one, and the path of
+        each socket, hand, foot and the head (or of the bones, IK joints and sockets in `track`), one dot per
+        frame, bigger where an event fires. Dots close together are slow, far apart fast: judge arcs,
+        anticipation, follow-through and spacing on it before opening a contact sheet. For a looping walk or run it
+        also gives `ground_speed`: the px/s at which the game should move the character so its feet do not
+        skate."""
+        from . import motion
+
+        res = motion.sheet(spec, anim, _split(dirs), _split(track), draft=draft)
+        return [res, *_pngs(res['sheet'])]
 
     @tool
     def render(

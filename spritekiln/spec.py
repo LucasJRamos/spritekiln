@@ -478,9 +478,16 @@ def geometry_notes(spec):
 
     notes = []
     try:
-        build(spec, rest_env(spec, spec['directions'][0][1]), notes)
+        groups = build(spec, rest_env(spec, spec['directions'][0][1]), notes)[0]
     except Exception:  # noqa: BLE001 - errors are reported by _problems
         return []
+    from .checks import floating_parts
+
+    for name, gap in floating_parts(spec, groups):
+        notes.append(
+            f'parts.{name}: floats {gap:.0f} px away from every other part in the rest pose: move it until it '
+            f'touches what it belongs to, or mark it `floating: true` if it is meant to hang in the air'
+        )
     seen, out = set(), []
     for n in notes:  # a mirrored _R twin repeats its _L source's note
         key = re.sub(r'_R(?![A-Za-z0-9])', '_L', n)

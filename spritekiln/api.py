@@ -179,7 +179,18 @@ def pose_env(sp, anim, frame, yaw=0.0):
 
 
 def pose(
-    path, anim=None, frame=0, dirs=None, scale=None, bg=None, tint=None, out=None, draft=False, crop=True, focus=None
+    path,
+    anim=None,
+    frame=0,
+    dirs=None,
+    scale=None,
+    bg=None,
+    tint=None,
+    out=None,
+    draft=False,
+    crop=True,
+    focus=None,
+    changes=False,
 ):
     """Render one pose in several directions side by side (zoomed PNG). Returns (png path, directions, view):
     `view` holds the zoom used and the crop box [x0, y0, x1, y1] in frame pixels.
@@ -188,7 +199,10 @@ def pose(
     in every direction; over a `bg` the whole frame shows). `focus`: a close-up of a bone and everything attached
     below it (`head`: the head, hair, eyes and headwear), or of parts by name; comma-separated. `draft`: one sample
     per pixel, about 6x faster, for silhouettes and poses (rougher edges, thin parts may break); the default file
-    name ends in `_draft` (`_<focus>` with a focus)."""
+    name ends in `_draft` (`_<focus>` with a focus). `changes`: compare with the last `pose` of the same pose and
+    options, and show only the directions whose pixels changed, before over after (`view['changes']`: {changed:
+    {direction: pixels}, same: [directions], sheet}; None when there is no earlier pose to compare with). The
+    usual image is written either way."""
     from . import preview
     from .export import BG, upscale
     from .pipeline import frame_image, parts_mask
@@ -234,7 +248,77 @@ def pose(
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     upscale(strip, k, None if look else BG).save(out)
     y0, y1, x0, x1 = box
-    return out, [d for d, _ in dl], dict(scale=k, crop=[x0, y0, x1, y1])
+    view = dict(scale=k, crop=[x0, y0, x1, y1])
+    snap = _pose_snapshot(sp, f'{anim or "rest"}_{frame}{tag}{"_draft" if draft else ""}', bg, tint)
+    if changes:
+        view['changes'] = _pose_changes(snap, dl, imgs, scale, os.path.splitext(out)[0] + '_changes.png', look)
+    _save_snapshot(snap, dl, imgs)
+    return out, [d for d, _ in dl], view
+
+
+def _pose_snapshot(sp, name, bg, tint):
+    """Where the last pose of this kind is kept (next to the render cache), so `pose --changes` can compare."""
+    import hashlib
+
+    from . import cache
+
+    look = hashlib.sha1(f'{bg}|{tint}'.encode()).hexdigest()[:6] if bg or tint else ''
+    return os.path.join(cache.spec_dir(sp), 'pose', f'{name}{"_" + look if look else ""}.npz')
+
+
+def _save_snapshot(path, dl, imgs):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = f'{path}.{os.getpid()}.tmp'
+    with open(tmp, 'wb') as fh:
+        np.savez_compressed(fh, **{d: im for (d, _), im in zip(dl, imgs)})
+    os.replace(tmp, path)
+
+
+def _pose_changes(snap, dl, imgs, scale, out, look):
+    """Compare a pose with its snapshot: {changed: {direction: pixels that differ}, same: [directions], sheet};
+    None without a snapshot. The sheet (written only when something changed) shows the changed directions, the
+    earlier pose above the new one, cropped to what both show."""
+    from PIL import Image
+
+    from . import preview
+    from .export import BG, label, upscale
+
+    try:
+        with np.load(snap, allow_pickle=False) as z:
+            before = {d: z[d] for d in z.files}
+    except (OSError, ValueError, KeyError):
+        return None
+    changed, same, new = {}, [], []
+    for (d, _), im in zip(dl, imgs):
+        old = before.get(d)
+        if old is None or old.shape != im.shape:
+            new.append(d)
+        elif np.array_equal(old, im):
+            same.append(d)
+        else:
+            changed[d] = int((old != im).any(-1).sum())
+    res = dict(changed=changed, same=same, sheet=None)
+    if new:
+        res['new'] = new  # directions the earlier pose did not show
+    if not changed:
+        return res
+    now = {d: im for (d, _), im in zip(dl, imgs)}
+    rows = [[before[d] for d in changed], [now[d] for d in changed]]
+    box = preview.content_box(rows[0] + rows[1])
+    strips = [np.concatenate(preview.crop(r, box), 1) for r in rows]
+    h, w = strips[0].shape[:2]
+    left, top = 46, 14
+    k = preview.fit_scale(lambda k: (left + w * k, top + 2 * h * k + 2), scale)
+    im = Image.new('RGBA', (left + w * k, top + 2 * h * k + 2), BG)
+    for r, (strip, name) in enumerate(zip(strips, ('before', 'after'))):
+        im.alpha_composite(upscale(strip, k, None if look else BG).convert('RGBA'), (left, top + r * (h * k + 2)))
+        label(im, name, (3, top + r * (h * k + 2) + 3))
+    cell = w // len(changed)
+    for c, d in enumerate(changed):
+        label(im, d, (left + c * cell * k + 3, 0))
+    im.save(out)
+    res['sheet'] = out
+    return res
 
 
 def style_preview(path=None, fields=None, direction='se', anim=None, frame=0, scale=4, out=None, start=None):
@@ -435,6 +519,8 @@ def ref_compare(path, image, direction='s', anim=None, frame=0, pitch_correction
     raw = R.compare_masks(mask, spr[..., 3] == 255)[0]['iou']
     res, ga, gb = R.compare_masks(mask, spr[..., 3] == 255, pitch)
     res['iou_raw'] = raw
+    res['colors'] = dict(ref=R.band_colors(cut, mask), render=R.band_colors(spr, spr[..., 3] == 255))
+    res['color_hints'] = R.color_hints(res['colors']['ref'], res['colors']['render'])
     turn = [frame_image(sp, pose_env(sp, anim, frame, y), y, maps=False)[0] for _, y in specmod.DIRECTIONS8]
     out = out or os.path.join(sp['_dir'], 'out', f'compare_{direction}.png')
     if os.path.isdir(out) or not os.path.splitext(out)[1]:  # a folder: the sheet goes inside

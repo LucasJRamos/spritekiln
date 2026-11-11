@@ -101,7 +101,8 @@ look at the image, fix, and only then `render`, `review` and `export`.
 | `style_preview` | a pose under each choice of the style's look (outline, shading, lines, dither, light) |
 | `new` | a spec created from a template |
 | `validate` | errors and warnings with `file:line:column` |
-| `pose` | the pose sheet image in the chosen directions |
+| `pose` | the pose sheet image in the chosen directions; with `changes`, only the directions an edit changed, before and after |
+| `arcs` | a clip's motion on one sheet (ghosts of every frame, paths of hands, feet and sockets) and a walk's ground speed |
 | `render` | the summary, QA report and contact sheets |
 | `review` | the art-direction report and its image |
 | `ref_compare` | silhouette IoU against a splash art, with hints and the comparison sheet |
@@ -119,7 +120,14 @@ and one that cannot still gets the measurements.
 - **Review with your own eyes.** Open `out/<name>/preview/contact_<anim>.png` and the GIFs before you call
   an asset done; ask for a `review` when something feels off but you cannot say what.
 - **Claude Code:** the recipe in `recipe.md` splits the work between the `character-modeler`,
-  `pixel-art-director` and `animator` agents.
+  `pixel-art-director` and `animator` agents, and sends the director's fixes back to the agent that did the
+  work.
+- **Say what must not be lost.** The traits you name ("the amber lens", "the red scarf") go to the spec's
+  `brief.must_keep` and, tied to their parts, to `review.keep`: from then on every render's QA says where one
+  stops reading.
+- **Measuring a session.** Set the environment variable `SPRITEKILN_USAGE` to a file before you start your
+  assistant; afterwards `spritekiln usage` shows what each command handed to it (text, images, an estimate in
+  tokens).
 - **Edits are text.** The spec is YAML with comments that explain the model; ask the assistant to edit it
   in place rather than regenerate it with a script, so the comments survive.
 - **The `spritekiln` command must be on the PATH** for the MCP configs above, which is what pipx and

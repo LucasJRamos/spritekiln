@@ -1,6 +1,6 @@
 # Roadmap
 
-**v0.3 (now):** characters and props from YAML specs in 8 directions (top-down 3/4) or a side view;
+**v0.4 (now):** characters and props from YAML specs in 8 directions (top-down 3/4) or a side view;
 animation by expressions and by keys, with events, timing targets and smears; sockets; normal and emissive
 maps; Aseprite-compatible JSON; automatic QA and an art-direction review; splash art → model workflow;
 instructions for coding AIs and an MCP server; an art-style interview before a project's first asset,
@@ -13,9 +13,15 @@ finishes; creases and edge highlights; surface paint; the art style applied by t
 (`extends`) and kits, 20 of them built in; a head and hair kit set, with `pose --focus head` and a face
 question in the style interview.
 
+New in v0.4: `review.keep` (a `must_keep` trait tied to its parts and
+checked by QA), parts hidden in some frames of a clip, a warning for floating parts, colour against the splash
+in `ref compare`; `spritekiln arcs` and the ground speed of a walk; `pose --changes`; agents that read by role
+and are continued for fixes; `spritekiln usage` (designs [17](design/17-traits-and-geometry-checks.md),
+[18](design/18-motion-on-one-sheet.md), [19](design/19-agent-context-by-role.md)).
+
 Ideas for later versions, roughly in order. Open an issue to discuss one before working on it.
 
-## 1. Environments and tiles (v0.4)
+## 1. Environments and tiles (v0.5)
 Same renderer, camera, light, materials and art style, so floors and walls match the characters.
 - `kind: tile` with `grid: {w: 1.0, d: 1.0}`: the camera is locked to the tile size (e.g. 32 px wide =
   1 unit), rendered in one direction.
@@ -49,6 +55,11 @@ flickering with `noise`, a door opening).
 - Local lights in the spec (a character's own torch) through `light.points`.
 
 ## 5. Tool and workflow
+- Measure the agent workflow on reference tasks off the templates (a non-humanoid, an asymmetric detailed
+  character, a stylised splash) with `SPRITEKILN_USAGE`, before and after design 19, judged trait by trait.
+- More clips in the top-down `humanoid` template (run, hurt, death), so `extends` brings them as it does for
+  `side_humanoid`; clips for weapons other than the sword.
+- A linear-stance option for walks (even ground speed) for big sprites.
 - `spritekiln style ask`: the art-style questions in the terminal, for users who work without an AI.
 - `spritekiln watch`: re-render `pose` when the YAML is saved (a fast loop for hand editing).
 - A local HTML viewer (animation, direction, zoom, background, onion skin) reading the exported JSON.

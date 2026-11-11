@@ -105,7 +105,7 @@ def test_resume_from_cache_and_pool_matches_in_process(tmp_path):
         for other in (pooled, fresh_pool):
             np.testing.assert_array_equal(fr.img, other[k].img)
             np.testing.assert_array_equal(fr.normal, other[k].normal)
-            assert (fr.ms, fr.events, fr.sockets, fr.materials) == other[k][3:]
+            assert (fr.ms, fr.events, fr.sockets, fr.materials, fr.parts) == other[k][3:]
 
 
 def test_dead_worker_degrades_to_fewer_jobs(tmp_path, monkeypatch):

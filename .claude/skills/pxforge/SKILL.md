@@ -19,6 +19,8 @@ spritekiln spec outline <spec.yaml>                   # map of the file: each pa
 spritekiln spec show <spec.yaml> parts.helm animations.walk   # numbered lines of the blocks you edit
 python -m pxforge pose <spec.yaml> [--anim walk --frame 3] [--dirs all|s,se,e] [--draft]   # cheap preview PNG
 python -m pxforge pose <spec.yaml> --focus head --dirs all     # close-up (12x) of the head, hair and face
+python -m pxforge pose <spec.yaml> --dirs all --changes        # after an edit: only the directions that changed, before/after
+spritekiln arcs <spec.yaml> --anim attack [--dirs s,e]  # a clip's motion on one sheet: ghosts + hand/foot/socket paths
 python -m pxforge render <spec.yaml> [--anims idle,walk] [--dirs s,e] [--size 48] [--draft]   # atlas, JSON, GIFs, QA
 python -m pxforge review <spec.yaml> [--bg floor.png --tint 0.7,0.7,1.0] [--against other.yaml] [--ref splash.png]
 python -m pxforge export <spec.yaml>                          # hand the render to the engine in spritekiln.toml
@@ -30,6 +32,7 @@ python -m pxforge new <name> [--extends] [--template humanoid|side_humanoid] [--
 spritekiln kits [<name>]                                # kits a spec can `use` (weapons, headwear, capes...)
 python -m pxforge cache info|prune|clear                      # render cache (.kilncache/)
 python -m pxforge update [--check | --files]                  # upgrade SpriteKiln, refresh the project's AI files
+spritekiln usage                                       # what the commands handed to the AI (set SPRITEKILN_USAGE=<file>)
 ```
 `pose` costs about 1 s per direction. A full `render` of 3 animations × 8 directions is about 190 frames
 (minutes), so iterate with `pose` and render everything at the end. `render` picks the number of worker
@@ -66,10 +69,19 @@ If the `spritekiln` command is not on the PATH, use `python -m spritekiln` (or t
    silhouette in s, e, n and a diagonal. A character's head and face: `pose --focus head --dirs all`, since a
    face is a few pixels on a normal preview. If you cannot see images, run `review` and read the numbers
    instead (see [art-direction.md](art-direction.md)).
-5. Repeat 2–4. For an animation, `pose --anim X --frame i` on the key frames. Before rendering, one full
-   (not draft) `pose --dirs all` to check edges and thin parts.
+   **After an edit to a model you have already seen whole, add `--changes`**: the image then holds only the
+   directions whose pixels changed, the earlier pose above the new one, and the text names the directions that
+   are pixel for pixel the same. You see exactly what the edit did, and "changes: none" means the edit did not
+   reach the pixels (a typo, a part hidden behind another, a value too small to move a pixel). Nothing is
+   skipped that could differ: the renderer is deterministic, so an identical direction is the image you already
+   looked at.
+5. Repeat 2–4. For an animation, `pose --anim X --frame i` on the key frames and `arcs --anim X` for the
+   motion as a whole. Before rendering, one full (not draft, without `--changes`) `pose --dirs all` to check
+   edges and thin parts, and `pose --focus head --dirs all` for a character.
 6. **`render`**, then read the QA summary and the `preview/contact_<anim>.png` sheets. QA errors (sprite
-   clipped at the edge, empty frame, timing target missed) block the asset.
+   clipped at the edge, empty frame, timing target missed) block the asset. The summary also names the parts
+   that vanish in some frames of a clip (`qa.json` `info.hidden`: a weapon swinging behind the body) and the
+   ground speed of a walk or run (`info.ground_speed`): look at those frames, and report the speed to the user.
 7. **Report**: what changed, the paths of the GIFs and contact sheets, the QA warnings left.
 
 Never call something visual "good" without having looked at the PNG (or read `review` numbers).
@@ -86,6 +98,19 @@ shows and zoomed by whole factors that fit an AI's image budget (about 1500 px a
 sprite pixel is a clean square. `--scale` is the largest zoom. `pose --no-crop` shows the whole frame; over a
 `--bg` the whole frame always shows. `pose --focus <bone>` crops to a bone and everything attached below it
 (`head`: the head, hair, eyes and headwear), or to parts by name, at up to 12x. Atlases are never cropped.
+
+## What `validate` and QA check for you
+Read these before opening an image; they are exact, and each one names the place to fix.
+- `validate`: errors with `file:line:column`; unknown keys (a typo is otherwise ignored); sizes under a pixel;
+  **a part that floats** away from every other part in the rest pose (a hand off its arm, a pauldron above the
+  shoulder: the most common defect of a model that otherwise renders; a part meant to hang in the air gets
+  `floating: true`); timing targets.
+- QA after `render` (`qa.json`): clipping, empty and identical frames, loop seams, boiling pixels, colours,
+  the `review:` targets (value, pixels per material, **`keep` traits**: a `must_keep` trait that falls under
+  its pixels in a direction or vanishes in a frame, see [spec.md](SPEC.md)), parts hidden in some frames, and a
+  walk's ground speed.
+They do not replace looking: no number sees a face, a silhouette that reads as the wrong thing, or a pose
+without weight. Every visual decision and every final check is made on the images.
 
 ## Top-down or side-scroller
 Specs are top-down 3/4 by default (`view: topdown`). For a platformer or side-scroller use `view: side`
@@ -108,7 +133,8 @@ instructions; commands print a note when they come from another version.
 
 ## Tools for AIs
 `python -m pxforge mcp` serves the same operations over the Model Context Protocol (style, validate, pose,
-render, review, ref_compare, export, new, kits, style_preview), returning images and JSON. Use it when your AI client supports MCP.
+render, review, ref_compare, arcs, export, new, kits, style_preview), returning images and JSON; `pose` takes
+`changes` like the command. Use it when your AI client supports MCP.
 
 The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°) is a short list.
 
@@ -134,6 +160,9 @@ The renderer can draw anything; what survives at 64 px (top-down 3/4, pitch 38°
   raise `size`, or reduce that gesture; change `camera.scale` only for the whole game.
 - **Consistency:** never change one asset's camera `pitch`, `light` or density (`camera.scale`); the
   whole game shares them. A bigger creature gets a bigger `size`.
+- **Nothing floats by accident:** every part touches what it belongs to. `validate` warns about a part that
+  is more than a pixel and a half away from every other part in the rest pose; move it, or mark an orb, a
+  halo or a puff of steam `floating: true` ([spec.md](SPEC.md)).
 
 ## Which shape for what
 Pixel artists draw plates, blades and brims with crisp edges. Rounded primitives blended together make
@@ -339,7 +368,10 @@ the part, and a volume must enclose the surface it paints (a box through a cape 
    hoods, `membrane` wings). After each: `validate`, `pose --dirs all` (`--draft` while shaping), look.
 5. Check **all 8 directions**, not only the reference's: the back and the profiles must make sense. Invent
    what the reference does not show, coherently, and write the decision in `brief`.
-6. Materials and palette last-but-not-least: 3–6 materials plus one emissive; tune ramps with
+6. Tie each `must_keep` trait to its parts or materials in `review.keep` ([spec.md](SPEC.md)), with the
+   directions where it must show: from then on QA and `review` say where a trait stops reading, in every
+   later edit and every clip.
+7. Materials and palette last-but-not-least: 3–6 materials plus one emissive; tune ramps with
    `python -m pxforge palette ramp "#hex" --steps 5`.
 
 ## Rules for a modeler (human or AI)
@@ -347,7 +379,8 @@ the part, and a volume must enclose the surface it paints (a box through a cape 
   and colours ([style.md](style.md)). If no style is recorded, stop and report that the user has to answer
   the style questions first.
 - Work only in the asked asset's spec. Iterate in small steps: edit → `validate` → `pose --dirs all` →
-  **look at the PNG** → fix. Never call a model done without having seen the 8 directions.
+  **look at the PNG** → fix; once you have seen the model whole, `pose --dirs all --changes` shows what each
+  edit did. Never call a model done without having seen the 8 directions in a full pose.
 - With a splash art: `ref prep` once, `ref compare` after every proportion change (targets in
   [splash-to-model.md](splash-to-model.md)).
 - Keep the skeleton, channels and names the animations use. If you rename something, update the
@@ -355,8 +388,9 @@ the part, and a volume must enclose the surface it paints (a box through a cape 
 - Do not change `camera.pitch`, `camera.scale`, `light`, shared palettes or the project's style unless
   asked; an exception for this asset goes in its `brief:`.
 - Do not render every animation while modeling; at most `render --anims idle --dirs s,e,n,se`.
-- Report: what changed (parts, materials), IoU and hints left, image paths for review, and the design
-  decisions taken where the reference shows nothing.
+- Report: what changed (parts, materials), IoU and hints left, each `must_keep` trait with the parts that
+  carry it (`review.keep`), image paths for review, and the design decisions taken where the reference shows
+  nothing.
 
 ## More
 Reference files in this folder: [style.md](style.md), [SPEC.md](SPEC.md), [splash-to-model.md](splash-to-model.md), [animation.md](animation.md), [art-direction.md](art-direction.md), [recipe.md](recipe.md).

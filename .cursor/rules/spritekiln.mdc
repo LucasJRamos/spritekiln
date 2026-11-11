@@ -19,6 +19,9 @@ Rules that matter:
   anything. Follow the recorded style in every asset; change it only when the user explicitly asks.
 - Run `spritekiln validate <spec>` after every edit; problems come with file:line:column.
 - Iterate with `spritekiln pose <spec> --dirs all` (about 1 s per direction); `spritekiln render` only at the end.
+  After an edit to a model you have already seen whole, `--changes` shows only the directions that changed.
+- Tie each `must_keep` trait of the `brief` to its parts in `review.keep`: QA then says where it stops reading.
+- Judge a clip's motion on `spritekiln arcs <spec> --anim <clip>` before its contact sheet.
 - A character's head and hair are decided in its `brief.head` and judged up close with
   `spritekiln pose <spec> --focus head --dirs all`: on a normal preview a face is a few pixels.
 - Never call something visual good without looking at the PNG. If you cannot see images, use the numbers of

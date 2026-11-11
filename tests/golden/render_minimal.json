@@ -675,7 +675,7 @@
  },
  "meta": {
   "app": "spritekiln",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "image": "minimal.png",
   "format": "RGBA8888",
   "size": {
@@ -736,7 +736,7 @@
  },
  "spritekiln": {
   "format": 1,
-  "generator": "spritekiln 0.3.0",
+  "generator": "spritekiln 0.4.0",
   "name": "minimal",
   "frame_size": 32,
   "pivot": {

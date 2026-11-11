@@ -168,6 +168,17 @@ the game **Hunt Tower**. All of them, with more animations: [`showcase/`](showca
 
 ## What's new
 
+**0.4** (2026-11-11)
+- **Traits that stay:** tie what must not be lost ("the amber lens") to its parts with `review.keep`, and
+  every render's QA says where it stops reading. `validate` warns about parts that float off the body, and QA
+  names the parts that vanish in some frames of a clip.
+- **Motion on one sheet:** `spritekiln arcs` draws a clip's frames as ghosts with the paths of hands, feet
+  and sockets, and a walk reports the ground speed to move the character at so its feet do not slide.
+- **Closer to the splash:** `ref compare` says where the sprite's colour departs from the art.
+- **Lighter on your AI:** `pose --changes` shows only the directions an edit changed; Claude Code agents read
+  what their role needs, and fixes go back to the agent that did the work; `spritekiln usage` measures a
+  session.
+
 **0.3** (2026-10-30)
 - **Sharper forms:** extruded and revolved profiles, tubes, shells and cuts give blades, plates, brims and
   capes crisp edges instead of inflated blobs.

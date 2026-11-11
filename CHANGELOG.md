@@ -2,6 +2,48 @@
 
 All notable changes to SpriteKiln. The output format has its own version (`docs/format.md`).
 
+## 0.4.0 (2026-11-11)
+
+### Upgrading from 0.3
+- `spritekiln update` in a game folder installs 0.4 and refreshes the AI instructions there; run
+  `spritekiln update --files` in your other game folders.
+- Specs and renders keep working and no pixel changes. The render cache is rebuilt once (below).
+- The new spec keys (`review.keep`, `parts.<name>.floating`) are unknown to 0.3: a spec that uses them needs
+  0.4 everywhere it is validated.
+
+### Checks for what small images hide
+- `review: {keep: {<trait>: {parts: [...], materials: [...], min_px: 4, dirs: [...]}}}` ties a `must_keep`
+  trait of the brief to the parts or materials that show it. QA and `spritekiln review` warn where the trait
+  falls below its pixels in a direction and where it vanishes in single frames of a clip; `review.json` lists
+  each trait's pixels per direction.
+- QA lists the parts that show in some frames of a clip and not in others (`qa.json` `info.hidden`): a weapon
+  swinging behind the body.
+- `validate` warns about a part that floats more than a pixel and a half away from every other part in the
+  rest pose; `floating: true` on a part marks one that is meant to (an orb, a halo).
+- `ref compare` and `review --ref` say where the sprite's colour departs from the splash's at the same height
+  (much darker, much lighter, another colour).
+- Render caches are rebuilt once after upgrading (the frame data gained a count of pixels per part).
+
+### Motion
+- `spritekiln arcs <spec> --anim <clip>` (MCP `arcs`): one sheet per clip with every frame as a ghost and the
+  path of each hand, foot, socket and the head, one dot per frame. `--track` names other bones, IK joints or
+  sockets.
+- A looping walk or run reports its ground speed (`arcs`, the QA summary and `qa.json` `info.ground_speed`):
+  the px/s at which the game moves the character so its feet do not skate.
+
+### Less to read and render twice
+- `spritekiln pose --changes` (MCP `pose` with `changes`): after an edit, only the directions whose pixels
+  changed, the earlier pose above the new one, and the names of the directions that are identical.
+- Claude Code agents read what their role needs: none reads the style interview (their prompt carries what
+  each answer means), the animator reads `SPEC-animation.md` (the animation sections of the spec reference),
+  the modeler reads the splash skill only with a splash. The art director judges at the project's view and
+  size instead of "top-down, 64-96 px", gives a line per `must_keep` trait, and checks fixes one by one in a
+  second round.
+- The recipe sends an art director's fixes to the agent that made the model or the clips instead of a new
+  one.
+- `SPRITEKILN_USAGE=<file>` logs the text and images every command and MCP tool hands to the AI;
+  `spritekiln usage` sums it with a token estimate, to compare a task before and after a change.
+
 ## 0.3.0 (2026-10-30)
 
 ### Upgrading from 0.2

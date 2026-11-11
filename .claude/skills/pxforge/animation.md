@@ -57,16 +57,30 @@ missing (a cape that should sway), add a channel, use it in the bone or part exp
 ## Check
 1. `pose --anim <a> --frame <i> --dirs s,e,n,se` on the key frames before rendering (`--draft` while
    blocking the poses).
-2. `render --anims <a>` → open `preview/contact_<a>.png` (rows = directions, columns = frames) and the GIF.
+2. `arcs <spec> --anim <a> --dirs s,e,n` (`--draft` while blocking): one sheet per clip with every frame as a
+   ghost under the last one and the path of each hand, foot, socket and the head, one dot per frame (bigger
+   where an event fires). Read the motion on it: a strike travels on an **arc**, not a straight line or a zigzag;
+   the dots bunch up in the anticipation and the recovery and spread out in the strike (**spacing** is the
+   timing); the path overshoots and comes back (**follow-through**); a loop closes. `--track sword_tip,hand_R`
+   traces other bones, IK joints or sockets. It costs one image where a contact sheet costs frames × directions.
+3. `render --anims <a>` → open `preview/contact_<a>.png` (rows = directions, columns = frames) and the GIF.
    To check timing and motion while iterating, `render --anims <a> --draft` is much faster and writes only
    `preview-draft/`; judge the final look on the full render.
-3. QA: "loop seam" (last → first jumps) = a non-periodic channel; "identical frames" = a key that changes
+4. QA: "loop seam" (last → first jumps) = a non-periodic channel; "identical frames" = a key that changes
    nothing; "clipped at the edge" = a gesture too big for the frame; a timing error = durations off target;
    "pixels boil" = shading that blinks for one frame because the body moves by fractions of a pixel (`qa.json`
    `info.boil` has the share per animation and direction): add `snap: [root, torso_rot]` (SPEC.md) or make the
-   movement at least a pixel, and check the number again.
-4. Check the **diagonals and `n`**: a strike that reads in `s` can vanish behind the body in `n`; sometimes
+   movement at least a pixel, and check the number again. "hidden in some frames" (`qa.json` `info.hidden`:
+   per clip and direction, the parts that show in some frames and not at all in others) = a weapon or a hand
+   passing behind the body: open those frames, and raise the hand, grow the arc or cheat with `yaw` when the
+   gesture stops reading. A `review.keep` trait that vanishes in a frame is a warning.
+5. Check the **diagonals and `n`**: a strike that reads in `s` can vanish behind the body in `n`; sometimes
    the smear arc must grow or the hand rise.
+6. **Ground speed** (walk, run): `arcs` and QA give the speed at which the ground passes under the planted
+   feet (`info.ground_speed`, px/s). Report it: the game moves the character at that speed, or the feet skate.
+   When the game's speed is fixed, fit the stride or the frame times to it. `uneven` is how much that speed
+   varies during the stance: about 0.8 for a sine-wave stance (`cos(p)`), which reads fine at small sizes; for a
+   big sprite make the stance linear in `p` to bring it down.
 
 ## Rules for an animator (human or AI)
 - Run `python -m pxforge style` first: its `animation` answer (fluid or snappy, [style.md](style.md)) sets the
@@ -74,7 +88,7 @@ missing (a cape that should sway), add a channel, use it in the bone or part exp
   style questions first.
 - Touch `animations:` (and, for a new degree of freedom, `channels:` plus the expression using it). Do not
   change the model's geometry beyond what the animation needs.
-- Look at the key frames before rendering; after rendering, fix QA errors (clipping, loop seams, identical
-  frames, timing).
-- Report: animations created or changed, frames and ms, events, timing targets, QA warnings left, and the
-  paths of the GIFs and contact sheets.
+- Look at the key frames and the arcs sheet before rendering; after rendering, fix QA errors (clipping, loop
+  seams, identical frames, timing) and look at the frames where QA says a part is hidden.
+- Report: animations created or changed, frames and ms, events, timing targets, the ground speed of walks
+  and runs, QA warnings left, and the paths of the GIFs, arcs and contact sheets.

@@ -53,6 +53,31 @@ SKILLS = {
         body=['animation.md'],
     ),
 }
+# A slice of spec.md for a role that does not write geometry: the animator reads these sections (about a third
+# of the reference) and opens the whole SPEC.md only when it needs a part or a material.
+SPEC_SLICES = {
+    'SPEC-animation.md': dict(
+        skill='spritekiln-animation',
+        title='# Spec reference for animation',
+        intro='The sections of the spec reference ([SPEC.md](SPEC.md)) an animator works with: expressions, '
+        'channels, snapping, mirroring, bones, IK, animations, sockets and timing targets. Geometry, materials, '
+        'kits and paint are in SPEC.md: open it when a clip needs a new part (a smear arc) or a part to react.',
+        sections=[
+            '## Units and axes',
+            '## Expressions',
+            '## channels',
+            '## snap',
+            '## Mirroring `_L` / `_R`',
+            '## bones',
+            '## ik (two bones)',
+            '## animations',
+            '## sockets (attachment points)',
+            '## timing (targets)',
+        ],
+    ),
+}
+STYLE_SECTION = ('style.md', '## What the style means for each asset')
+
 LEGACY_SKILLS = {
     'pxforge': 'spritekiln',
     'pxforge-splash-to-model': 'spritekiln-splash-to-model',
@@ -65,7 +90,8 @@ AGENT_ROLES = {
         'is faithful and legible in 8 directions. Use to create a model or change how an asset looks.',
         tools='Read, Write, Edit, Bash, Glob, Grep',
         role='You are the character modeler. You work only on the spec YAML of the requested asset.',
-        read=['SKILL.md', 'SPEC.md', 'style.md', '../spritekiln-splash-to-model/SKILL.md'],
+        read=['SKILL.md', 'SPEC.md'],
+        read_if=[('working from a splash or concept art', '../spritekiln-splash-to-model/SKILL.md')],
         skill='spritekiln',
         section=('modeling.md', '## Rules for a modeler'),
     ),
@@ -76,7 +102,7 @@ AGENT_ROLES = {
         tools='Read, Write, Edit, Bash, Glob, Grep',
         role='You are the animator. You change `animations:` (and, for a new degree of freedom, `channels:` and the '
         'expression that uses it).',
-        read=['SKILL.md', 'SPEC.md', 'style.md'],
+        read=['SKILL.md', 'SPEC-animation.md'],
         skill='spritekiln-animation',
         section=('animation.md', '## Rules for an animator'),
     ),
@@ -85,9 +111,9 @@ AGENT_ROLES = {
         'qa.json of a SpriteKiln asset and returns a prioritised list of concrete fixes (which part/channel/key to '
         'change and how). Does not edit files. Use after a render or a ref compare, before calling an asset done.',
         tools='Read, Bash, Glob, Grep',
-        role='You are a demanding art director for top-down pixel art (64-96 px, 8 directions). You never edit '
-        'files: you analyse and recommend.',
-        read=['SPEC.md', 'style.md'],
+        role='You are a demanding pixel-art director. You never edit files: you analyse and recommend. Judge '
+        "every asset at the project's own view, size on screen and directions (`spritekiln style` gives them).",
+        read=['SPEC.md'],
         skill='spritekiln',
         section=('art-direction.md', None),
     ),
@@ -154,6 +180,9 @@ Rules that matter:
   anything. Follow the recorded style in every asset; change it only when the user explicitly asks.
 - Run `spritekiln validate <spec>` after every edit; problems come with file:line:column.
 - Iterate with `spritekiln pose <spec> --dirs all` (about 1 s per direction); `spritekiln render` only at the end.
+  After an edit to a model you have already seen whole, `--changes` shows only the directions that changed.
+- Tie each `must_keep` trait of the `brief` to its parts in `review.keep`: QA then says where it stops reading.
+- Judge a clip's motion on `spritekiln arcs <spec> --anim <clip>` before its contact sheet.
 - A character's head and hair are decided in its `brief.head` and judged up close with
   `spritekiln pose <spec> --focus head --dirs all`: on a normal preview a face is a few pixels.
 - Never call something visual good without looking at the PNG. If you cannot see images, use the numbers of
@@ -205,6 +234,31 @@ def skill_files(base):
     return [('SPEC.md' if n == 'spec.md' else n, n) for n in DOCS if n not in SKILLS[base]['body']]
 
 
+def spec_slice(name):
+    """The text of a SPEC_SLICES file: the named sections of spec.md under a short introduction."""
+    meta, text = SPEC_SLICES[name], source('spec.md')
+    body = '\n\n'.join(_section(text, h).strip() for h in meta['sections'])
+    return f'{meta["title"]}\n\n{meta["intro"]}\n\n{body}\n'
+
+
+def slice_files(base):
+    """The SPEC_SLICES files that belong in skill `base`'s folder."""
+    return [n for n, meta in SPEC_SLICES.items() if meta['skill'] == base]
+
+
+def _style_note(skill):
+    """What an agent needs of the art style: the recorded answers come from `spritekiln style`, their meaning for
+    an asset from this table. The interview (most of style.md) is the main session's job, so agents skip it."""
+    doc, heading = STYLE_SECTION
+    table = _section(source(doc), heading).replace(heading, "## The project's art style", 1)
+    lead = (
+        'Run `spritekiln style`: it prints the recorded answers. This table says what each one means for your '
+        'work. The interview questions are in style.md; you cannot ask the user, so do not read it for them.'
+    )
+    table = table.replace("## The project's art style\n", f"## The project's art style\n{lead}\n\n", 1)
+    return _skill_links(table, skill, '../skills/' + skill + '/').strip()
+
+
 def write_claude(root, docs, cli='spritekiln', names=None, extra_note='', agents=True, claude_md=True):
     """Claude Code: skills (self-contained folders), agents and a CLAUDE.md block."""
     names = names or {k: k for k in SKILLS}
@@ -214,7 +268,7 @@ def write_claude(root, docs, cli='spritekiln', names=None, extra_note='', agents
         body = '\n\n'.join(_drop_title(source(n)).strip() for n in meta['body'])
         title = source(meta['body'][0]).splitlines()[0]
         desc = meta['description'] + extra_note
-        others = ', '.join(f'[{t}]({t})' for t, _ in skill_files(base))
+        others = ', '.join(f'[{t}]({t})' for t in [t for t, _ in skill_files(base)] + slice_files(base))
         skill = (
             f'---\nname: {out_name}\ndescription: {desc}\n---\n\n{title}\n\n{body}\n\n'
             f'## More\nReference files in this folder: {others}.\n'
@@ -222,28 +276,41 @@ def write_claude(root, docs, cli='spritekiln', names=None, extra_note='', agents
         _write(os.path.join(folder, 'SKILL.md'), with_cli(_skill_links(skill, base), cli))
         for target, n in skill_files(base):
             _write(os.path.join(folder, target), with_cli(_skill_links(source(n), base), cli))
+        for target in slice_files(base):
+            _write(os.path.join(folder, target), with_cli(_skill_links(spec_slice(target), base), cli))
     if not agents:
         return
     for name, meta in AGENT_ROLES.items():
         skill_dir = f'.claude/skills/{meta["skill"]}'
-        reads = ', '.join(
-            f'`{os.path.normpath(os.path.join(skill_dir, r)).replace(os.sep, "/")}`' for r in meta['read']
+
+        def ref(r, skill_dir=skill_dir):
+            return f'`{os.path.normpath(os.path.join(skill_dir, r)).replace(os.sep, "/")}`'
+
+        reads = f'Read {", ".join(ref(r) for r in meta["read"])} before starting'
+        for when, r in meta.get('read_if', []):
+            reads += f'; when {when}, also {ref(r)}'
+        reads += (
+            '. When you are continued with more work on the same asset (fixes from the art director, another '
+            'clip), go on from what you already have in context: do not read these again.'
         )
         doc, heading = meta['section']
         rules = _section(source(doc), heading) if heading else _drop_title(source(doc))
         text = (
             f'---\nname: {name}\ndescription: {meta["description"]}\ntools: {meta["tools"]}\n---\n\n'
-            f'{meta["role"]}\n\nRead {reads} before starting.\n\n'
+            f'{meta["role"]}\n\n{reads}\n\n'
             'Recommended model: the strongest one available to you, with image input; this work rewards '
             'visual judgement.\n\n'
-            f'{_skill_links(rules, meta["skill"], "../skills/" + meta["skill"] + "/").strip()}\n'
+            f'{_skill_links(rules, meta["skill"], "../skills/" + meta["skill"] + "/").strip()}\n\n'
+            f'{_style_note(meta["skill"])}\n'
         )
         _write(os.path.join(root, '.claude', 'agents', f'{name}.md'), with_cli(text, cli))
     if not claude_md:
         return
     block = essentials(docs, cli) + (
         '\nClaude Code: skills `spritekiln`, `spritekiln-splash-to-model`, `spritekiln-animation`; agents '
-        '`character-modeler`, `animator`, `pixel-art-director` (see `recipe.md` for the order).\n'
+        '`character-modeler`, `animator`, `pixel-art-director` (see `recipe.md` for the order; send an art '
+        "director's fixes to the agent that made the model or the clips, with SendMessage, instead of starting a "
+        'new one).\n'
     )
     upsert(os.path.join(root, 'CLAUDE.md'), with_cli(block, cli))
 
@@ -382,6 +449,7 @@ def _repo_files():
         base = LEGACY_SKILLS.get(folder, folder)
         files.append(f'.claude/skills/{folder}/SKILL.md')
         files += [f'.claude/skills/{folder}/{t}' for t, _ in skill_files(base)]
+        files += [f'.claude/skills/{folder}/{t}' for t in slice_files(base)]
     return files
 
 

@@ -9,7 +9,7 @@ engines and tools that read it. **Output format version: 1.**
 | `<name>_normal.png` | Normal map with the same layout. |
 | `<name>_emissive.png` | Emissive layer with the same layout (unlit pixels, for additive blending). |
 | `<name>.json` | Frames, tags and the `spritekiln` block (below). |
-| `qa.json` | Automatic checks: `ok`, `errors`, `warnings`, `info`. |
+| `qa.json` | Automatic checks: `ok`, `errors`, `warnings`, `info` (colours, `boil`, `hidden`: parts that vanish in some frames, `ground_speed` of walks). For people and AIs, not for engines. |
 | `preview/` | `<anim>_<n>dir.gif` and `contact_<anim>.png` for human review. Not meant for engines. |
 
 ## Atlas layout

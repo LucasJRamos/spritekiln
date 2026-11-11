@@ -251,6 +251,58 @@ def compare_masks(ref_mask, spr_mask, pitch=None):
     return dict(iou=round(iou, 3), pitch=pitch, ref=mr, render=ms, hints=hints), a, b
 
 
+def band_colors(rgba, mask=None):
+    """The typical colour (median, as #rrggbb; None for an empty band) of each of the BANDS height bands of the
+    opaque pixels of an RGBA image, inside their bounding box: the bands `metrics` uses for the width profile."""
+    a = np.asarray(rgba)
+    mask = a[..., 3] > 128 if mask is None else mask
+    ys = np.nonzero(mask.any(1))[0]
+    if not len(ys):
+        return [None] * BANDS
+    y0, H = int(ys[0]), int(ys[-1]) + 1 - int(ys[0])
+    out = []
+    for i in range(BANDS):
+        lo = y0 + int(i * H / BANDS)
+        hi = max(y0 + int((i + 1) * H / BANDS), lo + 1)
+        px = a[lo:hi][mask[lo:hi]][:, :3]
+        out.append(pal.to_hex(np.median(px, 0) / 255.0) if len(px) else None)
+    return out
+
+
+COLOR_DARK = 0.16  # OKLab lightness gap (0..1) worth a hint: about two tones of a ramp
+COLOR_HUE = 0.085  # OKLab chroma-plane gap worth a hint: another colour family
+
+
+def color_hints(ref_cols, spr_cols, limit=4):
+    """Where the sprite's colour departs from the reference's at the same height: much darker or lighter, or
+    another colour. The largest `limit` gaps, as text. A splash is painted under its own light, so these are
+    leads to look at, not targets to hit."""
+    from .pixelize import hx
+
+    runs = []  # neighbouring bands with the same finding are one hint: [score, first band, last band, text]
+    for i, (r, s) in enumerate(zip(ref_cols, spr_cols)):
+        said = []
+        if r and s:
+            lr, ls = pal.oklab(np.array(hx(r), float)), pal.oklab(np.array(hx(s), float))
+            dl, dh = float(ls[0] - lr[0]), float(np.hypot(*(ls[1:] - lr[1:])))
+            if abs(dl) > COLOR_DARK:
+                said.append('much darker than' if dl < 0 else 'much lighter than')
+            if dh > COLOR_HUE:
+                said.append('another colour than')
+        if not said:
+            continue
+        score = abs(dl) / COLOR_DARK + dh / COLOR_HUE
+        if runs and runs[-1][2] == i - 1 and runs[-1][4] == said:
+            runs[-1][0], runs[-1][2] = max(runs[-1][0], score), i
+        else:
+            runs.append([score, i, i, f'render {s} is {" and ".join(said)} the reference {r}', said])
+    hints = []
+    for _, a, b, text, _ in sorted(runs, key=lambda r: -r[0])[:limit]:
+        where = f'band {BAND_NAMES[a]}' if a == b else f'bands {BAND_NAMES[a]} to {BAND_NAMES[b]}'
+        hints.append(f'{where}: {text}')
+    return hints
+
+
 def sheet(ref_img, sprite, turn, iou_grids, ref_colors, spec_mats, out_path, title=''):
     """Side-by-side review sheet for the agent: reference | sprite | overlay | 8-dir turnaround | palettes. The
     sprite (zoom 2k) and the turnaround (zoom k) are cropped to what they show, with the largest whole k up

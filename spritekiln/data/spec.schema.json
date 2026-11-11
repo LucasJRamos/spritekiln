@@ -136,6 +136,20 @@
             "additionalProperties": false,
             "properties": {"min_px": {"type": "integer", "minimum": 0}, "max_px": {"type": "integer", "minimum": 0}}
           }
+        },
+        "keep": {
+          "type": "object",
+          "description": "Trait -> {parts, materials, min_px, dirs}: a `brief.must_keep` trait as a check. Its parts' and materials' opaque pixels must reach `min_px` (default 4) in every direction, or in `dirs` when it only shows from some.",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "parts": {"type": "array", "items": {"type": "string"}, "description": "Part names that show the trait (name a mirrored _R twin too when both sides count)."},
+              "materials": {"type": "array", "items": {"type": "string"}, "description": "Materials that show the trait (paint included)."},
+              "min_px": {"type": "integer", "minimum": 1, "description": "Fewest opaque pixels for the trait to read (default 4)."},
+              "dirs": {"type": "array", "items": {"$ref": "#/$defs/direction"}, "description": "Directions where it must show (default: all); leave out the ones where the body hides it."}
+            }
+          }
         }
       }
     },
@@ -336,6 +350,7 @@
         }},
         "priority": {"type": "number", "exclusiveMinimum": 0, "description": "Weight of its samples in the pixel vote (default 1); 2-3 keeps thin weapons visible."},
         "min_cover": {"type": "integer", "minimum": 1, "description": "Samples of this part that fill a pixel even below the camera coverage (thin details: 1 or 2)."},
+        "floating": {"type": "boolean", "description": "This part is meant to touch no other (an orb, a puff of steam): `validate` does not warn about it."},
         "cut_blend": {"anyOf": [{"$ref": "#/$defs/expr"}, {"type": "object", "additionalProperties": false, "properties": {"mode": {"enum": ["smooth", "chamfer", "round", "stairs", "groove"]}, "k": {"type": "number"}, "n": {"type": "integer", "minimum": 1}, "depth": {"type": "number"}, "width": {"type": "number"}}}], "description": "How the cuts carve: a radius (smooth), {mode: chamfer|round|stairs, k, n}, or {mode: groove, depth, width}."}
       }
     },

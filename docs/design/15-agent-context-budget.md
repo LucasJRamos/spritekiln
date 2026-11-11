@@ -1,6 +1,8 @@
 # 15. Agent context budget
 
-**Status:** not in 0.3 (decided 2026-10-28) · **Track:** tokens · **Stage:** not scheduled yet · **Depends on:** 03, 04
+**Status:** not in 0.3 (decided 2026-10-28); replaced on 2026-11-11 by
+[19](19-agent-context-by-role.md), which keeps what the review below found safe · **Track:** tokens ·
+**Depends on:** 03, 04
 
 ## Problem
 An asset session loads a lot of context before any useful work, and the recipe loads it again:
