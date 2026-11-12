@@ -168,7 +168,7 @@ the game **Hunt Tower**. All of them, with more animations: [`showcase/`](showca
 
 ## What's new
 
-**0.4** (2026-11-11)
+**0.4** (2026-11-12)
 - **Traits that stay:** tie what must not be lost ("the amber lens") to its parts with `review.keep`, and
   every render's QA says where it stops reading. `validate` warns about parts that float off the body, and QA
   names the parts that vanish in some frames of a clip.

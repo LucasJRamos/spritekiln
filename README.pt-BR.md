@@ -171,7 +171,7 @@ foram feitos para o jogo **Hunt Tower**. Todos eles, com mais animações: [`sho
 
 ## Novidades
 
-**0.4** (2026-11-11)
+**0.4** (2026-11-12)
 - **Traços que não se perdem:** ligue o que não pode sumir ("a lente âmbar") às suas partes com
   `review.keep`, e o QA de cada render diz onde o traço deixa de aparecer. O `validate` avisa sobre partes que
   flutuam fora do corpo, e o QA lista as partes que somem em alguns frames de um clipe.
